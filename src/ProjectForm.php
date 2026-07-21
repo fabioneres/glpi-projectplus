@@ -43,6 +43,7 @@ $(function () {
    var typeRow = target.find('select[name="projecttypes_id"]').closest('tr');
    var managerRow = target.find('select[name="groups_id"]').closest('tr');
    var descriptionRow = target.find('textarea[name="content"]').closest('tr');
+   var commentRow = target.find('textarea[name="comment"]').closest('tr');
 
    if (creationRow.length) {
       creationRow.before(projectHeader);
@@ -55,7 +56,31 @@ $(function () {
    if (managerRow.length) {
       managerRow.after(requesterRows);
    }
-   if (descriptionRow.length) {
+   if (descriptionRow.length && commentRow.length && planningRows.length) {
+      var pluginCells = planningRows.children().detach();
+      var descriptionLabel = descriptionRow.children().eq(0).detach();
+      var descriptionField = descriptionRow.children().eq(0).detach();
+      var commentLabel = commentRow.children().eq(0).detach();
+      var commentField = commentRow.children().eq(0).detach();
+      var objectiveLabel = pluginCells.eq(0);
+      var objectiveField = pluginCells.eq(1);
+      var expectedResultLabel = pluginCells.eq(2);
+      var expectedResultField = pluginCells.eq(3);
+
+      descriptionField.attr('colspan', 1).find('textarea').css('width', '100%');
+      commentField.attr('colspan', 1).find('textarea').css('width', '100%');
+      objectiveField.find('textarea').css('width', '100%');
+      expectedResultField.find('textarea').css('width', '100%');
+
+      $('<tr class="tab_bg_1 projectplus-native-textareas"></tr>')
+         .append(descriptionLabel, descriptionField, objectiveLabel, objectiveField)
+         .insertBefore(descriptionRow);
+      $('<tr class="tab_bg_1 projectplus-native-textareas"></tr>')
+         .append(commentLabel, commentField, expectedResultLabel, expectedResultField)
+         .insertBefore(descriptionRow);
+      descriptionRow.remove();
+      commentRow.remove();
+   } else if (descriptionRow.length) {
       descriptionRow.before(planningRows);
    }
 });
@@ -119,13 +144,10 @@ JAVASCRIPT
 
    private static function renderPlanningRows(array $data): void
    {
-      self::fullWidthRow(
+      self::row(
          'projectplus-planning-data',
          __('Objetivo', 'projectplus'),
-         self::nativeTextarea('objective', $data['objective'])
-      );
-      self::fullWidthRow(
-         'projectplus-planning-data',
+         self::nativeTextarea('objective', $data['objective']),
          __('Produto/Resultado esperado', 'projectplus'),
          self::nativeTextarea('expected_result', $data['expected_result'])
       );
@@ -136,13 +158,6 @@ JAVASCRIPT
       echo '<tr class="tab_bg_1 ' . $class . '">';
       echo '<td>' . $firstLabel . '</td><td>' . $firstField . '</td>';
       echo '<td>' . $secondLabel . '</td><td>' . $secondField . '</td>';
-      echo '</tr>';
-   }
-
-   private static function fullWidthRow(string $class, string $label, string $field): void
-   {
-      echo '<tr class="tab_bg_1 ' . $class . '">';
-      echo '<td>' . $label . '</td><td colspan="3">' . $field . '</td>';
       echo '</tr>';
    }
 
