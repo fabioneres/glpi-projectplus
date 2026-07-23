@@ -6,6 +6,7 @@ use Html;
 use GlpiPlugin\Projectplus\PortfolioBasket;
 use GlpiPlugin\Projectplus\PdticAction;
 use Project;
+use User;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -23,7 +24,7 @@ class ProjectForm
       $data = ProjectData::getForProject((int) $project->getID());
       echo '<table id="projectplus-fields" class="d-none"><tbody>';
       self::renderProjectDataRows($data);
-      self::renderRequesterRows($data);
+      self::renderRequesterRowsV2($data, (int) $project->fields['entities_id']);
       self::renderPlanningRows($data);
       echo '</tbody></table>';
       echo Html::scriptBlock(<<<'JAVASCRIPT'
@@ -107,6 +108,58 @@ JAVASCRIPT
             'display' => false,
          ])
       );
+   }
+
+   private static function renderRequesterRowsV2(array $data, int $entityId): void
+   {
+      echo '<tr class="projectplus-requester-data"><td colspan="4" class="subheader">'
+         . __('Dados do solicitante (Cliente)', 'projectplus') . '</td></tr>';
+      self::row(
+         'projectplus-requester-data',
+         __('Área do Solicitante', 'projectplus'),
+         Html::input('requester_area', [
+            'value'       => $data['requester_area'],
+            'placeholder' => __('Pró-reitoria, campus, diretoria, departamento ou grande área', 'projectplus'),
+         ]),
+         __('Solicitante', 'projectplus'),
+         self::userDropdown('requester_users_id', (int) ($data['requester_users_id'] ?? 0), $entityId)
+      );
+      self::row(
+         'projectplus-requester-data',
+         __('E-mail do Solicitante', 'projectplus'),
+         Html::input('requester_email', [
+            'value'    => $data['requester_email'],
+            'type'     => 'email',
+            'readonly' => true,
+         ]),
+         __('Ponto focal', 'projectplus'),
+         self::userDropdown('focal_point_users_id', (int) ($data['focal_point_users_id'] ?? 0), $entityId)
+      );
+      self::row(
+         'projectplus-requester-data',
+         __('E-mail do Ponto focal', 'projectplus'),
+         Html::input('focal_point_email', [
+            'value'    => $data['focal_point_email'],
+            'type'     => 'email',
+            'readonly' => true,
+         ]),
+         '',
+         ''
+      );
+   }
+
+   private static function userDropdown(string $name, int $value, int $entityId): string
+   {
+      return User::dropdown([
+         'name'          => $name,
+         'value'         => $value,
+         'entity'        => $entityId,
+         'right'         => 'all',
+         'display'       => false,
+         'specific_tags' => [
+            'title' => __('Selecione um usuário ativo da entidade do projeto.', 'projectplus'),
+         ],
+      ]);
    }
 
    private static function renderRequesterRows(array $data): void

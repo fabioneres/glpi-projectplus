@@ -4,7 +4,7 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
-define('PLUGIN_PROJECTPLUS_VERSION', '0.1.0');
+define('PLUGIN_PROJECTPLUS_VERSION', '0.3.10');
 define('PLUGIN_PROJECTPLUS_MIN_GLPI_VERSION', '10.0.20');
 define('PLUGIN_PROJECTPLUS_MAX_GLPI_VERSION', '10.0.99');
 define('PLUGIN_PROJECTPLUS_DIR', __DIR__);
@@ -20,3 +20,5 @@ spl_autoload_register(static function (string $class): void {
       require_once $file;
    }
 });
+
+require_once __DIR__ . '/src/LegacyDropdowns.php';

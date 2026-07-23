@@ -3,8 +3,7 @@
 use Glpi\Plugin\Hooks;
 use GlpiPlugin\Projectplus\ProjectData;
 use GlpiPlugin\Projectplus\ProjectForm;
-use GlpiPlugin\Projectplus\PortfolioBasket;
-use GlpiPlugin\Projectplus\PdticAction;
+use GlpiPlugin\Projectplus\ProjectPortal;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -23,19 +22,22 @@ function plugin_init_projectplus(): void
       return;
    }
 
-   Plugin::registerClass(PortfolioBasket::class);
-   Plugin::registerClass(PdticAction::class);
+   // Dropdowns use legacy class names so GLPI can resolve the current
+   // menu option and render the native list actions.
+   Plugin::registerClass('PluginProjectplusPortfolioBasket');
+   Plugin::registerClass('PluginProjectplusPdticAction');
+   $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';
    $PLUGIN_HOOKS[Hooks::POST_ITEM_FORM]['projectplus'] = [ProjectForm::class, 'postItemForm'];
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Project::class] = [ProjectData::class, 'postProjectAdd'];
-   $PLUGIN_HOOKS[Hooks::ITEM_UPDATE]['projectplus'][Project::class] = [ProjectData::class, 'postProjectUpdate'];
+   $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectUpdate'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_PURGE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectPurge'];
 }
 
 function plugin_version_projectplus(): array
 {
    return [
-      'name'         => __('Projetos+', 'projectplus'),
+      'name'         => __('Project+', 'projectplus'),
       'version'      => PLUGIN_PROJECTPLUS_VERSION,
       'author'       => 'Fabio Neres',
       'license'      => 'GPLv3+',

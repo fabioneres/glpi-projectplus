@@ -45,8 +45,10 @@ class Installer
                `objective` text NULL,
                `expected_result` text NULL,
                `requester_area` varchar(255) NOT NULL DEFAULT '',
+               `requester_users_id` int unsigned NOT NULL DEFAULT 0,
                `requester_name` varchar(255) NOT NULL DEFAULT '',
                `requester_email` varchar(255) NOT NULL DEFAULT '',
+               `focal_point_users_id` int unsigned NOT NULL DEFAULT 0,
                `focal_point` varchar(255) NOT NULL DEFAULT '',
                `focal_point_email` varchar(255) NOT NULL DEFAULT '',
                `date_creation` timestamp NULL DEFAULT NULL,
@@ -69,8 +71,10 @@ class Installer
          'objective'         => 'text NULL',
          'expected_result'   => 'text NULL',
          'requester_area'    => "varchar(255) NOT NULL DEFAULT ''",
+         'requester_users_id' => 'int unsigned NOT NULL DEFAULT 0',
          'requester_name'    => "varchar(255) NOT NULL DEFAULT ''",
          'requester_email'   => "varchar(255) NOT NULL DEFAULT ''",
+         'focal_point_users_id' => 'int unsigned NOT NULL DEFAULT 0',
          'focal_point'       => "varchar(255) NOT NULL DEFAULT ''",
          'focal_point_email' => "varchar(255) NOT NULL DEFAULT ''",
          'date_creation'     => 'timestamp NULL DEFAULT NULL',
@@ -80,6 +84,9 @@ class Installer
          if (!$DB->fieldExists($table, $field)) {
             $migration->addField($table, $field, $definition);
          }
+      }
+      foreach (['requester_users_id', 'focal_point_users_id'] as $field) {
+         $migration->addKey($table, $field, $field . '_index');
       }
       $migration->executeMigration();
    }

@@ -4,8 +4,11 @@ namespace GlpiPlugin\Projectplus;
 
 use CommonDBTM;
 use DBmysql;
+use Profile_User;
 use Project;
 use Session;
+use User;
+use UserEmail;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -19,8 +22,10 @@ class ProjectData extends CommonDBTM
       'objective',
       'expected_result',
       'requester_area',
+      'requester_users_id',
       'requester_name',
       'requester_email',
+      'focal_point_users_id',
       'focal_point',
       'focal_point_email',
    ];
@@ -45,7 +50,14 @@ class ProjectData extends CommonDBTM
       self::saveForProject($project);
    }
 
-   public static function postProjectUpdate(Project $project): void
+   /**
+    * Persists Project+ fields before the native project update is filtered.
+    *
+    * GLPI only emits ITEM_UPDATE when a native project column changes. The
+    * requester and focal-point fields are owned by this plugin, so saving
+    * them through the post-update hook drops updates made exclusively here.
+    */
+   public static function preProjectUpdate(Project $project): void
    {
       self::saveForProject($project);
    }
@@ -65,13 +77,54 @@ class ProjectData extends CommonDBTM
          return;
       }
 
+      $current = self::getForProject((int) $project->getID());
       $values = [];
       foreach (self::FIELDS as $field) {
-         $values[$field] = trim((string) ($input[$field] ?? ''));
+         $values[$field] = array_key_exists($field, $input)
+            ? trim((string) $input[$field])
+            : trim((string) ($current[$field] ?? ''));
       }
 
-      foreach (['plugin_projectplus_portfoliobaskets_id', 'plugin_projectplus_pdticactions_id'] as $field) {
+      foreach ([
+         'plugin_projectplus_portfoliobaskets_id',
+         'plugin_projectplus_pdticactions_id',
+         'requester_users_id',
+         'focal_point_users_id',
+      ] as $field) {
          $values[$field] = max(0, (int) $values[$field]);
+      }
+
+      $entityId = (int) $project->fields['entities_id'];
+      foreach ([
+         'requester_users_id' => ['requester_name', 'requester_email'],
+         'focal_point_users_id' => ['focal_point', 'focal_point_email'],
+      ] as $field => $displayFields) {
+         $userId = (int) $values[$field];
+         if ($userId === 0) {
+            if (array_key_exists($field, $input)) {
+               $values[$displayFields[0]] = '';
+               $values[$displayFields[1]] = '';
+            }
+            continue;
+         }
+
+         $user = new User();
+         if (!$user->getFromDB($userId) || empty($user->fields['is_active'])) {
+            Session::addMessageAfterRedirect(__('UsuÃ¡rio selecionado invÃ¡lido ou inativo.', 'projectplus'), false, ERROR);
+            return;
+         }
+         if (!in_array($entityId, Profile_User::getUserEntities($userId, true))) {
+            Session::addMessageAfterRedirect(__('O usuÃ¡rio selecionado nÃ£o possui acesso Ã  entidade do projeto.', 'projectplus'), false, ERROR);
+            return;
+         }
+
+         $email = UserEmail::getDefaultForUser($userId);
+         if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            Session::addMessageAfterRedirect(__('O usuÃ¡rio selecionado nÃ£o possui e-mail vÃ¡lido cadastrado.', 'projectplus'), false, ERROR);
+            return;
+         }
+         $values[$displayFields[0]] = User::getFriendlyNameById($userId);
+         $values[$displayFields[1]] = $email;
       }
 
       foreach (['requester_email', 'focal_point_email'] as $field) {
@@ -88,7 +141,7 @@ class ProjectData extends CommonDBTM
          self::getTable(),
          array_merge($values, [
             'projects_id' => (int) $project->getID(),
-            'entities_id' => (int) $project->fields['entities_id'],
+            'entities_id' => $entityId,
             'date_mod'    => $_SESSION['glpi_currenttime'],
          ]),
          ['projects_id' => (int) $project->getID()]
