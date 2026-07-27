@@ -62,7 +62,7 @@ class ProjectProfile extends GlpiProfile
             'field' => self::RIGHT_PORTFOLIO,
          ],
          [
-            'itemtype' => TicketConfig::class,
+            'itemtype' => TicketPhase::class,
             'label' => __('Administracao do Project+', 'projectplus'),
             'field' => self::RIGHT_CONFIG,
          ],
