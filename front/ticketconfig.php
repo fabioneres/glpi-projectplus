@@ -35,7 +35,7 @@ echo "<tr class='tab_bg_1'><td>" . __('Entidade configurada', 'projectplus') . '
 Entity::dropdown([
    'name' => 'entities_id',
    'value' => $entityId,
-   'entity' => 0,
+   'entity' => $_SESSION['glpiactiveentities'] ?? [$entityId],
 ]);
 echo " <button class='btn btn-secondary' type='submit'>" . __('Carregar', 'projectplus') . '</button>';
 echo '</td></tr></table></form>';

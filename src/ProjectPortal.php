@@ -37,7 +37,7 @@ class ProjectPortal
       $added = false;
       foreach ($menus as $key => $menu) {
          $result[$key] = $menu;
-         if ($key === 'tickets') {
+         if (self::isMyTicketsMenu($key, $menu)) {
             $result[self::MENU_KEY] = $entry;
             $added = true;
          }
@@ -48,6 +48,17 @@ class ProjectPortal
       }
 
       return $result;
+   }
+
+   /** @param array<string, mixed> $menu */
+   private static function isMyTicketsMenu(string $key, array $menu): bool
+   {
+      if (in_array($key, ['tickets', 'ticket', 'helpdesk'], true)) {
+         return true;
+      }
+
+      $title = strip_tags((string) ($menu['title'] ?? ''));
+      return $title !== '' && $title === __('My tickets');
    }
 
    public static function hasProjectsForCurrentUser(): bool

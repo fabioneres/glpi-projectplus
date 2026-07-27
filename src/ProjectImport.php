@@ -158,7 +158,7 @@ class ProjectImport
       echo "<tr class='tab_bg_1'><td>" . __('Planilha modelo', 'projectplus') . "</td><td><a class='btn btn-outline-secondary' href='"
          . Html::clean(self::getTemplateURL()) . "'>" . __('Baixar modelo CSV', 'projectplus') . '</a></td></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Arquivo CSV UTF-8', 'projectplus') . "</td><td><input type='file' name='import_file' accept='.csv,text/csv' required></td></tr>";
-      echo "<tr class='tab_bg_1'><td colspan='2' class='text-muted'>" . __('Use o modelo oficial. A operação primeiro mostra uma pré-validação; nenhum projeto é criado nesta etapa.', 'projectplus') . '</td></tr>';
+      echo "<tr class='tab_bg_1'><td colspan='2' class='text-muted'>" . __('Use o modelo oficial. Informe o ID da entidade e seu nome curto ou caminho completo (por exemplo, Entidade pai > Entidade filha). A operação primeiro mostra uma pré-validação; nenhum projeto é criado nesta etapa.', 'projectplus') . '</td></tr>';
       echo "<tr class='tab_bg_2'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='action' value='preview'>" . __('Validar arquivo', 'projectplus') . '</button></td></tr>';
       echo '</table></form></div>';
    }
@@ -211,7 +211,7 @@ class ProjectImport
          $entityName = self::getEntityNameById($entityId);
          if ($entityName === null) {
             $errors[] = __('ID da entidade não encontrado.', 'projectplus');
-         } elseif (self::headerKey($entityName) !== self::headerKey($record['Entidade*'])) {
+         } elseif (!self::entityNameMatches($entityId, $entityName, $record['Entidade*'])) {
             $errors[] = __('O nome da entidade não corresponde ao ID informado.', 'projectplus');
          } elseif (!Session::haveAccessToEntity($entityId, true)) {
             $errors[] = __('Sem acesso à entidade informada.', 'projectplus');
@@ -391,6 +391,17 @@ class ProjectImport
          return (string) $entity['name'];
       }
       return null;
+   }
+
+   private static function entityNameMatches(int $entityId, string $shortName, $providedName): bool
+   {
+      $providedKey = self::headerKey($providedName);
+      if ($providedKey === self::headerKey($shortName)) {
+         return true;
+      }
+
+      $fullName = Entity::getFriendlyNameById($entityId);
+      return $providedKey !== '' && $providedKey === self::headerKey($fullName);
    }
 
    private static function userId($login, int $entityId, array &$errors, string $label): int

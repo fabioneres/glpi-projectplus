@@ -141,6 +141,9 @@ class ProjectProfile extends GlpiProfile
       }
       $canEdit = Session::haveRightsOr(self::$rightname, [CREATE, UPDATE, PURGE]);
       $profile = new GlpiProfile();
+      if (!$profile->getFromDB((int) $ID)) {
+         return false;
+      }
       echo "<div class='spaced'>";
       if ($canEdit) {
          echo "<form method='post' action='" . GlpiProfile::getFormURL() . "' data-track-changes='true'>";
