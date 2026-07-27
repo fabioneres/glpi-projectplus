@@ -197,14 +197,14 @@ class TicketIntent
    /** @param array<string,mixed> $intent */
    private static function showSubmitted(Ticket $ticket, array $intent): void
    {
-      echo "<div class='center'><table class='tab_cadre_fixe'><tr class='tab_bg_2'><th colspan='2'>" . self::escape(__('TIP enviado', 'projectplus')) . '</th></tr>';
-      self::readonlyRow(__('Ticket', 'projectplus'), '#' . (int) $ticket->getID());
-      self::readonlyRow(__('Enviado por', 'projectplus'), (string) $intent['submitter_name'] . ' - ' . (string) $intent['submitter_email']);
-      self::readonlyRow(__('Data de envio', 'projectplus'), (string) $intent['date_submitted']);
+      echo "<div class='projectplus-tip projectplus-tip--submitted'><header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-check'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::escape(__('Solicitação de projeto', 'projectplus')) . '</span><h2>' . self::escape(__('Termo de Intenção do Projeto - TIP', 'projectplus')) . '</h2><p>' . self::escape(__('Formulário preenchido pelo solicitante e disponível para análise.', 'projectplus')) . '</p></div></header>';
+      echo "<section class='projectplus-tip__card'><div class='projectplus-tip__section-title'><i class='ti ti-circle-check'></i><div><h3>" . self::escape(__('TIP enviado', 'projectplus')) . '</h3><p>' . self::escape(__('Dados de identificação e registro do envio.', 'projectplus')) . '</p></div></div>';
+      echo "<div class='projectplus-tip__summary'><div><span>" . self::escape(__('Ticket', 'projectplus')) . '</span><strong>#' . (int) $ticket->getID() . '</strong></div><div><span>' . self::escape(__('Enviado em', 'projectplus')) . '</span><strong>' . self::escape((string) $intent['date_submitted']) . '</strong></div><div><span>' . self::escape(__('Enviado por', 'projectplus')) . '</span><strong>' . self::escape((string) $intent['submitter_name']) . '</strong><em>' . self::escape((string) $intent['submitter_email']) . '</em></div></div></section>';
+      echo "<section class='projectplus-tip__card projectplus-tip__answers'><div class='projectplus-tip__section-title'><i class='ti ti-clipboard-text'></i><div><h3>" . self::escape(__('Respostas do formulário', 'projectplus')) . '</h3><p>' . self::escape(__('Informações declaradas no Termo de Intenção do Projeto.', 'projectplus')) . '</p></div></div><div class='projectplus-tip__answer-list'>";
       foreach (TicketIntentAnswer::getForIntent((int) $intent['id']) as $answer) {
-         self::textRow((string) $answer['label'], (string) $answer['value']);
+         echo "<article class='projectplus-tip__answer'><h4>" . self::escape((string) $answer['label']) . '</h4><div>' . nl2br(self::escape((string) $answer['value'])) . '</div></article>';
       }
-      echo '</table></div>';
+      echo '</div></section></div>';
    }
 
    private static function readonlyRow(string $label, string $value): void { echo "<tr class='tab_bg_1'><td>" . self::escape($label) . '</td><td>' . self::escape($value) . '</td></tr>'; }

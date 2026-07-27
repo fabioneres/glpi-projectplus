@@ -94,7 +94,13 @@
 .projectplus-tip__summary > div { min-width: 0; padding: 13px 15px; border: 1px solid #e1ebe4; border-radius: 8px; background: #f3f7f4; }
 .projectplus-tip__summary span { display: block; margin-bottom: 4px; color: #64756b; font-size: .76rem; font-weight: 600; text-transform: uppercase; }
 .projectplus-tip__summary strong { display: block; overflow: hidden; color: #244332; font-size: .94rem; text-overflow: ellipsis; white-space: nowrap; }
+.projectplus-tip__summary em { display: block; overflow: hidden; margin-top: 3px; color: #64756b; font-size: .8rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .projectplus-tip__fields { border-radius: 0 0 12px 12px; }
+.projectplus-tip__answers { border-radius: 0 0 12px 12px; }
+.projectplus-tip__answer-list { display: grid; gap: 14px; }
+.projectplus-tip__answer { padding: 17px 19px; border: 1px solid #e1ebe4; border-radius: 8px; background: #fbfcfb; }
+.projectplus-tip__answer h4 { margin: 0 0 8px; color: #284737; font-size: .92rem; font-weight: 700; }
+.projectplus-tip__answer div { color: #43554a; line-height: 1.55; white-space: normal; }
 .projectplus-tip__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
 .projectplus-tip__section-title--divider { grid-column: 1 / -1; margin: 28px 0 20px; padding-top: 24px; border-top: 1px solid #e3ebe6; }
 .projectplus-tip__field { min-width: 0; }
