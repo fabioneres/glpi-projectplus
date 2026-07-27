@@ -17,6 +17,7 @@ class ConfigPage
       echo "<aside class='projectplus-config-nav'><div class='projectplus-config-nav__title'>" . self::escape(__('Configuracoes', 'projectplus')) . '</div>';
       self::navLink('overview', 'config.php', 'ti ti-settings', __('Geral', 'projectplus'), $active);
       self::navLink('ticketflow', 'ticketconfig.php', 'ti ti-git-branch', __('Fluxo de solicitacao', 'projectplus'), $active);
+      self::navLink('tipmodel', 'tipconfig.php', 'ti ti-forms', __('Modelo TIP', 'projectplus'), $active);
       self::navLink('import', ProjectImport::getFormURL(), 'ti ti-file-import', __('Importacao de projetos', 'projectplus'), $active);
       echo '</aside><main class="projectplus-config-content">';
    }

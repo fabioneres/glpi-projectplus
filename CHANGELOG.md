@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0-beta
+
+- Torna o TIP configurável por entidade: título, introdução, campos, tipos, ordem, obrigatoriedade e ativação.
+- A área responsável agora deve usar a ação **Solicitar preenchimento do TIP** no chamado antes que o solicitante possa acessar o formulário.
+- Registra as respostas por campo e mantém a fase interna em **Aguardando preenchimento do TIP** até o envio.
+
 ## 0.6.0-beta
 
 - Inclui o TIP (Termo de Intenção do Projeto) dentro da aba Solicitação de projeto do chamado.

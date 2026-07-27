@@ -40,6 +40,9 @@ class Installer
       self::ensureTicketPhaseTable();
       self::ensureTicketPhaseHistoryTable();
       self::ensureTicketIntentTable();
+      self::ensureTipConfigTable();
+      self::ensureTipFieldTable();
+      self::ensureTipAnswerTable();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -209,11 +212,8 @@ class Installer
       global $DB;
 
       $table = TicketIntent::getTable();
-      if ($DB->tableExists($table)) {
-         return;
-      }
-
-      $DB->doQuery(
+      if (!$DB->tableExists($table)) {
+         $DB->doQuery(
          "CREATE TABLE `{$table}` (
             `id` int unsigned NOT NULL AUTO_INCREMENT,
             `tickets_id` int unsigned NOT NULL DEFAULT 0,
@@ -232,12 +232,109 @@ class Installer
             `benefits` text NULL,
             `resources` text NULL,
             `observations` text NULL,
+            `status` varchar(32) NOT NULL DEFAULT 'requested',
+            `requested_users_id` int unsigned NOT NULL DEFAULT 0,
+            `date_requested` timestamp NULL DEFAULT NULL,
+            `date_submitted` timestamp NULL DEFAULT NULL,
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `tickets_id` (`tickets_id`),
             KEY `entities_id` (`entities_id`),
             KEY `users_id` (`users_id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+         );
+      }
+
+      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+      foreach ([
+         'status' => "varchar(32) NOT NULL DEFAULT 'requested'",
+         'requested_users_id' => 'int unsigned NOT NULL DEFAULT 0',
+         'date_requested' => 'timestamp NULL DEFAULT NULL',
+         'date_submitted' => 'timestamp NULL DEFAULT NULL',
+      ] as $field => $definition) {
+         if (!$DB->fieldExists($table, $field)) {
+            $migration->addField($table, $field, $definition);
+         }
+      }
+      $migration->addKey($table, 'status', 'status_index');
+      $migration->executeMigration();
+   }
+
+   private static function ensureTipConfigTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TipConfig::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `is_active` tinyint NOT NULL DEFAULT 1,
+            `title` varchar(255) NOT NULL DEFAULT '',
+            `introduction` text NULL,
+            `users_id` int unsigned NOT NULL DEFAULT 0,
+            `date_creation` timestamp NULL DEFAULT NULL,
+            `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `entities_id` (`entities_id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+      );
+   }
+
+   private static function ensureTipFieldTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TipField::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `name` varchar(64) NOT NULL DEFAULT '',
+            `label` varchar(255) NOT NULL DEFAULT '',
+            `description` text NULL,
+            `field_type` varchar(32) NOT NULL DEFAULT 'textarea',
+            `values` text NULL,
+            `is_required` tinyint NOT NULL DEFAULT 0,
+            `is_active` tinyint NOT NULL DEFAULT 1,
+            `sort_order` int unsigned NOT NULL DEFAULT 0,
+            `date_creation` timestamp NULL DEFAULT NULL,
+            `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `entity_order` (`entities_id`, `sort_order`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+      );
+   }
+
+   private static function ensureTipAnswerTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TicketIntentAnswer::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `plugin_projectplus_ticketintents_id` int unsigned NOT NULL DEFAULT 0,
+            `plugin_projectplus_tipfields_id` int unsigned NOT NULL DEFAULT 0,
+            `label` varchar(255) NOT NULL DEFAULT '',
+            `value` text NULL,
+            `date_creation` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `intent_field` (`plugin_projectplus_ticketintents_id`, `plugin_projectplus_tipfields_id`),
+            KEY `fields_id` (`plugin_projectplus_tipfields_id`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
       );
    }
@@ -253,6 +350,9 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhaseHistory::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhase::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntent::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntentAnswer::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TipField::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TipConfig::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');
       \Config::deleteConfigurationValues('plugin:projectplus', ['dbversion']);
       return true;

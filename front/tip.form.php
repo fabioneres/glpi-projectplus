@@ -17,7 +17,14 @@ if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEn
    Html::displayErrorAndDie(__('Ticket inválido ou sem permissão de acesso.', 'projectplus'));
 }
 
-if (isset($_POST['save_tip'])) {
+if (isset($_POST['request_tip'])) {
+   try {
+      TicketIntent::requestForTicket($ticket);
+      Session::addMessageAfterRedirect(__('TIP solicitado ao solicitante.', 'projectplus'));
+   } catch (\RuntimeException $exception) {
+      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   }
+} elseif (isset($_POST['save_tip'])) {
    try {
       TicketIntent::saveForTicket($ticket, $_POST);
       Session::addMessageAfterRedirect(__('TIP enviado para análise do gerente de projetos.', 'projectplus'));

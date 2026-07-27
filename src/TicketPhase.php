@@ -29,6 +29,7 @@ class TicketPhase extends CommonDBTM
    {
       return [
          'classification' => self::label('Classifica&ccedil;&atilde;o da necessidade'),
+         'awaiting_tip' => __('Aguardando preenchimento do TIP', 'projectplus'),
          'portfolio_analysis' => self::label('An&aacute;lise do portf&oacute;lio'),
          'awaiting_authorization' => self::label('Aguardando autoriza&ccedil;&atilde;o de abertura'),
          'authorized_opening' => __('Autorizado para abertura', 'projectplus'),
@@ -128,6 +129,23 @@ class TicketPhase extends CommonDBTM
          return true;
       }
 
+      return self::setPhase($ticket, $phase, $justification);
+   }
+
+   /** Changes a phase and writes its audit history. Intended for controlled plugin actions. */
+   public static function setPhase(Ticket $ticket, string $phase, string $justification = ''): bool
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      if (!TicketConfig::isEnabledForTicket($ticket) || !array_key_exists($phase, self::getPhases())) {
+         return false;
+      }
+      self::ensureForTicket($ticket);
+      $current = self::getForTicket((int) $ticket->getID());
+      if ($current === null || $phase === (string) $current['phase']) {
+         return $current !== null;
+      }
       $now = date('Y-m-d H:i:s');
       $userId = (int) Session::getLoginUserID();
       $DB->update(self::getTable(), [
