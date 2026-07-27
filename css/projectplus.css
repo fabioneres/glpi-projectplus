@@ -104,8 +104,9 @@
 .projectplus-tip__footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 18px 0 0; padding: 17px 22px; border: 1px solid #dce5e1; border-radius: 10px; background: #fbfcfb; }
 .projectplus-tip__footer span { color: #748178; font-size: .84rem; }
 .projectplus-tip__footer span i { color: #b94e42; font-size: .62rem; }
-.projectplus-tip__footer .btn { padding: 9px 17px; background: #17613d; border-color: #17613d; }
-.projectplus-tip__footer .btn:hover { background: #104d30; border-color: #104d30; }
+.projectplus-tip__footer .btn { padding: 9px 17px; color: #fff !important; background: #17613d; border-color: #17613d; }
+.projectplus-tip__footer .btn i { color: #fff !important; }
+.projectplus-tip__footer .btn:hover { color: #fff !important; background: #104d30; border-color: #104d30; }
 @media (max-width: 720px) {
    .projectplus-tip { margin: 12px; }
    .projectplus-tip__hero, .projectplus-tip__card { padding: 22px 18px; }
