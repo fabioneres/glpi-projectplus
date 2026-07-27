@@ -15,7 +15,6 @@ if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
    Html::displayErrorAndDie(__('Entidade inválida ou sem permissão de configuração.', 'projectplus'));
 }
 if (isset($_POST['save_tip_config'])) {
-   Session::checkCSRF();
    if (TipConfig::saveForEntity($entityId, $_POST)) {
       Session::addMessageAfterRedirect(__('Modelo TIP salvo.', 'projectplus'));
    } else {
@@ -24,7 +23,6 @@ if (isset($_POST['save_tip_config'])) {
    Html::redirect($_SERVER['PHP_SELF'] . '?entities_id=' . $entityId);
 }
 if (isset($_POST['delete_tip_field'])) {
-   Session::checkCSRF();
    if (TipField::delete((int) ($_POST['id'] ?? 0), $entityId)) {
       Session::addMessageAfterRedirect(__('Campo removido.', 'projectplus'));
    }

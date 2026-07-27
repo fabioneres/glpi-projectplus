@@ -9,7 +9,6 @@ use GlpiPlugin\Projectplus\TicketIntent;
 use GlpiPlugin\Projectplus\TicketConfig;
 
 Session::checkLoginUser();
-Session::checkCSRF();
 
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
 $ticket = new Ticket();
