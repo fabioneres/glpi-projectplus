@@ -7,6 +7,7 @@ use GlpiPlugin\Projectplus\ProjectPortal;
 use GlpiPlugin\Projectplus\TicketPhase;
 use GlpiPlugin\Projectplus\Menu;
 use GlpiPlugin\Projectplus\ProjectProfile;
+use GlpiPlugin\Projectplus\DocumentAcceptance;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -32,6 +33,7 @@ function plugin_init_projectplus(): void
    Plugin::registerClass(Menu::class);
    Plugin::registerClass(ProjectProfile::class, ['addtabon' => [\Profile::class]]);
    Plugin::registerClass(TicketPhase::class, ['addtabon' => [Ticket::class]]);
+   Plugin::registerClass(DocumentAcceptance::class, ['addtabon' => [Ticket::class, Project::class]]);
    $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus.css';

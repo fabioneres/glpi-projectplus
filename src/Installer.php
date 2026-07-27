@@ -43,6 +43,7 @@ class Installer
       self::ensureTipConfigTable();
       self::ensureTipFieldTable();
       self::ensureTipAnswerTable();
+      self::ensureDocumentAcceptanceTable();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -339,6 +340,35 @@ class Installer
       );
    }
 
+   private static function ensureDocumentAcceptanceTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+      $table = DocumentAcceptance::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `itemtype` varchar(64) NOT NULL DEFAULT '',
+            `items_id` int unsigned NOT NULL DEFAULT 0,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `document_type` varchar(8) NOT NULL DEFAULT '',
+            `documents_id` int unsigned NOT NULL DEFAULT 0,
+            `status` varchar(16) NOT NULL DEFAULT 'published',
+            `published_users_id` int unsigned NOT NULL DEFAULT 0,
+            `accepted_users_id` int unsigned NOT NULL DEFAULT 0,
+            `date_published` timestamp NULL DEFAULT NULL,
+            `date_accepted` timestamp NULL DEFAULT NULL,
+            `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `item_document_type` (`itemtype`, `items_id`, `document_type`),
+            KEY `entity_status` (`entities_id`, `status`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+      );
+   }
+
    public static function uninstall(): bool
    {
       /** @var DBmysql $DB */
@@ -351,6 +381,7 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhase::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntent::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntentAnswer::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . DocumentAcceptance::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipField::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipConfig::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');
