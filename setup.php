@@ -4,6 +4,7 @@ use Glpi\Plugin\Hooks;
 use GlpiPlugin\Projectplus\ProjectData;
 use GlpiPlugin\Projectplus\ProjectForm;
 use GlpiPlugin\Projectplus\ProjectPortal;
+use GlpiPlugin\Projectplus\TicketPhase;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -26,12 +27,15 @@ function plugin_init_projectplus(): void
    // menu option and render the native list actions.
    Plugin::registerClass('PluginProjectplusPortfolioBasket');
    Plugin::registerClass('PluginProjectplusPdticAction');
+   Plugin::registerClass(TicketPhase::class, ['addtabon' => [Ticket::class]]);
    $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';
    $PLUGIN_HOOKS[Hooks::POST_ITEM_FORM]['projectplus'] = [ProjectForm::class, 'postItemForm'];
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Project::class] = [ProjectData::class, 'postProjectAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectUpdate'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_PURGE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectPurge'];
+   $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Ticket::class] = [TicketPhase::class, 'postTicketAdd'];
+   $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Ticket::class] = [TicketPhase::class, 'preTicketUpdate'];
 }
 
 function plugin_version_projectplus(): array

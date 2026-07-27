@@ -34,6 +34,9 @@ class Installer
       $table = ProjectData::getTable();
       self::ensureDropdownTable(PortfolioBasket::getTable());
       self::ensureDropdownTable(PdticAction::getTable());
+      self::ensureTicketConfigTable();
+      self::ensureTicketPhaseTable();
+      self::ensureTicketPhaseHistoryTable();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -117,6 +120,86 @@ class Installer
       );
    }
 
+   private static function ensureTicketConfigTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TicketConfig::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `itilcategories_id` int unsigned NOT NULL DEFAULT 0,
+            `is_active` tinyint NOT NULL DEFAULT 1,
+            `users_id` int unsigned NOT NULL DEFAULT 0,
+            `date_creation` timestamp NULL DEFAULT NULL,
+            `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `entities_id` (`entities_id`),
+            KEY `itilcategories_id` (`itilcategories_id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+      );
+   }
+
+   private static function ensureTicketPhaseTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TicketPhase::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `tickets_id` int unsigned NOT NULL DEFAULT 0,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `phase` varchar(64) NOT NULL DEFAULT 'classification',
+            `users_id` int unsigned NOT NULL DEFAULT 0,
+            `justification` text NULL,
+            `date_creation` timestamp NULL DEFAULT NULL,
+            `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `tickets_id` (`tickets_id`),
+            KEY `entities_phase` (`entities_id`, `phase`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+      );
+   }
+
+   private static function ensureTicketPhaseHistoryTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TicketPhaseHistory::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `tickets_id` int unsigned NOT NULL DEFAULT 0,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `old_phase` varchar(64) NOT NULL DEFAULT '',
+            `new_phase` varchar(64) NOT NULL DEFAULT '',
+            `users_id` int unsigned NOT NULL DEFAULT 0,
+            `justification` text NULL,
+            `date_creation` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `ticket_date` (`tickets_id`, `date_creation`),
+            KEY `entities_id` (`entities_id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+      );
+   }
+
    public static function uninstall(): bool
    {
       /** @var DBmysql $DB */
@@ -125,6 +208,9 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . ProjectData::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . PortfolioBasket::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . PdticAction::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhaseHistory::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhase::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');
       \Config::deleteConfigurationValues('plugin:projectplus', ['dbversion']);
       return true;
    }
