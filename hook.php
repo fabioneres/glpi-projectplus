@@ -1,6 +1,7 @@
 <?php
 
 use GlpiPlugin\Projectplus\Installer;
+use GlpiPlugin\Projectplus\ProjectProfile;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -34,5 +35,10 @@ function plugin_projectplus_upgrade($old_version): bool
 
 function plugin_projectplus_uninstall(): bool
 {
-   return Installer::uninstall();
+   $result = Installer::uninstall();
+   if ($result) {
+      ProfileRight::deleteProfileRights(ProjectProfile::getRightNames());
+      ProjectProfile::removeRightsFromSession();
+   }
+   return $result;
 }

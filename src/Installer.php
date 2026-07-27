@@ -22,6 +22,8 @@ class Installer
          return false;
       }
 
+      ProjectProfile::installRights();
+      ProjectProfile::initProfile();
       \Config::setConfigurationValues('plugin:projectplus', ['dbversion' => PLUGIN_PROJECTPLUS_VERSION]);
       return true;
    }
