@@ -178,6 +178,8 @@ class TicketPhase extends CommonDBTM
       echo "<tr class='tab_bg_1'><td>" . self::escape(self::label('&Uacute;ltima atualiza&ccedil;&atilde;o')) . '</td><td>' . self::escape((string) $phase['date_mod']) . '</td></tr>';
       echo '</table></div>';
 
+      TicketIntent::showForTicket($ticket);
+
       if (Session::haveRight('ticket', UPDATE)) {
          self::showUpdateForm($ticket, $phase);
       }

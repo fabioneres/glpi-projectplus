@@ -39,6 +39,7 @@ class Installer
       self::ensureTicketConfigTable();
       self::ensureTicketPhaseTable();
       self::ensureTicketPhaseHistoryTable();
+      self::ensureTicketIntentTable();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -202,6 +203,45 @@ class Installer
       );
    }
 
+   private static function ensureTicketIntentTable(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TicketIntent::getTable();
+      if ($DB->tableExists($table)) {
+         return;
+      }
+
+      $DB->doQuery(
+         "CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `tickets_id` int unsigned NOT NULL DEFAULT 0,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `users_id` int unsigned NOT NULL DEFAULT 0,
+            `submitter_name` varchar(255) NOT NULL DEFAULT '',
+            `submitter_email` varchar(255) NOT NULL DEFAULT '',
+            `executor_area` varchar(255) NOT NULL DEFAULT '',
+            `requester_name` varchar(255) NOT NULL DEFAULT '',
+            `requester_area` varchar(255) NOT NULL DEFAULT '',
+            `project_name` varchar(255) NOT NULL DEFAULT '',
+            `project_description` text NULL,
+            `specific_objective` text NULL,
+            `metrics` text NULL,
+            `relevance` text NULL,
+            `benefits` text NULL,
+            `resources` text NULL,
+            `observations` text NULL,
+            `date_creation` timestamp NULL DEFAULT NULL,
+            `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `tickets_id` (`tickets_id`),
+            KEY `entities_id` (`entities_id`),
+            KEY `users_id` (`users_id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
+      );
+   }
+
    public static function uninstall(): bool
    {
       /** @var DBmysql $DB */
@@ -212,6 +252,7 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . PdticAction::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhaseHistory::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhase::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntent::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');
       \Config::deleteConfigurationValues('plugin:projectplus', ['dbversion']);
       return true;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0-beta
+
+- Inclui o TIP (Termo de Intenção do Projeto) dentro da aba Solicitação de projeto do chamado.
+- Registra de forma auditável o formulário submetido pelo solicitante, incluindo usuário, e-mail, data/hora e entidade.
+- Valida solicitante vinculado ao chamado, entidade, CSRF e campos obrigatórios antes do envio.
+- Mantém o TIP enviado em modo de consulta para apoiar a análise do gerente de projetos.
+
 ## 0.3.10
 
 - Inclui a coluna obrigatória **ID da entidade** no modelo de importação e confere sua correspondência com o nome da entidade informado.
