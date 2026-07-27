@@ -156,18 +156,17 @@ class TicketIntent
    {
       $config = TipConfig::getForEntity((int) $ticket->getEntityID());
       $userId = (int) Session::getLoginUserID();
-      echo "<div class='center'><form method='post' action='" . self::escape(self::getActionUrl()) . "'>";
+      echo "<div class='projectplus-tip'><form method='post' action='" . self::escape(self::getActionUrl()) . "'>";
       echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
       echo Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]);
-      echo "<table class='tab_cadre_fixe'><tr class='tab_bg_2'><th colspan='2'>" . self::escape((string) $config['title']) . '</th></tr>';
-      echo "<tr class='tab_bg_1'><td colspan='2'>" . nl2br(self::escape((string) $config['introduction'])) . '</td></tr>';
-      self::readonlyRow(__('Número do ticket', 'projectplus'), '#' . (int) $ticket->getID());
-      self::readonlyRow(__('Nome de quem preenche', 'projectplus'), User::getFriendlyNameById($userId));
-      self::readonlyRow(__('E-mail de quem preenche', 'projectplus'), UserEmail::getDefaultForUser($userId));
+      echo "<header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-text'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::escape(__('Solicitação de projeto', 'projectplus')) . "</span><h2>" . self::escape((string) $config['title']) . '</h2><p>' . nl2br(self::escape((string) $config['introduction'])) . '</p></div></header>';
+      echo "<section class='projectplus-tip__card'><div class='projectplus-tip__section-title'><i class='ti ti-info-circle'></i><div><h3>" . self::escape(__('Identificação do preenchimento', 'projectplus')) . '</h3><p>' . self::escape(__('Confira os dados antes de enviar o formulário.', 'projectplus')) . '</p></div></div>';
+      echo "<div class='projectplus-tip__summary'><div><span>" . self::escape(__('Ticket', 'projectplus')) . '</span><strong>#' . (int) $ticket->getID() . '</strong></div><div><span>' . self::escape(__('Nome de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(User::getFriendlyNameById($userId)) . '</strong></div><div><span>' . self::escape(__('E-mail de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(UserEmail::getDefaultForUser($userId)) . '</strong></div></div></section>';
+      echo "<section class='projectplus-tip__card projectplus-tip__fields'><div class='projectplus-tip__grid'>";
       foreach (TipField::getForEntity((int) $ticket->getEntityID()) as $field) {
          self::showField($field, (string) ($ticket->fields['name'] ?? ''));
       }
-      echo "<tr class='tab_bg_2'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='save_tip' value='1'>" . self::escape(__('Enviar TIP para análise', 'projectplus')) . '</button></td></tr></table></form></div>';
+      echo "</div></section><footer class='projectplus-tip__footer'><span><i class='ti ti-asterisk'></i> " . self::escape(__('Campos obrigatórios', 'projectplus')) . "</span><button class='btn btn-primary' type='submit' name='save_tip' value='1'><i class='ti ti-send'></i> " . self::escape(__('Enviar TIP para análise', 'projectplus')) . '</button></footer></form></div>';
    }
 
    /** @param array<string,mixed> $field */
@@ -175,24 +174,24 @@ class TicketIntent
    {
       $id = (int) $field['id']; $type = (string) $field['field_type'];
       if ($type === 'section') {
-         echo "<tr class='tab_bg_2'><th colspan='2'>" . self::escape((string) $field['label']) . '</th></tr>';
+         echo "</div><div class='projectplus-tip__section-title projectplus-tip__section-title--divider'><i class='ti ti-list-details'></i><div><h3>" . self::escape((string) $field['label']) . '</h3></div></div><div class="projectplus-tip__grid">';
          return;
       }
       $required = (int) $field['is_required'] === 1;
       $label = (string) $field['label'] . ($required ? ' *' : '');
       $name = 'tip_fields[' . $id . ']';
       $value = (string) $field['name'] === 'project_name' ? $ticketName : '';
-      echo "<tr class='tab_bg_1'><td>" . self::escape($label) . ((string) $field['description'] !== '' ? '<br><small>' . self::escape((string) $field['description']) . '</small>' : '') . '</td><td>';
+      echo "<div class='projectplus-tip__field" . ($type === 'textarea' ? ' projectplus-tip__field--wide' : '') . "'><label for='tip-field-" . $id . "'>" . self::escape($label) . '</label>' . ((string) $field['description'] !== '' ? "<small>" . self::escape((string) $field['description']) . '</small>' : '') . '<div>';
       if ($type === 'textarea') {
-         echo "<textarea class='form-control' name='" . self::escape($name) . "' rows='4'" . ($required ? ' required' : '') . '>' . self::escape($value) . '</textarea>';
+         echo "<textarea id='tip-field-" . $id . "' class='form-control' name='" . self::escape($name) . "' rows='5'" . ($required ? ' required' : '') . '>' . self::escape($value) . '</textarea>';
       } elseif ($type === 'select') {
          $values = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $field['values'])));
-         Dropdown::showFromArray($name, array_combine($values, $values) ?: [], ['value' => $value]);
+         Dropdown::showFromArray($name, array_combine($values, $values) ?: [], ['value' => $value, 'id' => 'tip-field-' . $id]);
       } else {
          $htmlType = in_array($type, ['number', 'date'], true) ? $type : 'text';
-         echo "<input class='form-control' type='" . $htmlType . "' name='" . self::escape($name) . "' value='" . self::escape($value) . "'" . ($required ? ' required' : '') . '>';
+         echo "<input id='tip-field-" . $id . "' class='form-control' type='" . $htmlType . "' name='" . self::escape($name) . "' value='" . self::escape($value) . "'" . ($required ? ' required' : '') . '>';
       }
-      echo '</td></tr>';
+      echo '</div></div>';
    }
 
    /** @param array<string,mixed> $intent */
