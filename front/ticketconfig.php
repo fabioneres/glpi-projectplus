@@ -29,7 +29,18 @@ Html::header(__('Fluxo de solicitacao de projeto', 'projectplus'), $_SERVER['PHP
 
 ConfigPage::begin('ticketflow');
 echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-git-branch'></i> " . ConfigPage::escape(__('Fluxo de solicitacao de projeto', 'projectplus')) . '</header>';
-echo "<div class='projectplus-config-card__body'><form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
+echo "<div class='projectplus-config-card__body'>";
+echo "<form method='get' action='" . Html::clean($_SERVER['PHP_SELF']) . "'><table class='tab_cadre_fixe'>";
+echo "<tr class='tab_bg_1'><td>" . __('Entidade configurada', 'projectplus') . '</td><td>';
+Entity::dropdown([
+   'name' => 'entities_id',
+   'value' => $entityId,
+   'entity' => 0,
+]);
+echo " <button class='btn btn-secondary' type='submit'>" . __('Carregar', 'projectplus') . '</button>';
+echo '</td></tr></table></form>';
+
+echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
 echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo Html::hidden('entities_id', ['value' => $entityId]);
 echo "<table class='tab_cadre_fixe'>";
