@@ -190,7 +190,7 @@ class TicketPhase extends CommonDBTM
          return;
       }
 
-      echo "<div class='center'><table class='tab_cadre_fixe'>";
+      echo "<div class='projectplus-tip-shell'><table class='tab_cadre_fixe'>";
       echo "<tr class='tab_bg_2'><th colspan='2'>" . self::escape(self::label('Fluxo interno da solicita&ccedil;&atilde;o de projeto')) . '</th></tr>';
       echo "<tr class='tab_bg_1'><td>" . self::escape(__('Fase atual', 'projectplus')) . '</td><td><strong>' . self::escape(self::getPhaseLabel((string) $phase['phase'])) . '</strong></td></tr>';
       echo "<tr class='tab_bg_1'><td>" . self::escape(self::label('&Uacute;ltima atualiza&ccedil;&atilde;o')) . '</td><td>' . self::escape((string) $phase['date_mod']) . '</td></tr>';

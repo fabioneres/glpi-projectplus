@@ -77,6 +77,8 @@
 }
 
 /* TIP: visual de documento, limitado ao formulário do plugin. */
+.projectplus-tip-shell { max-width: 1120px; margin: 24px auto 0; }
+.projectplus-tip-shell .tab_cadre_fixe { width: 100%; }
 .projectplus-tip { max-width: 1120px; margin: 24px auto; color: #25364a; }
 .projectplus-tip__hero { display: flex; gap: 18px; align-items: flex-start; padding: 28px 32px; border-radius: 12px 12px 0 0; background: linear-gradient(120deg, #155d3a, #24744b); color: #fff; box-shadow: 0 8px 22px rgba(22, 92, 58, .16); }
 .projectplus-tip__hero-icon { display: grid; place-items: center; flex: 0 0 48px; height: 48px; border-radius: 11px; background: rgba(255, 255, 255, .18); font-size: 1.45rem; }
