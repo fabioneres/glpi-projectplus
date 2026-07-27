@@ -53,7 +53,9 @@ class ProjectPortal
    /** @param array<string, mixed> $menu */
    private static function isMyTicketsMenu(string $key, array $menu): bool
    {
-      if (in_array($key, ['tickets', 'ticket', 'helpdesk'], true)) {
+      // Formcreator replaces the native Helpdesk menu in this environment.
+      // Its "Meus chamados" entry has the key my_assistance_requests.
+      if (in_array($key, ['tickets', 'ticket', 'helpdesk', 'my_assistance_requests'], true)) {
          return true;
       }
 
