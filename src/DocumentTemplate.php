@@ -15,4 +15,10 @@ class DocumentTemplate {
    }
    public static function delete(int $id,int $entity): bool { global $DB; return Session::haveAccessToEntity($entity,true) && (bool)$DB->delete(self::getTable(),['id'=>$id,'entities_id'=>$entity]); }
    public static function get(int $entity,int $id=0): array { global $DB; $where=['entities_id'=>$entity]; if($id>0)$where['id']=$id; return iterator_to_array($DB->request(['FROM'=>self::getTable(),'WHERE'=>$where,'ORDER'=>['document_type ASC','name ASC']]),false); }
+   /** @return array<int,string> */
+   public static function getDocumentsForEntity(int $entity): array {
+      global $DB; $result=[];
+      foreach($DB->request(['FROM'=>'glpi_documents','WHERE'=>['is_deleted'=>0,'entities_id'=>[0,$entity]],'ORDER'=>['name ASC']]) as $document) { $result[(int)$document['id']]=(string)$document['name']; }
+      return $result;
+   }
 }
