@@ -5,18 +5,35 @@ if (!defined('GLPI_ROOT')) {
 }
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use GlpiPlugin\Projectplus\ConfigPage;
+use GlpiPlugin\Projectplus\ProjectImport;
+
 Session::checkRight('config', READ);
 Html::header(__('Project+', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
 
-echo "<div class='center'><table class='tab_cadre_fixe'>";
-echo "<tr class='tab_bg_2'><th colspan='2'>" . __('Administração', 'projectplus') . '</th></tr>';
+ConfigPage::begin('overview');
+echo "<section class='projectplus-config-card'>";
+echo "<header class='projectplus-config-card__header'><i class='ti ti-settings'></i> " . ConfigPage::escape(__('Configuracoes do Project+', 'projectplus')) . '</header>';
+echo "<div class='projectplus-config-card__body'><div class='row g-4'>";
+
+echo "<div class='col-12 col-lg-6'><article class='projectplus-config-option'>";
+echo "<div class='projectplus-config-option__icon'><i class='ti ti-git-branch'></i></div><div>";
+echo '<h3>' . ConfigPage::escape(__('Fluxo de solicitacao de projeto', 'projectplus')) . '</h3>';
+echo '<p>' . ConfigPage::escape(__('Defina, por entidade, qual categoria ITIL inicia o fluxo interno de solicitacao de projetos.', 'projectplus')) . '</p>';
 if (Session::haveRight('config', UPDATE)) {
-   echo "<tr class='tab_bg_1'><td>" . __('Fluxo de solicitacao de projeto', 'projectplus') . '</td><td>';
-   echo "<a class='btn btn-primary' href='ticketconfig.php'>" . __('Configurar categoria por entidade', 'projectplus') . '</a>';
-   echo '</td></tr>';
-   echo "<tr class='tab_bg_1'><td>" . __('Importação de projetos', 'projectplus') . '</td><td>';
-   echo "<a class='btn btn-primary' href='" . Html::clean(\GlpiPlugin\Projectplus\ProjectImport::getFormURL()) . "'>" . __('Importar CSV', 'projectplus') . '</a>';
-   echo '</td></tr>';
+   echo "<a class='btn btn-primary' href='ticketconfig.php'>" . ConfigPage::escape(__('Configurar fluxo', 'projectplus')) . '</a>';
 }
-echo '</table></div>';
+echo '</div></article></div>';
+
+echo "<div class='col-12 col-lg-6'><article class='projectplus-config-option'>";
+echo "<div class='projectplus-config-option__icon'><i class='ti ti-file-import'></i></div><div>";
+echo '<h3>' . ConfigPage::escape(__('Importacao de projetos existentes', 'projectplus')) . '</h3>';
+echo '<p>' . ConfigPage::escape(__('Importe uma planilha CSV, valide os dados e preencha os projetos existentes no GLPI.', 'projectplus')) . '</p>';
+if (Session::haveRight('config', UPDATE)) {
+   echo "<a class='btn btn-primary' href='" . Html::clean(ProjectImport::getFormURL()) . "'>" . ConfigPage::escape(__('Abrir importacao', 'projectplus')) . '</a>';
+}
+echo '</div></article></div>';
+
+echo '</div></div></section>';
+ConfigPage::end();
 Html::footer();

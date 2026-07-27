@@ -6,6 +6,7 @@ if (!defined('GLPI_ROOT')) {
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\TicketConfig;
+use GlpiPlugin\Projectplus\ConfigPage;
 
 Session::checkRight('config', UPDATE);
 
@@ -26,7 +27,9 @@ if (isset($_POST['save_ticket_config'])) {
 $config = TicketConfig::getForEntity($entityId);
 Html::header(__('Fluxo de solicitacao de projeto', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
 
-echo "<div class='center'><form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
+ConfigPage::begin('ticketflow');
+echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-git-branch'></i> " . ConfigPage::escape(__('Fluxo de solicitacao de projeto', 'projectplus')) . '</header>';
+echo "<div class='projectplus-config-card__body'><form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
 echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo Html::hidden('entities_id', ['value' => $entityId]);
 echo "<table class='tab_cadre_fixe'>";
@@ -43,7 +46,8 @@ ITILCategory::dropdown([
 ]);
 echo '</td></tr>';
 echo "<tr class='tab_bg_1'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='save_ticket_config' value='1'>" . __('Salvar', 'projectplus') . '</button></td></tr>';
-echo '</table></form></div>';
+echo '</table></form>';
 
-echo "<div class='center mt-3'><p>" . __('Quando um Ticket dessa entidade receber a categoria configurada, a aba Solicitacao de projeto sera exibida para controlar a fase interna. O status nativo do Ticket nao e alterado.', 'projectplus') . '</p></div>';
+echo "<p class='projectplus-config-help'>" . ConfigPage::escape(__('Quando um Ticket dessa entidade receber a categoria configurada, a aba Solicitacao de projeto sera exibida para controlar a fase interna. O status nativo do Ticket nao e alterado.', 'projectplus')) . '</p></div></section>';
+ConfigPage::end();
 Html::footer();

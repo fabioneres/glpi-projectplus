@@ -1,0 +1,77 @@
+.projectplus-config-layout {
+   display: grid;
+   grid-template-columns: 160px minmax(0, 1fr);
+   gap: 20px;
+   margin: 12px 16px;
+}
+
+.projectplus-config-nav {
+   align-self: start;
+   border: 1px solid var(--tblr-border-color, #d9dee7);
+   border-radius: 4px;
+   background: var(--tblr-card-bg, #fff);
+   overflow: hidden;
+}
+
+.projectplus-config-nav__title {
+   padding: 10px 12px;
+   color: var(--tblr-body-color, #182433);
+   font-weight: 700;
+   border-bottom: 1px solid var(--tblr-border-color, #d9dee7);
+}
+
+.projectplus-config-nav__link {
+   display: block;
+   padding: 9px 12px;
+   color: var(--tblr-body-color, #182433);
+   text-decoration: none;
+   border-bottom: 1px solid var(--tblr-border-color, #e8ebf0);
+}
+
+.projectplus-config-nav__link:last-child { border-bottom: 0; }
+.projectplus-config-nav__link:hover,
+.projectplus-config-nav__link.is-active {
+   color: var(--tblr-primary, #206bc4);
+   background: rgba(32, 107, 196, .08);
+}
+
+.projectplus-config-nav__link i { margin-right: 6px; }
+.projectplus-config-content { min-width: 0; }
+
+.projectplus-config-card {
+   border: 1px solid var(--tblr-border-color, #d9dee7);
+   border-radius: 4px;
+   background: var(--tblr-card-bg, #fff);
+}
+
+.projectplus-config-card__header {
+   padding: 14px 18px;
+   font-size: 1rem;
+   font-weight: 700;
+   border-bottom: 1px solid var(--tblr-border-color, #d9dee7);
+}
+
+.projectplus-config-card__header i { margin-right: 8px; }
+.projectplus-config-card__body { padding: 20px 18px; }
+
+.projectplus-config-option {
+   display: flex;
+   gap: 12px;
+   height: 100%;
+   padding: 16px;
+   border: 1px solid var(--tblr-border-color, #d9dee7);
+   border-radius: 4px;
+}
+
+.projectplus-config-option__icon {
+   color: var(--tblr-primary, #206bc4);
+   font-size: 1.5rem;
+}
+
+.projectplus-config-option h3 { margin: 0 0 6px; font-size: .95rem; }
+.projectplus-config-option p { margin: 0 0 14px; color: var(--tblr-secondary, #667382); }
+.projectplus-config-help { margin: 16px 0 0; color: var(--tblr-secondary, #667382); }
+
+@media (max-width: 768px) {
+   .projectplus-config-layout { grid-template-columns: 1fr; margin: 12px; }
+}
