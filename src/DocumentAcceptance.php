@@ -102,6 +102,15 @@ class DocumentAcceptance extends CommonDBTM
       if ($item instanceof Ticket && (string)$row['document_type'] === 'tap') { TicketPhase::setPhase($item, 'authorized_opening', __('TAP aceito pelo cliente.', 'projectplus')); }
    }
 
+   /** @return array<string,mixed>|null */
+   public static function getViewableAcceptance(CommonDBTM $item, int $acceptanceId): ?array
+   {
+      /** @var DBmysql $DB */ global $DB;
+      $row = $DB->request(['FROM'=>self::getTable(),'WHERE'=>['id'=>$acceptanceId,'itemtype'=>$item::getType(),'items_id'=>(int)$item->getID()],'LIMIT'=>1])->current();
+      if (!$row || (!self::canManage($item) && !self::canAccept($item))) { return null; }
+      return $row;
+   }
+
    public static function showForItem(CommonDBTM $item): void
    {
       $types = self::typesForItem($item);
@@ -134,7 +143,7 @@ class DocumentAcceptance extends CommonDBTM
    {
       global $CFG_GLPI;
       $document = new Document(); $document->getFromDB((int)$row['documents_id']);
-      $src = rtrim((string)$CFG_GLPI['root_doc'],'/') . '/front/document.send.php?docid=' . (int)$row['documents_id'];
+      $src = rtrim((string)$CFG_GLPI['root_doc'],'/') . '/plugins/projectplus/front/documentacceptance.view.php?itemtype=' . rawurlencode($item::getType()) . '&items_id=' . (int)$item->getID() . '&acceptance_id=' . (int)$row['id'];
       echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc((string)$document->getName()) . '</strong><a target="_blank" rel="noopener" href="' . self::esc($src) . '">' . self::esc(__('Abrir documento', 'projectplus')) . '</a></div><iframe title="' . self::esc((string)$document->getName()) . '" src="' . self::esc($src) . '"></iframe></div>';
       if ((string)$row['status'] === 'accepted') { echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::esc(__('Aceito por', 'projectplus')) . ' ' . self::esc(User::getFriendlyNameById((int)$row['accepted_users_id'])) . ' — ' . self::esc((string)$row['date_accepted']) . '</div>'; return; }
       if (self::canAccept($item)) {
