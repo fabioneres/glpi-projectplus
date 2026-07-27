@@ -121,7 +121,7 @@ class DocumentAcceptance extends CommonDBTM
 
    private static function showPublishForm(CommonDBTM $item, string $type): void
    {
-      echo "<form method='post' action='" . self::esc(self::url()) . "'>" . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]);
+      echo "<form method='post' action='" . self::esc(self::url()) . "'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]);
       $options = [];
       foreach (DocumentTemplate::get((int)$item->getEntityID()) as $model) { if ((string)$model['document_type'] === $type && (int)$model['is_active']) { $options[(int)$model['id']] = (string)$model['name'] . ((string)$model['version'] !== '' ? ' — v' . (string)$model['version'] : ''); } }
       echo "<div class='projectplus-acceptance__publish'><div><label>" . self::esc(__('Modelo PDF', 'projectplus')) . '</label>';
@@ -138,7 +138,7 @@ class DocumentAcceptance extends CommonDBTM
       echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc((string)$document->getName()) . '</strong><a target="_blank" rel="noopener" href="' . self::esc($src) . '">' . self::esc(__('Abrir documento', 'projectplus')) . '</a></div><iframe title="' . self::esc((string)$document->getName()) . '" src="' . self::esc($src) . '"></iframe></div>';
       if ((string)$row['status'] === 'accepted') { echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::esc(__('Aceito por', 'projectplus')) . ' ' . self::esc(User::getFriendlyNameById((int)$row['accepted_users_id'])) . ' — ' . self::esc((string)$row['date_accepted']) . '</div>'; return; }
       if (self::canAccept($item)) {
-         echo "<form method='post' action='" . self::esc(self::url()) . "' class='projectplus-acceptance__form'>" . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('acceptance_id',['value'=>(int)$row['id']]) . "<label><input required type='checkbox' name='accepted' value='1'> " . self::esc(__('Li e aceito os termos deste documento.', 'projectplus')) . "</label><button class='btn btn-primary' type='submit' name='accept_document' value='1'><i class='ti ti-check'></i> " . self::esc(__('Aceitar e continuar', 'projectplus')) . '</button></form>';
+         echo "<form method='post' action='" . self::esc(self::url()) . "' class='projectplus-acceptance__form'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('acceptance_id',['value'=>(int)$row['id']]) . "<label><input required type='checkbox' name='accepted' value='1'> " . self::esc(__('Li e aceito os termos deste documento.', 'projectplus')) . "</label><button class='btn btn-primary' type='submit' name='accept_document' value='1'><i class='ti ti-check'></i> " . self::esc(__('Aceitar e continuar', 'projectplus')) . '</button></form>';
       }
    }
 
