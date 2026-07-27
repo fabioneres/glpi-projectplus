@@ -40,11 +40,20 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Ticket::class] = [TicketPhase::class, 'postTicketAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Ticket::class] = [TicketPhase::class, 'preTicketUpdate'];
 
-   if (Session::haveRight('config', READ)) {
-      $PLUGIN_HOOKS[Hooks::MENU_TOADD]['projectplus'] = [
-         'plugins' => Menu::class,
-      ];
+   // GLPI caches the complete menu in the current session. Invalidate it
+   // once per plugin version so newly registered Plugin-menu entries appear
+   // immediately without requiring the user to log out and log back in.
+   if (Session::getLoginUserID()) {
+      $menuCacheKey = 'plugin_projectplus_menu_cache_' . PLUGIN_PROJECTPLUS_VERSION;
+      if (($_SESSION[$menuCacheKey] ?? 0) !== 1) {
+         unset($_SESSION['glpimenu']);
+         $_SESSION[$menuCacheKey] = 1;
+      }
    }
+
+   $PLUGIN_HOOKS[Hooks::MENU_TOADD]['projectplus'] = [
+      'plugins' => Menu::class,
+   ];
 }
 
 function plugin_version_projectplus(): array
