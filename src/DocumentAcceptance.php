@@ -75,9 +75,13 @@ class DocumentAcceptance extends CommonDBTM
       return false;
    }
 
-   public static function publish(CommonDBTM $item, string $type, int $documentId): void
+   public static function publish(CommonDBTM $item, string $type, int $templateId): void
    {
       if (!self::canManage($item) || !array_key_exists($type, self::typesForItem($item))) { throw new \RuntimeException(__('Sem permissão para publicar este documento.', 'projectplus')); }
+      $templates = DocumentTemplate::get((int)$item->getEntityID(), $templateId);
+      $template = $templates[0] ?? null;
+      if (!$template || (string)$template['document_type'] !== $type || !(int)$template['is_active']) { throw new \RuntimeException(__('Selecione um modelo ativo compatível.', 'projectplus')); }
+      $documentId = (int)$template['documents_id'];
       $document = new Document();
       if ($documentId <= 0 || !$document->getFromDB($documentId)) { throw new \RuntimeException(__('Selecione um documento válido.', 'projectplus')); }
       /** @var DBmysql $DB */ global $DB;
@@ -118,8 +122,10 @@ class DocumentAcceptance extends CommonDBTM
    private static function showPublishForm(CommonDBTM $item, string $type): void
    {
       echo "<form method='post' action='" . self::esc(self::url()) . "'>" . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]);
-      echo "<div class='projectplus-acceptance__publish'><div><label>" . self::esc(__('Documento PDF', 'projectplus')) . '</label>';
-      Document::dropdown(['name'=>'documents_id','entity'=>(int)$item->getEntityID(),'addicon'=>false]);
+      $options = [];
+      foreach (DocumentTemplate::get((int)$item->getEntityID()) as $model) { if ((string)$model['document_type'] === $type && (int)$model['is_active']) { $options[(int)$model['id']] = (string)$model['name'] . ((string)$model['version'] !== '' ? ' — v' . (string)$model['version'] : ''); } }
+      echo "<div class='projectplus-acceptance__publish'><div><label>" . self::esc(__('Modelo PDF', 'projectplus')) . '</label>';
+      Dropdown::showFromArray('documents_id',$options);
       echo '</div><button class="btn btn-primary" type="submit" name="publish_document" value="1"><i class="ti ti-send"></i> ' . self::esc(__('Publicar para aceite', 'projectplus')) . '</button></div></form>';
    }
 
