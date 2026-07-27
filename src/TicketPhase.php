@@ -15,11 +15,6 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
-/**
- * Internal process phase for a Ticket configured as a project request.
- * The native Ticket status remains untouched so the process is isolated from
- * service-desk queues and can evolve independently.
- */
 class TicketPhase extends CommonDBTM
 {
    protected static $notable = true;
@@ -33,9 +28,9 @@ class TicketPhase extends CommonDBTM
    public static function getPhases(): array
    {
       return [
-         'classification' => __('ClassificaÃ§Ã£o da necessidade', 'projectplus'),
-         'portfolio_analysis' => __('AnÃ¡lise do portfÃ³lio', 'projectplus'),
-         'awaiting_authorization' => __('Aguardando autorizaÃ§Ã£o de abertura', 'projectplus'),
+         'classification' => self::label('Classifica&ccedil;&atilde;o da necessidade'),
+         'portfolio_analysis' => self::label('An&aacute;lise do portf&oacute;lio'),
+         'awaiting_authorization' => self::label('Aguardando autoriza&ccedil;&atilde;o de abertura'),
          'authorized_opening' => __('Autorizado para abertura', 'projectplus'),
          'awaiting_tap_acceptance' => __('Aguardando aceite do TAP', 'projectplus'),
          'project_opened' => __('Projeto aberto', 'projectplus'),
@@ -71,7 +66,6 @@ class TicketPhase extends CommonDBTM
       if ($ticketId <= 0 || !$DB->tableExists(self::getTable())) {
          return null;
       }
-
       $row = $DB->request([
          'FROM' => self::getTable(),
          'WHERE' => ['tickets_id' => $ticketId],
@@ -120,7 +114,6 @@ class TicketPhase extends CommonDBTM
       if (!TicketConfig::isEnabledForTicket($ticket)) {
          return false;
       }
-
       self::ensureForTicket($ticket);
       $current = self::getForTicket((int) $ticket->getID());
       $phase = (string) ($input['phase'] ?? '');
@@ -160,7 +153,7 @@ class TicketPhase extends CommonDBTM
       if (!$item instanceof Ticket || $withtemplate || !TicketConfig::isEnabledForTicket($item)) {
          return '';
       }
-      return self::createTabEntry(__('SolicitaÃ§Ã£o de projeto', 'projectplus'), 0, $item::getType(), 'ti ti-folder');
+      return self::createTabEntry(self::label('Solicita&ccedil;&atilde;o de projeto'), 0, $item::getType(), 'ti ti-folder');
    }
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
@@ -180,9 +173,9 @@ class TicketPhase extends CommonDBTM
       }
 
       echo "<div class='center'><table class='tab_cadre_fixe'>";
-      echo "<tr class='tab_bg_2'><th colspan='2'>" . self::escape(__('Fluxo interno da solicitaÃ§Ã£o de projeto', 'projectplus')) . '</th></tr>';
+      echo "<tr class='tab_bg_2'><th colspan='2'>" . self::escape(self::label('Fluxo interno da solicita&ccedil;&atilde;o de projeto')) . '</th></tr>';
       echo "<tr class='tab_bg_1'><td>" . self::escape(__('Fase atual', 'projectplus')) . '</td><td><strong>' . self::escape(self::getPhaseLabel((string) $phase['phase'])) . '</strong></td></tr>';
-      echo "<tr class='tab_bg_1'><td>" . self::escape(__('Ãšltima atualizaÃ§Ã£o', 'projectplus')) . '</td><td>' . self::escape((string) $phase['date_mod']) . '</td></tr>';
+      echo "<tr class='tab_bg_1'><td>" . self::escape(self::label('&Uacute;ltima atualiza&ccedil;&atilde;o')) . '</td><td>' . self::escape((string) $phase['date_mod']) . '</td></tr>';
       echo '</table></div>';
 
       if (Session::haveRight('ticket', UPDATE)) {
@@ -204,7 +197,7 @@ class TicketPhase extends CommonDBTM
       echo '</td></tr>';
       echo "<tr class='tab_bg_1'><td>" . self::escape(__('Justificativa', 'projectplus')) . '</td><td>';
       echo "<textarea class='form-control' name='justification' rows='4'></textarea>";
-      echo '<br><em>' . self::escape(__('ObrigatÃ³ria em caso de recusa ou cancelamento.', 'projectplus')) . '</em>';
+      echo '<br><em>' . self::escape(self::label('Obrigat&oacute;ria em caso de recusa ou cancelamento.')) . '</em>';
       echo '</td></tr>';
       echo "<tr class='tab_bg_1'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='update_phase' value='1'>" . self::escape(__('Salvar', 'projectplus')) . '</button></td></tr>';
       echo '</table></form></div>';
@@ -216,8 +209,8 @@ class TicketPhase extends CommonDBTM
       global $DB;
 
       echo "<div class='center'><table class='tab_cadre_fixe'>";
-      echo "<tr class='tab_bg_2'><th colspan='4'>" . self::escape(__('HistÃ³rico das fases', 'projectplus')) . '</th></tr>';
-      echo '<tr><th>' . self::escape(__('Data', 'projectplus')) . '</th><th>' . self::escape(__('De', 'projectplus')) . '</th><th>' . self::escape(__('Para', 'projectplus')) . '</th><th>' . self::escape(__('ResponsÃ¡vel / justificativa', 'projectplus')) . '</th></tr>';
+      echo "<tr class='tab_bg_2'><th colspan='4'>" . self::escape(self::label('Hist&oacute;rico das fases')) . '</th></tr>';
+      echo '<tr><th>' . self::escape(__('Data', 'projectplus')) . '</th><th>' . self::escape(__('De', 'projectplus')) . '</th><th>' . self::escape(__('Para', 'projectplus')) . '</th><th>' . self::escape(self::label('Respons&aacute;vel / justificativa')) . '</th></tr>';
       foreach ($DB->request([
          'FROM' => TicketPhaseHistory::getTable(),
          'WHERE' => ['tickets_id' => $ticketId],
@@ -241,5 +234,10 @@ class TicketPhase extends CommonDBTM
    private static function escape(string $value): string
    {
       return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+   }
+
+   private static function label(string $value): string
+   {
+      return html_entity_decode(__($value, 'projectplus'), ENT_QUOTES | ENT_HTML5, 'UTF-8');
    }
 }
