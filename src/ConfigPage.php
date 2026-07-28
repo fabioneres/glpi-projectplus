@@ -18,6 +18,9 @@ class ConfigPage
       self::navLink('overview', 'config.php', 'ti ti-settings', __('Geral', 'projectplus'), $active);
       self::navLink('ticketflow', 'ticketconfig.php', 'ti ti-git-branch', __('Fluxo de solicitacao', 'projectplus'), $active);
       self::navLink('tipmodel', 'tipconfig.php', 'ti ti-forms', __('Modelo TIP', 'projectplus'), $active);
+      self::navLink('tapmodel', 'documenttemplates.php?document_type=tap', 'ti ti-file-description', __('Modelo TAP', 'projectplus'), $active);
+      self::navLink('tepmodel', 'documenttemplates.php?document_type=tep', 'ti ti-file-description', __('Modelo TEP', 'projectplus'), $active);
+      self::navLink('tamodel', 'documenttemplates.php?document_type=ta', 'ti ti-file-description', __('Modelo TA', 'projectplus'), $active);
       self::navLink('documents', 'documenttemplates.php', 'ti ti-file-description', __('Modelos de documentos', 'projectplus'), $active);
       self::navLink('import', ProjectImport::getFormURL(), 'ti ti-file-import', __('Importacao de projetos', 'projectplus'), $active);
       echo '</aside><main class="projectplus-config-content">';
