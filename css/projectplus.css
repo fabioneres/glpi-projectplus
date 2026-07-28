@@ -101,6 +101,15 @@
 .projectplus-tip__answer { padding: 17px 19px; border: 1px solid #e1ebe4; border-radius: 8px; background: #fbfcfb; }
 .projectplus-tip__answer h4 { margin: 0 0 8px; color: #284737; font-size: .92rem; font-weight: 700; }
 .projectplus-tip__answer div { color: #43554a; line-height: 1.55; white-space: normal; }
+.projectplus-acceptance { max-width: calc(100vw - 80px); }
+.projectplus-acceptance__document { margin-top: 18px; }
+.projectplus-acceptance__document > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+.projectplus-acceptance__document > div a { color: #17613d; font-size: .9rem; font-weight: 600; }
+.projectplus-acceptance__document iframe { display: block; width: 100%; height: min(72vh, 900px); min-height: 560px; border: 1px solid #cbd8d0; border-radius: 8px; background: #f4f6f5; }
+@media (max-width: 720px) {
+   .projectplus-acceptance { max-width: none; }
+   .projectplus-acceptance__document iframe { min-height: 420px; height: 62vh; }
+}
 .projectplus-tip__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
 .projectplus-tip__section-title--divider { grid-column: 1 / -1; margin: 28px 0 20px; padding-top: 24px; border-top: 1px solid #e3ebe6; }
 .projectplus-tip__field { min-width: 0; }
