@@ -8,6 +8,7 @@ use GlpiPlugin\Projectplus\TicketPhase;
 use GlpiPlugin\Projectplus\Menu;
 use GlpiPlugin\Projectplus\ProjectProfile;
 use GlpiPlugin\Projectplus\DocumentAcceptance;
+use GlpiPlugin\Projectplus\ProjectInteraction;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -34,12 +35,14 @@ function plugin_init_projectplus(): void
    Plugin::registerClass(ProjectProfile::class, ['addtabon' => [\Profile::class]]);
    Plugin::registerClass(TicketPhase::class, ['addtabon' => [Ticket::class]]);
    Plugin::registerClass(DocumentAcceptance::class, ['addtabon' => [Ticket::class, Project::class]]);
+   Plugin::registerClass(ProjectInteraction::class, ['addtabon' => [Project::class]]);
    $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus.css';
    // Arquivo separado para que a correção visual seja carregada mesmo em
    // sessões que ainda mantenham em cache a folha principal do plugin.
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/document-acceptance.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/config-layout.css';
    $PLUGIN_HOOKS[Hooks::POST_ITEM_FORM]['projectplus'] = [ProjectForm::class, 'postItemForm'];
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Project::class] = [ProjectData::class, 'postProjectAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectUpdate'];
