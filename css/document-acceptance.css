@@ -1,0 +1,42 @@
+.projectplus-acceptance {
+   max-width: calc(100vw - 80px);
+}
+
+.projectplus-acceptance__document {
+   margin-top: 18px;
+}
+
+.projectplus-acceptance__document > div {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 16px;
+   margin-bottom: 10px;
+}
+
+.projectplus-acceptance__document > div a {
+   color: #17613d;
+   font-size: .9rem;
+   font-weight: 600;
+}
+
+.projectplus-acceptance__document iframe {
+   display: block;
+   width: 100%;
+   height: min(72vh, 900px);
+   min-height: 560px;
+   border: 1px solid #cbd8d0;
+   border-radius: 8px;
+   background: #f4f6f5;
+}
+
+@media (max-width: 720px) {
+   .projectplus-acceptance {
+      max-width: none;
+   }
+
+   .projectplus-acceptance__document iframe {
+      min-height: 420px;
+      height: 62vh;
+   }
+}
