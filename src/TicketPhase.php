@@ -197,6 +197,7 @@ class TicketPhase extends CommonDBTM
       echo '</table></div>';
 
       TicketIntent::showForTicket($ticket);
+      TicketProject::showForTicket($ticket);
 
       if (Session::haveRight('ticket', UPDATE)) {
          self::showUpdateForm($ticket, $phase);

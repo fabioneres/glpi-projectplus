@@ -45,6 +45,7 @@ class Installer
       self::ensureTipAnswerTable();
       self::ensureDocumentAcceptanceTable();
       self::ensureDocumentTemplateTable();
+      self::ensureTicketProjectTable();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -100,6 +101,14 @@ class Installer
          $migration->addKey($table, $field, $field . '_index');
       }
       $migration->executeMigration();
+   }
+
+   private static function ensureTicketProjectTable(): void
+   {
+      global $DB; $table = TicketProject::getTable();
+      if (!$DB->tableExists($table)) {
+         $DB->doQuery("CREATE TABLE `{$table}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `tickets_id` int unsigned NOT NULL DEFAULT 0, `projects_id` int unsigned NOT NULL DEFAULT 0, `entities_id` int unsigned NOT NULL DEFAULT 0, `users_id` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), UNIQUE KEY `tickets_id` (`tickets_id`), KEY `projects_id` (`projects_id`), KEY `entities_id` (`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
+      }
    }
 
    private static function ensureDropdownTable(string $table): void
