@@ -1,0 +1,27 @@
+/* Match the action placement and the yellow actions used by GLPI followups. */
+.projectplus-followups__replybar .btn,
+.projectplus-followups__composer-footer .btn {
+   border-color: #e6b73f !important;
+   background: #f8c64e !important;
+   color: #25364a !important;
+}
+.projectplus-followups__replybar .btn:hover,
+.projectplus-followups__composer-footer .btn:hover {
+   border-color: #d5a42b !important;
+   background: #efb937 !important;
+   color: #25364a !important;
+}
+.projectplus-followups__composer { position: relative !important; }
+.projectplus-followups__close {
+   position: absolute;
+   z-index: 3;
+   top: 12px;
+   right: 14px;
+   padding: 3px 6px;
+   border: 0;
+   background: transparent;
+   color: #365276;
+   font-size: 1.3rem;
+}
+.projectplus-followups__close:hover { color: #d9473c; }
+.projectplus-followups__composer-options { padding-top: 48px !important; }

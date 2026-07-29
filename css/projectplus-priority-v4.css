@@ -1,0 +1,20 @@
+/* Extend the mapped native priority colour to the complete institutional ranking card. */
+.projectplus-priority--1 { border-color: #8f6d6d !important; }
+.projectplus-priority--2 { border-color: #a55757 !important; }
+.projectplus-priority--3 { border-color: #8a6b25 !important; }
+.projectplus-priority--4 { border-color: #745100 !important; }
+.projectplus-priority--5 { border-color: #8d3333 !important; }
+.projectplus-priority--6 { border-color: #b51e1e !important; }
+
+.projectplus-priority__header--1 p,
+.projectplus-priority--1 .projectplus-priority__footer small { color: #8f6d6d !important; }
+.projectplus-priority__header--2 p,
+.projectplus-priority--2 .projectplus-priority__footer small { color: #a55757 !important; }
+.projectplus-priority__header--3 p,
+.projectplus-priority--3 .projectplus-priority__footer small { color: #8a6b25 !important; }
+.projectplus-priority__header--4 p,
+.projectplus-priority--4 .projectplus-priority__footer small { color: #745100 !important; }
+.projectplus-priority__header--5 p,
+.projectplus-priority--5 .projectplus-priority__footer small { color: #8d3333 !important; }
+.projectplus-priority__header--6 p,
+.projectplus-priority--6 .projectplus-priority__footer small { color: #b51e1e !important; }

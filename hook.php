@@ -20,7 +20,19 @@ function plugin_projectplus_getDropdown(): array
    return [
       'PluginProjectplusPortfolioBasket' => __('Cestas Portfólio', 'projectplus'),
       'PluginProjectplusPdticAction'      => __('Ações PDTIC', 'projectplus'),
+      'PluginProjectplusFollowupTemplate' => __('Modelos de acompanhamento de Projetos', 'projectplus'),
+      'PluginProjectplusSolutionTemplate' => __('Modelos de solução do projeto', 'projectplus'),
    ];
+}
+
+/** Adds the Project+ ranking to GLPI's native project search options. */
+function plugin_projectplus_getAddSearchOptionsNew($itemtype): array
+{
+   if ($itemtype !== \Project::class && $itemtype !== 'Project') {
+      return [];
+   }
+
+   return \GlpiPlugin\Projectplus\ProjectPriority::getSearchOptionsForProject();
 }
 
 function plugin_projectplus_install(): bool

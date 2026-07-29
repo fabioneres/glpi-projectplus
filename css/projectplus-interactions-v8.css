@@ -1,0 +1,6 @@
+/* The submit button inherits the color of the selected Solution action. */
+.projectplus-followups__composer-footer .projectplus-followups__submit--solution {
+   background: #b9dff2 !important;
+   border-color: #84bddb !important;
+   color: #20435a !important;
+}

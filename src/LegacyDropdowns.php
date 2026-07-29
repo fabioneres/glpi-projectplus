@@ -2,6 +2,8 @@
 
 use GlpiPlugin\Projectplus\PdticAction;
 use GlpiPlugin\Projectplus\PortfolioBasket;
+use GlpiPlugin\Projectplus\FollowupTemplate;
+use GlpiPlugin\Projectplus\SolutionTemplate;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -19,5 +21,13 @@ class PluginProjectplusPortfolioBasket extends PortfolioBasket
 }
 
 class PluginProjectplusPdticAction extends PdticAction
+{
+}
+
+class PluginProjectplusFollowupTemplate extends FollowupTemplate
+{
+}
+
+class PluginProjectplusSolutionTemplate extends SolutionTemplate
 {
 }

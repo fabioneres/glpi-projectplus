@@ -9,6 +9,7 @@ use GlpiPlugin\Projectplus\Menu;
 use GlpiPlugin\Projectplus\ProjectProfile;
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectInteraction;
+use GlpiPlugin\Projectplus\ProjectPriority;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -31,14 +32,38 @@ function plugin_init_projectplus(): void
    // menu option and render the native list actions.
    Plugin::registerClass('PluginProjectplusPortfolioBasket');
    Plugin::registerClass('PluginProjectplusPdticAction');
+   Plugin::registerClass('PluginProjectplusFollowupTemplate');
+   Plugin::registerClass('PluginProjectplusSolutionTemplate');
    Plugin::registerClass(Menu::class);
    Plugin::registerClass(ProjectProfile::class, ['addtabon' => [\Profile::class]]);
    Plugin::registerClass(TicketPhase::class, ['addtabon' => [Ticket::class]]);
    Plugin::registerClass(DocumentAcceptance::class, ['addtabon' => [Ticket::class, Project::class]]);
    Plugin::registerClass(ProjectInteraction::class, ['addtabon' => [Project::class]]);
+   Plugin::registerClass(ProjectPriority::class, ['addtabon' => [Project::class]]);
    $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v2.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v3.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v4.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v5.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v6.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v7.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v8.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v9.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v10.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v11.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v12.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v13.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v14.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v2.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v3.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v4.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v5.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v6.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v7.css';
    // Arquivo separado para que a correção visual seja carregada mesmo em
    // sessões que ainda mantenham em cache a folha principal do plugin.
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/document-acceptance.css';

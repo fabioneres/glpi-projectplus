@@ -1,0 +1,8 @@
+/* Color the whole ranking header from the mapped native GLPI priority. */
+.projectplus-priority__header--1 { background:#faeeee !important; }.projectplus-priority__header--1 h3,.projectplus-priority__score--1 strong { color:#8f6d6d !important; }
+.projectplus-priority__header--2 { background:#fae1e1 !important; }.projectplus-priority__header--2 h3,.projectplus-priority__score--2 strong { color:#a55757 !important; }
+.projectplus-priority__header--3 { background:#fff0c7 !important; }.projectplus-priority__header--3 h3,.projectplus-priority__score--3 strong { color:#8a6b25 !important; }
+.projectplus-priority__header--4 { background:#ffd56a !important; }.projectplus-priority__header--4 h3,.projectplus-priority__score--4 strong { color:#745100 !important; }
+.projectplus-priority__header--5 { background:#f6b1b1 !important; }.projectplus-priority__header--5 h3,.projectplus-priority__score--5 strong { color:#8d3333 !important; }
+.projectplus-priority__header--6 { background:#fde5e5 !important; }.projectplus-priority__header--6 h3,.projectplus-priority__score--6 strong { color:#b51e1e !important; }
+.projectplus-priority__header--1 p,.projectplus-priority__header--2 p,.projectplus-priority__header--3 p,.projectplus-priority__header--4 p,.projectplus-priority__header--5 p,.projectplus-priority__header--6 p { color:#51645b !important; }

@@ -1,0 +1,13 @@
+/* Native blue solution composer: only applied after choosing Solução. */
+.projectplus-followups__composer.projectplus-followups__composer--solution {
+   background: #a9d5ea !important;
+   border-color: #83bdd8 !important;
+}
+.projectplus-followups__composer.projectplus-followups__composer--solution .projectplus-followups__composer-footer {
+   background: rgba(255, 255, 255, .52) !important;
+   border-top-color: #83bdd8 !important;
+}
+.projectplus-followups__composer.projectplus-followups__composer--solution .projectplus-followups__composer-options,
+.projectplus-followups__composer.projectplus-followups__composer--solution .projectplus-followups__composer-main {
+   background: transparent !important;
+}

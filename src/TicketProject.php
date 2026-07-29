@@ -58,7 +58,7 @@ class TicketProject
       $now = date('Y-m-d H:i:s');
       $DB->insert(self::getTable(), ['tickets_id' => (int) $ticket->getID(), 'projects_id' => $projectId, 'entities_id' => (int) $ticket->getEntityID(), 'users_id' => (int) Session::getLoginUserID(), 'date_creation' => $now]);
       $url = Project::getFormURLWithID($projectId);
-      $ticket->update(['id' => (int) $ticket->getID(), 'status' => Ticket::SOLVED, 'solution' => sprintf(__('Projeto aberto: %s', 'projectplus'), '<a href="' . Html::cleanParameters($url) . '">' . __('Acessar projeto', 'projectplus') . '</a>')]);
+      $ticket->update(['id' => (int) $ticket->getID(), 'status' => Ticket::SOLVED, 'solution' => sprintf(__('Projeto aberto: %s', 'projectplus'), '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">' . __('Acessar projeto', 'projectplus') . '</a>')]);
       TicketPhase::setPhase($ticket, 'project_opened', __('Projeto criado e chamado solucionado com vínculo para o projeto.', 'projectplus'));
       return $projectId;
    }

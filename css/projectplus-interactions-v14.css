@@ -1,0 +1,34 @@
+/* Compact private/notification switches, with tooltip-only labels. */
+.projectplus-followups__icon-toggle {
+   display: grid !important;
+   grid-template-columns: 22px 34px !important;
+   gap: 10px !important;
+   align-items: center !important;
+   min-height: 31px !important;
+   cursor: pointer !important;
+}
+.projectplus-followups__icon-toggle > i { color: #263e58 !important; font-size: 1rem !important; }
+.projectplus-followups__icon-toggle input { position: absolute !important; opacity: 0 !important; pointer-events: none !important; }
+.projectplus-followups__toggle-slider {
+   position: relative !important;
+   width: 34px !important;
+   height: 18px !important;
+   border-radius: 99px !important;
+   background: #d7dce3 !important;
+   transition: background .15s ease !important;
+}
+.projectplus-followups__toggle-slider::after {
+   position: absolute !important;
+   top: 3px !important;
+   left: 3px !important;
+   width: 12px !important;
+   height: 12px !important;
+   border-radius: 50% !important;
+   background: #fff !important;
+   box-shadow: 0 1px 2px rgba(0, 0, 0, .22) !important;
+   content: '' !important;
+   transition: transform .15s ease !important;
+}
+.projectplus-followups__icon-toggle input:checked + .projectplus-followups__toggle-slider { background: #91c94b !important; }
+.projectplus-followups__icon-toggle input:checked + .projectplus-followups__toggle-slider::after { transform: translateX(16px) !important; }
+.projectplus-followups__icon-toggle input:focus + .projectplus-followups__toggle-slider { outline: 2px solid #84bddb !important; outline-offset: 2px !important; }

@@ -36,6 +36,8 @@ class Installer
       $table = ProjectData::getTable();
       self::ensureDropdownTable(PortfolioBasket::getTable());
       self::ensureDropdownTable(PdticAction::getTable());
+      self::ensureDropdownTable(FollowupTemplate::getTable());
+      self::ensureDropdownTable(SolutionTemplate::getTable());
       self::ensureTicketConfigTable();
       self::ensureTicketPhaseTable();
       self::ensureTicketPhaseHistoryTable();
@@ -45,7 +47,11 @@ class Installer
       self::ensureTipAnswerTable();
       self::ensureDocumentAcceptanceTable();
       self::ensureDocumentTemplateTable();
+      self::ensureDocumentFieldTable();
+      self::ensureDocumentDraftTable();
       self::ensureTicketProjectTable();
+      self::ensureProjectInteractionTable();
+      self::ensureProjectPriorityTable();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -110,6 +116,8 @@ class Installer
          $DB->doQuery("CREATE TABLE `{$table}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `tickets_id` int unsigned NOT NULL DEFAULT 0, `projects_id` int unsigned NOT NULL DEFAULT 0, `entities_id` int unsigned NOT NULL DEFAULT 0, `users_id` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), UNIQUE KEY `tickets_id` (`tickets_id`), KEY `projects_id` (`projects_id`), KEY `entities_id` (`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
       }
    }
+   private static function ensureProjectInteractionTable(): void { global $DB; $t=ProjectInteraction::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`users_id` int unsigned NOT NULL DEFAULT 0,`content` text NOT NULL,`is_internal` tinyint NOT NULL DEFAULT 0,`notify_participants` tinyint NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),KEY `projects_id`(`projects_id`),KEY `entities_id`(`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
+   private static function ensureProjectPriorityTable(): void { global $DB; $t=ProjectPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `projects_id`(`projects_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
 
    private static function ensureDropdownTable(string $table): void
    {
@@ -263,6 +271,9 @@ class Installer
          'requested_users_id' => 'int unsigned NOT NULL DEFAULT 0',
          'date_requested' => 'timestamp NULL DEFAULT NULL',
          'date_submitted' => 'timestamp NULL DEFAULT NULL',
+         'review_users_id' => 'int unsigned NOT NULL DEFAULT 0',
+         'review_justification' => 'text NULL',
+         'date_reviewed' => 'timestamp NULL DEFAULT NULL',
       ] as $field => $definition) {
          if (!$DB->fieldExists($table, $field)) {
             $migration->addField($table, $field, $definition);
@@ -394,6 +405,18 @@ class Installer
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
    }
 
+   private static function ensureDocumentFieldTable(): void
+   {
+      global $DB; $t = DocumentField::getTable();
+      if (!$DB->tableExists($t)) $DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `entities_id` int unsigned NOT NULL DEFAULT 0, `document_type` varchar(8) NOT NULL, `label` varchar(255) NOT NULL, `description` text NULL, `field_type` varchar(32) NOT NULL DEFAULT 'text', `values` text NULL, `is_required` tinyint NOT NULL DEFAULT 0, `is_active` tinyint NOT NULL DEFAULT 1, `sort_order` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), KEY `entity_type_order` (`entities_id`,`document_type`,`sort_order`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+   }
+
+   private static function ensureDocumentDraftTable(): void
+   {
+      global $DB; $t = 'glpi_plugin_projectplus_documentdrafts';
+      if (!$DB->tableExists($t)) $DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `itemtype` varchar(64) NOT NULL, `items_id` int unsigned NOT NULL, `entities_id` int unsigned NOT NULL, `document_type` varchar(8) NOT NULL, `status` varchar(16) NOT NULL DEFAULT 'draft', `content` longtext NULL, `generated_content` longtext NULL, `version` int unsigned NOT NULL DEFAULT 0, `users_id` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), UNIQUE KEY `item_type` (`itemtype`,`items_id`,`document_type`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+   }
+
    public static function uninstall(): bool
    {
       /** @var DBmysql $DB */
@@ -402,10 +425,13 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . ProjectData::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . PortfolioBasket::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . PdticAction::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . FollowupTemplate::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . SolutionTemplate::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhaseHistory::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketPhase::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntent::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntentAnswer::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . ProjectPriority::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . DocumentAcceptance::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . DocumentTemplate::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipField::getTable() . '`');

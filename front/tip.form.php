@@ -30,6 +30,20 @@ if (isset($_POST['request_tip'])) {
    } catch (\RuntimeException $exception) {
       Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
    }
+} elseif (isset($_POST['accept_tip'])) {
+   try {
+      TicketIntent::acceptForTicket($ticket);
+      Session::addMessageAfterRedirect(__('TIP aceito e encaminhado para classificação.', 'projectplus'));
+   } catch (\RuntimeException $exception) {
+      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   }
+} elseif (isset($_POST['reject_tip'])) {
+   try {
+      TicketIntent::rejectForTicket($ticket, (string) ($_POST['justification'] ?? ''));
+      Session::addMessageAfterRedirect(__('TIP recusado e chamado solucionado.', 'projectplus'));
+   } catch (\RuntimeException $exception) {
+      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   }
 }
 
 Html::redirect(Ticket::getFormURLWithID($ticketId));

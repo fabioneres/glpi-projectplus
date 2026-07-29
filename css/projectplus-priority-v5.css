@@ -1,0 +1,21 @@
+/* Official native-priority palette supplied for Project+. */
+.projectplus-priority__header--1 { background: #fef2f2 !important; }
+.projectplus-priority__header--2 { background: #fce1e0 !important; }
+.projectplus-priority__header--3 { background: #fbcfcf !important; }
+.projectplus-priority__header--4 { background: #fac1c0 !important; }
+.projectplus-priority__header--5 { background: #f9afae !important; }
+.projectplus-priority__header--6 { background: #f55d5a !important; }
+
+.projectplus-priority--1 { border-color: #fef2f2 !important; }
+.projectplus-priority--2 { border-color: #fce1e0 !important; }
+.projectplus-priority--3 { border-color: #fbcfcf !important; }
+.projectplus-priority--4 { border-color: #fac1c0 !important; }
+.projectplus-priority--5 { border-color: #f9afae !important; }
+.projectplus-priority--6 { border-color: #f55d5a !important; }
+
+.projectplus-priority__score .projectplus-priority__native--1 { background: #fef2f2 !important; }
+.projectplus-priority__score .projectplus-priority__native--2 { background: #fce1e0 !important; }
+.projectplus-priority__score .projectplus-priority__native--3 { background: #fbcfcf !important; }
+.projectplus-priority__score .projectplus-priority__native--4 { background: #fac1c0 !important; }
+.projectplus-priority__score .projectplus-priority__native--5 { background: #f9afae !important; }
+.projectplus-priority__score .projectplus-priority__native--6 { background: #f55d5a !important; color: #fff !important; }

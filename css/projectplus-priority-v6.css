@@ -1,0 +1,21 @@
+/* Dynamic priority palette: values come from GLPI's native priority configuration. */
+.projectplus-priority--1,
+.projectplus-priority--2,
+.projectplus-priority--3,
+.projectplus-priority--4,
+.projectplus-priority--5,
+.projectplus-priority--6 { border-color: var(--projectplus-priority-color) !important; }
+
+.projectplus-priority__header--1,
+.projectplus-priority__header--2,
+.projectplus-priority__header--3,
+.projectplus-priority__header--4,
+.projectplus-priority__header--5,
+.projectplus-priority__header--6 { background: var(--projectplus-priority-tint) !important; }
+
+.projectplus-priority__header h3,
+.projectplus-priority__header p,
+.projectplus-priority__score strong,
+.projectplus-priority .projectplus-priority__footer small { color: var(--projectplus-priority-color) !important; }
+
+.projectplus-priority__score .projectplus-priority__native { background: var(--projectplus-priority-color) !important; color: var(--projectplus-priority-badge-text) !important; }

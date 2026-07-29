@@ -44,6 +44,12 @@ class Menu extends CommonDBTM
       if (Session::haveRight('config', UPDATE)) {
          $menu['links']['config'] = '/plugins/projectplus/front/config.php';
       }
+      if (Session::haveRight(ProjectProfile::RIGHT_PORTFOLIO, READ)) {
+         $menu['options']['portfolio'] = [
+            'title' => __('Visão do portfólio', 'projectplus'),
+            'page' => '/plugins/projectplus/front/portfolio.php',
+         ];
+      }
 
       return $menu;
    }

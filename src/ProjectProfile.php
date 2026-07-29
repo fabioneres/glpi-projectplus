@@ -22,11 +22,27 @@ class ProjectProfile extends GlpiProfile
    public const RIGHT_REQUESTS = 'plugin_projectplus_requests';
    public const RIGHT_PORTFOLIO = 'plugin_projectplus_portfolio';
    public const RIGHT_CONFIG = 'plugin_projectplus_config';
+   public const RIGHT_INTERACTION_REPLY = 'plugin_projectplus_interaction_reply';
+   public const RIGHT_INTERACTION_TASK = 'plugin_projectplus_interaction_task';
+   public const RIGHT_INTERACTION_SOLUTION = 'plugin_projectplus_interaction_solution';
+   public const RIGHT_INTERACTION_DOCUMENT = 'plugin_projectplus_interaction_document';
+   public const RIGHT_INTERACTION_VALIDATION = 'plugin_projectplus_interaction_validation';
+   public const RIGHT_INTERACTION_ESCALATE = 'plugin_projectplus_interaction_escalate';
 
    /** @return array<int, string> */
    public static function getRightNames(): array
    {
-      return [self::RIGHT_REQUESTS, self::RIGHT_PORTFOLIO, self::RIGHT_CONFIG];
+      return [
+         self::RIGHT_REQUESTS,
+         self::RIGHT_PORTFOLIO,
+         self::RIGHT_CONFIG,
+         self::RIGHT_INTERACTION_REPLY,
+         self::RIGHT_INTERACTION_TASK,
+         self::RIGHT_INTERACTION_SOLUTION,
+         self::RIGHT_INTERACTION_DOCUMENT,
+         self::RIGHT_INTERACTION_VALIDATION,
+         self::RIGHT_INTERACTION_ESCALATE,
+      ];
    }
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string
@@ -66,6 +82,36 @@ class ProjectProfile extends GlpiProfile
             'label' => __('Administracao do Project+', 'projectplus'),
             'field' => self::RIGHT_CONFIG,
          ],
+         [
+            'itemtype' => ProjectInteraction::class,
+            'label' => __('Interações: responder', 'projectplus'),
+            'field' => self::RIGHT_INTERACTION_REPLY,
+         ],
+         [
+            'itemtype' => ProjectInteraction::class,
+            'label' => __('Interações: tarefa', 'projectplus'),
+            'field' => self::RIGHT_INTERACTION_TASK,
+         ],
+         [
+            'itemtype' => ProjectInteraction::class,
+            'label' => __('Interações: solução com TEP', 'projectplus'),
+            'field' => self::RIGHT_INTERACTION_SOLUTION,
+         ],
+         [
+            'itemtype' => ProjectInteraction::class,
+            'label' => __('Interações: documento', 'projectplus'),
+            'field' => self::RIGHT_INTERACTION_DOCUMENT,
+         ],
+         [
+            'itemtype' => ProjectInteraction::class,
+            'label' => __('Interações: validação', 'projectplus'),
+            'field' => self::RIGHT_INTERACTION_VALIDATION,
+         ],
+         [
+            'itemtype' => ProjectInteraction::class,
+            'label' => __('Interações: escalar', 'projectplus'),
+            'field' => self::RIGHT_INTERACTION_ESCALATE,
+         ],
       ];
    }
 
@@ -76,6 +122,14 @@ class ProjectProfile extends GlpiProfile
          self::RIGHT_REQUESTS => 0,
          self::RIGHT_PORTFOLIO => 0,
          self::RIGHT_CONFIG => 0,
+         // All profiles receive the controls by default. The Project native
+         // UPDATE right is still required for manager-only actions below.
+         self::RIGHT_INTERACTION_REPLY => READ,
+         self::RIGHT_INTERACTION_TASK => UPDATE,
+         self::RIGHT_INTERACTION_SOLUTION => UPDATE,
+         self::RIGHT_INTERACTION_DOCUMENT => UPDATE,
+         self::RIGHT_INTERACTION_VALIDATION => UPDATE,
+         self::RIGHT_INTERACTION_ESCALATE => UPDATE,
       ];
    }
 

@@ -1,0 +1,6 @@
+/* Keep priority colours on surfaces, while ensuring readable text. */
+.projectplus-priority__header h3,
+.projectplus-priority__header p,
+.projectplus-priority__score span,
+.projectplus-priority__score strong,
+.projectplus-priority .projectplus-priority__footer small { color: #111111 !important; }

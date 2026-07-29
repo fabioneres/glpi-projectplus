@@ -30,6 +30,7 @@ class TicketPhase extends CommonDBTM
       return [
          'classification' => self::label('Classifica&ccedil;&atilde;o da necessidade'),
          'awaiting_tip' => __('Aguardando preenchimento do TIP', 'projectplus'),
+         'awaiting_tip_review' => __('Aguardando validação do TIP', 'projectplus'),
          'portfolio_analysis' => self::label('An&aacute;lise do portf&oacute;lio'),
          'awaiting_authorization' => self::label('Aguardando autoriza&ccedil;&atilde;o de abertura'),
          'authorized_opening' => __('Autorizado para abertura', 'projectplus'),

@@ -1,0 +1,34 @@
+/* Separate interaction timeline asset: loaded independently from the legacy
+ * Project+ stylesheet so the screen is not held by an old browser cache. */
+.projectplus-followups { max-width: 1120px !important; margin: 18px auto !important; }
+.projectplus-followups__timeline { display: grid !important; gap: 16px !important; margin: 0 0 18px !important; }
+.projectplus-followup { display: flex !important; gap: 28px !important; align-items: flex-start !important; width: 100% !important; }
+.projectplus-followup--right { flex-direction: row-reverse !important; }
+.projectplus-followup__avatar { display: grid !important; place-items: center !important; flex: 0 0 48px !important; width: 48px !important; height: 48px !important; margin-top: 10px !important; border-radius: 50% !important; background: linear-gradient(135deg, #f47a55, #da3d25) !important; color: #fff !important; font-size: 1.05rem !important; font-weight: 700 !important; box-shadow: 0 2px 5px rgba(67, 80, 97, .18) !important; }
+.projectplus-followup--participant .projectplus-followup__avatar { background: linear-gradient(135deg, #64c85d, #238b45) !important; }
+.projectplus-followup--internal .projectplus-followup__avatar { background: linear-gradient(135deg, #8f7bd1, #604ba6) !important; }
+.projectplus-followup__card { position: relative !important; width: min(82%, 930px) !important; padding: 13px 16px 16px !important; border: 1px solid #dce7df !important; border-left: 3px solid #35a64b !important; border-radius: 7px !important; background: linear-gradient(110deg, #fff, #f7fbf8) !important; box-shadow: 0 1px 4px rgba(30, 47, 59, .05) !important; }
+.projectplus-followup--right .projectplus-followup__card { border-color: #f2d1cb !important; border-right: 3px solid #ef5a42 !important; border-left-width: 1px !important; background: linear-gradient(250deg, #fff, #fff9f8) !important; }
+.projectplus-followup--internal .projectplus-followup__card { border-color: #e2d9f1 !important; border-right-color: #846eca !important; background: #fbf9ff !important; }
+.projectplus-followup__meta { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; margin: 0 0 11px !important; }
+.projectplus-followup__meta > span { display: inline-flex !important; gap: 6px !important; align-items: center !important; min-height: 29px !important; padding: 4px 9px !important; border: 1px solid #e6eaf0 !important; border-radius: 5px !important; background: rgba(255, 255, 255, .8) !important; color: #41536b !important; font-size: .79rem !important; }
+.projectplus-followup__meta i { color: #263e58 !important; font-size: .96rem !important; }
+.projectplus-followup__meta strong { color: #234d87 !important; font-weight: 600 !important; }
+.projectplus-followup__private { color: #6543a6 !important; }
+.projectplus-followup__content { color: #38495e !important; line-height: 1.5 !important; }
+.projectplus-followup__content > :last-child { margin-bottom: 0 !important; }
+.projectplus-followups__composer { display: grid !important; grid-template-columns: minmax(0, 1fr) 270px !important; column-gap: 24px !important; margin: 14px 0 0 !important; overflow: hidden !important; border: 1px solid #dfe5ec !important; border-radius: 9px !important; background: #f8fafc !important; box-shadow: 0 1px 5px rgba(32, 45, 61, .04) !important; }
+.projectplus-followups__composer-main { min-width: 0 !important; padding: 16px 0 0 18px !important; }
+.projectplus-followups__composer-main .tox-tinymce { min-height: 180px !important; border-color: #d8e0e9 !important; }
+.projectplus-followups__composer-main .fileupload { margin: 10px 0 0 !important; padding: 14px !important; border: 1px dashed #c9d3de !important; border-radius: 6px !important; background: #fff !important; text-align: center !important; }
+.projectplus-followups__composer-main .fileupload .b { display: block !important; margin-bottom: 8px !important; }
+.projectplus-followups__composer-main .fileupload input[type=file] { display: inline-block !important; max-width: 360px !important; background: #fff !important; }
+.projectplus-followups__composer-options { display: grid !important; align-content: start !important; gap: 10px !important; padding: 25px 18px 0 0 !important; }
+.projectplus-followups__option, .projectplus-followups__switch { display: flex !important; gap: 9px !important; align-items: center !important; min-height: 38px !important; padding: 7px 10px !important; border: 1px solid #dfe5ec !important; border-radius: 5px !important; background: #fff !important; color: #41536b !important; font-size: .87rem !important; }
+.projectplus-followups__option i, .projectplus-followups__switch i { color: #263e58 !important; font-size: 1rem !important; }
+.projectplus-followups__switch { cursor: pointer !important; }
+.projectplus-followups__switch input { width: 31px !important; height: 17px !important; margin-left: auto !important; accent-color: #2d9a4b !important; }
+.projectplus-followups__composer-footer { grid-column: 1 / -1 !important; display: flex !important; align-items: center !important; min-height: 76px !important; margin-top: 16px !important; padding: 14px 18px !important; border-top: 1px solid #e4e9ee !important; background: #fff !important; }
+.projectplus-followups__composer-footer .btn { min-width: 126px !important; color: #293a51 !important; font-weight: 600 !important; }
+@media (max-width: 900px) { .projectplus-followups { margin: 12px !important; } .projectplus-followups__composer { grid-template-columns: 1fr !important; } .projectplus-followups__composer-main { padding-right: 18px !important; } .projectplus-followups__composer-options { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; padding: 15px 18px 0 !important; } }
+@media (max-width: 640px) { .projectplus-followup { gap: 10px !important; } .projectplus-followup__avatar { flex-basis: 38px !important; width: 38px !important; height: 38px !important; font-size: .85rem !important; } .projectplus-followup__card { width: calc(100% - 48px) !important; } .projectplus-followups__composer-options { grid-template-columns: 1fr !important; } }

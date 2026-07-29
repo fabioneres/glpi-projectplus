@@ -30,21 +30,14 @@ Html::header(__('Fluxo de solicitacao de projeto', 'projectplus'), $_SERVER['PHP
 ConfigPage::begin('ticketflow');
 echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-git-branch'></i> " . ConfigPage::escape(__('Fluxo de solicitacao de projeto', 'projectplus')) . '</header>';
 echo "<div class='projectplus-config-card__body'>";
-echo "<form method='get' action='" . Html::clean($_SERVER['PHP_SELF']) . "' class='projectplus-config-form'>";
-echo "<div class='projectplus-config-field'><label>" . __('Entidade configurada', 'projectplus') . '</label><div>';
-Entity::dropdown([
-   'name' => 'entities_id',
-   'value' => $entityId,
-   'entity' => $_SESSION['glpiactiveentities'] ?? [$entityId],
-]);
-echo " <button class='btn btn-secondary' type='submit'>" . __('Carregar', 'projectplus') . '</button>';
-echo '</div></div></form>';
-
+echo "<h3 class='projectplus-config-section-title'>" . __('Ativacao por entidade', 'projectplus') . '</h3>';
+echo "<form method='get' action='" . Html::clean($_SERVER['PHP_SELF']) . "' class='projectplus-config-form'><div class='projectplus-config-field'><label>" . __('Entidade', 'projectplus') . '</label><div>';
+Entity::dropdown(['name' => 'entities_id', 'value' => $entityId, 'entity' => $_SESSION['glpiactiveentities'] ?? [$entityId]]);
+echo '</div></div></form><script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll("form[method=get] select[name=entities_id]").forEach(function(s){s.addEventListener("change",function(){this.form.submit();});});});</script>';
 echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
 echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo Html::hidden('entities_id', ['value' => $entityId]);
-echo "<h3 class='projectplus-config-section-title'>" . __('Ativacao por entidade', 'projectplus') . '</h3><div class="projectplus-config-grid">';
-echo "<div class='projectplus-config-field'><label>" . __('Entidade', 'projectplus') . '</label><div class="projectplus-config-value">' . Html::clean(Entity::getFriendlyNameById($entityId)) . '</div></div>';
+echo '<div class="projectplus-config-grid">';
 echo "<div class='projectplus-config-field'><label>" . __('Habilitar fluxo', 'projectplus') . '</label><div>';
 Dropdown::showYesNo('is_active', (int) $config['is_active']);
 echo '</div></div>';

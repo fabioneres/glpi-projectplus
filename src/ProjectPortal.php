@@ -175,6 +175,11 @@ class ProjectPortal
       self::textareaRow(__('Descrição', 'projectplus'), (string) $project['content'], __('Objetivo', 'projectplus'), (string) $project['objective']);
       self::textareaRow(__('Comentários', 'projectplus'), (string) $project['comment'], __('Produto/Resultado esperado', 'projectplus'), (string) $project['expected_result']);
       echo '</table></div>';
+
+      $nativeProject = new \Project();
+      if ($nativeProject->getFromDB((int) $project['id'])) {
+         DocumentAcceptance::showPortalForProject($nativeProject);
+      }
    }
 
    private static function getProjectUrl(int $projectId): string

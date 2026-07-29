@@ -1,0 +1,20 @@
+/* Project action controls mirror the native GLPI followup sidebar. */
+.projectplus-followups__native-option {
+   display: grid !important;
+   grid-template-columns: 22px 1fr auto !important;
+   gap: 10px !important;
+   align-items: center !important;
+   min-height: 38px !important;
+   padding: 7px 10px !important;
+   border: 1px solid #dfe5ec !important;
+   border-radius: 5px !important;
+   background: #fff !important;
+   color: #41536b !important;
+   cursor: pointer !important;
+   font-size: .87rem !important;
+}
+.projectplus-followups__native-option > i { color: #263e58 !important; font-size: 1rem !important; }
+.projectplus-followups__native-option input[type='checkbox'] { width: 18px !important; height: 18px !important; margin: 0 !important; accent-color: #43a45d !important; }
+.projectplus-followups__native-option--notify { grid-template-columns: 22px auto 1fr !important; }
+.projectplus-followups__native-option--notify input[type='checkbox'] { order: 1 !important; }
+.projectplus-followups__native-option--notify span { order: 2 !important; }

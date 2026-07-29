@@ -63,6 +63,28 @@ class TicketIntent
       ])->current()['count'] ?? 0) > 0;
    }
 
+   public static function canReviewForTicket(Ticket $ticket): bool
+   {
+      $intent = self::getForTicket((int) $ticket->getID());
+      return $intent !== null
+         && (string) $intent['status'] === 'submitted'
+         && TicketConfig::isEnabledForTicket($ticket)
+         && Session::haveRight('ticket', UPDATE);
+   }
+
+   public static function canViewForTicket(Ticket $ticket): bool
+   {
+      if (Session::haveRight('ticket', UPDATE)) {
+         return true;
+      }
+      $userId = (int) Session::getLoginUserID();
+      global $DB;
+      return $userId > 0 && (int) ($DB->request([
+         'COUNT' => 'count', 'FROM' => Ticket_User::getTable(),
+         'WHERE' => ['tickets_id' => (int) $ticket->getID(), 'users_id' => $userId, 'type' => CommonITILActor::REQUESTER],
+      ])->current()['count'] ?? 0) > 0;
+   }
+
    public static function requestForTicket(Ticket $ticket): void
    {
       if (!self::canRequestForTicket($ticket)) {
@@ -133,7 +155,54 @@ class TicketIntent
          'status' => 'submitted', 'users_id' => $userId, 'submitter_name' => User::getFriendlyNameById($userId),
          'submitter_email' => $email, 'date_submitted' => $now, 'date_mod' => $now,
       ], ['id' => (int) $intent['id']]);
-      TicketPhase::setPhase($ticket, 'classification', __('TIP preenchido e enviado para análise.', 'projectplus'));
+      $followup = new ITILFollowup();
+      $followup->add([
+         'itemtype' => Ticket::class,
+         'items_id' => (int) $ticket->getID(),
+         'users_id' => $userId,
+         'content' => __('O TIP foi preenchido e enviado para análise.', 'projectplus'),
+         'is_private' => 0,
+      ]);
+      TicketPhase::setPhase($ticket, 'awaiting_tip_review', __('TIP preenchido e enviado para validação do gestor.', 'projectplus'));
+   }
+
+   public static function acceptForTicket(Ticket $ticket): void
+   {
+      if (!self::canReviewForTicket($ticket)) {
+         throw new \RuntimeException(__('Você não possui permissão para validar este TIP.', 'projectplus'));
+      }
+      $intent = self::getForTicket((int) $ticket->getID());
+      $now = date('Y-m-d H:i:s');
+      global $DB;
+      $DB->update(self::getTable(), [
+         'status' => 'accepted', 'review_users_id' => (int) Session::getLoginUserID(),
+         'review_justification' => '', 'date_reviewed' => $now, 'date_mod' => $now,
+      ], ['id' => (int) $intent['id']]);
+      $followup = new ITILFollowup();
+      $followup->add(['itemtype' => Ticket::class, 'items_id' => (int) $ticket->getID(),
+         'users_id' => (int) Session::getLoginUserID(),
+         'content' => __('TIP aceito pelo gestor e encaminhado para classificação da necessidade.', 'projectplus'), 'is_private' => 0]);
+      TicketPhase::setPhase($ticket, 'classification', __('TIP aceito pelo gestor.', 'projectplus'));
+   }
+
+   public static function rejectForTicket(Ticket $ticket, string $justification): void
+   {
+      if (!self::canReviewForTicket($ticket)) {
+         throw new \RuntimeException(__('Você não possui permissão para validar este TIP.', 'projectplus'));
+      }
+      $justification = trim($justification);
+      if ($justification === '') {
+         throw new \RuntimeException(__('Informe a justificativa para recusar o TIP.', 'projectplus'));
+      }
+      $intent = self::getForTicket((int) $ticket->getID());
+      $now = date('Y-m-d H:i:s');
+      global $DB;
+      $DB->update(self::getTable(), [
+         'status' => 'rejected', 'review_users_id' => (int) Session::getLoginUserID(),
+         'review_justification' => $justification, 'date_reviewed' => $now, 'date_mod' => $now,
+      ], ['id' => (int) $intent['id']]);
+      $ticket->update(['id' => (int) $ticket->getID(), 'status' => Ticket::SOLVED, 'solution' => $justification]);
+      TicketPhase::setPhase($ticket, 'rejected_cancelled', $justification);
    }
 
    public static function showForTicket(Ticket $ticket): void
@@ -141,6 +210,10 @@ class TicketIntent
       $intent = self::getForTicket((int) $ticket->getID());
       if ($intent !== null && (string) $intent['status'] === 'submitted') {
          self::showSubmitted($ticket, $intent);
+      } elseif ($intent !== null && (string) $intent['status'] === 'accepted') {
+         echo "<div class='alert alert-success'><i class='ti ti-circle-check'></i> " . self::escape(__('TIP aceito pelo gestor. A solicitação está disponível para classificação da necessidade.', 'projectplus')) . '</div>';
+      } elseif ($intent !== null && (string) $intent['status'] === 'rejected') {
+         echo "<div class='alert alert-danger'><i class='ti ti-circle-x'></i> " . self::escape(__('TIP recusado. O chamado foi solucionado com a justificativa informada.', 'projectplus')) . '</div>';
       } elseif ($intent !== null && self::canSubmitForTicket($ticket)) {
          self::showForm($ticket);
       } elseif ($intent !== null) {
@@ -206,6 +279,11 @@ class TicketIntent
    /** @param array<string,mixed> $intent */
    private static function showSubmitted(Ticket $ticket, array $intent): void
    {
+      // Managers validate the submitted content only through the embedded PDF.
+      if (self::canReviewForTicket($ticket)) {
+         self::showReviewForm($ticket);
+         return;
+      }
       echo "<div class='projectplus-tip projectplus-tip--submitted'><header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-check'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::escape(__('Solicitação de projeto', 'projectplus')) . '</span><h2>' . self::escape(__('Termo de Intenção do Projeto - TIP', 'projectplus')) . '</h2><p>' . self::escape(__('Formulário preenchido pelo solicitante e disponível para análise.', 'projectplus')) . '</p></div></header>';
       echo "<section class='projectplus-tip__card'><div class='projectplus-tip__section-title'><i class='ti ti-circle-check'></i><div><h3>" . self::escape(__('TIP enviado', 'projectplus')) . '</h3><p>' . self::escape(__('Dados de identificação e registro do envio.', 'projectplus')) . '</p></div></div>';
       echo "<div class='projectplus-tip__summary'><div><span>" . self::escape(__('Ticket', 'projectplus')) . '</span><strong>#' . (int) $ticket->getID() . '</strong></div><div><span>' . self::escape(__('Enviado em', 'projectplus')) . '</span><strong>' . self::escape((string) $intent['date_submitted']) . '</strong></div><div><span>' . self::escape(__('Enviado por', 'projectplus')) . '</span><strong>' . self::escape((string) $intent['submitter_name']) . '</strong><em>' . self::escape((string) $intent['submitter_email']) . '</em></div></div></section>';
@@ -214,6 +292,17 @@ class TicketIntent
          echo "<article class='projectplus-tip__answer'><h4>" . self::escape((string) $answer['label']) . '</h4><div>' . nl2br(self::escape((string) $answer['value'])) . '</div></article>';
       }
       echo '</div></section></div>';
+   }
+
+   private static function showReviewForm(Ticket $ticket): void
+   {
+      global $CFG_GLPI;
+      $url = self::getActionUrl();
+      $pdfUrl = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.pdf.php?tickets_id=' . (int) $ticket->getID();
+      echo "<section class='projectplus-tip__card projectplus-acceptance__card'><div class='projectplus-tip__section-title'><i class='ti ti-file-check'></i><div><h3>" . self::escape(__('Validação do TIP', 'projectplus')) . '</h3><p>' . self::escape(__('Revise o termo preenchido antes de aceitar ou recusar a solicitação.', 'projectplus')) . "</p></div></div>";
+      echo "<div class='projectplus-acceptance__document'><div><strong>" . self::escape(__('TIP preenchido', 'projectplus')) . "</strong><a target='_blank' rel='noopener' href='" . self::escape($pdfUrl) . "'>" . self::escape(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='TIP preenchido' src='" . self::escape($pdfUrl) . "'></iframe></div>";
+      echo "<form method='post' action='" . self::escape($url) . "' class='projectplus-tip__footer'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . "<button class='btn btn-success' type='submit' name='accept_tip' value='1'><i class='ti ti-check'></i> " . self::escape(__('Aceitar TIP', 'projectplus')) . "</button></form>";
+      echo "<form method='post' action='" . self::escape($url) . "' class='projectplus-tip__review-refuse'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . "<label>" . self::escape(__('Justificativa da recusa', 'projectplus')) . "</label><textarea class='form-control' name='justification' rows='4' required></textarea><button class='btn btn-danger' type='submit' name='reject_tip' value='1'><i class='ti ti-x'></i> " . self::escape(__('Recusar TIP e solucionar chamado', 'projectplus')) . "</button></form></section>";
    }
 
    private static function readonlyRow(string $label, string $value): void { echo "<tr class='tab_bg_1'><td>" . self::escape($label) . '</td><td>' . self::escape($value) . '</td></tr>'; }
