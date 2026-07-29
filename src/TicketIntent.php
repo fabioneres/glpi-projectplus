@@ -9,6 +9,7 @@ use Html;
 use Session;
 use Ticket;
 use Ticket_User;
+use ITILFollowup;
 use User;
 use UserEmail;
 
@@ -78,6 +79,14 @@ class TicketIntent
          'tickets_id' => (int) $ticket->getID(), 'entities_id' => (int) $ticket->getEntityID(),
          'status' => 'requested', 'requested_users_id' => (int) Session::getLoginUserID(),
          'date_requested' => $now, 'date_creation' => $now, 'date_mod' => $now,
+      ]);
+      $followup = new ITILFollowup();
+      $followup->add([
+         'itemtype' => Ticket::class,
+         'items_id' => (int) $ticket->getID(),
+         'users_id' => (int) Session::getLoginUserID(),
+         'content' => __('O preenchimento do Termo de Intenção do Projeto (TIP) foi solicitado. Acesse a aba Solicitação de projeto para preencher as informações.', 'projectplus'),
+         'is_private' => 0,
       ]);
       TicketPhase::setPhase($ticket, 'awaiting_tip', __('TIP solicitado ao solicitante.', 'projectplus'));
    }
