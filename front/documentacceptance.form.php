@@ -6,6 +6,7 @@ if (!defined('GLPI_ROOT')) {
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\DocumentAcceptance;
+use GlpiPlugin\Projectplus\ProjectWorkspace;
 
 Session::checkLoginUser();
 $itemtype = (string) ($_POST['itemtype'] ?? '');
@@ -17,6 +18,10 @@ $item = new $itemtype();
 if (!$item->getFromDB($itemsId) || !Session::haveAccessToEntity((int)$item->getEntityID())) {
    Html::displayErrorAndDie(__('Item inválido ou sem permissão de acesso.', 'projectplus'));
 }
+$redirectUrl = $item instanceof Project
+   ? ProjectWorkspace::getProjectRedirectUrl($itemsId, (string) ($_POST['projectplus_workspace_tab'] ?? 'documents'))
+   : $itemtype::getFormURLWithID($itemsId);
+
 try {
    if (isset($_POST['publish_document'])) {
       DocumentAcceptance::publish($item, (string) ($_POST['document_type'] ?? ''), (int) ($_POST['documents_id'] ?? 0));
@@ -27,8 +32,11 @@ try {
    } elseif (isset($_POST['accept_document']) && (int) ($_POST['accepted'] ?? 0) === 1) {
       DocumentAcceptance::accept($item, (int) ($_POST['acceptance_id'] ?? 0));
       Session::addMessageAfterRedirect(__('Aceite registrado com sucesso.', 'projectplus'));
+   } elseif (isset($_POST['reject_document'])) {
+      DocumentAcceptance::reject($item, (int) ($_POST['acceptance_id'] ?? 0), (string) ($_POST['rejection_justification'] ?? ''));
+      Session::addMessageAfterRedirect(__('Documento recusado e devolvido para revisão.', 'projectplus'));
    }
 } catch (\RuntimeException $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
-Html::redirect($itemtype::getFormURLWithID($itemsId));
+Html::redirect($redirectUrl);

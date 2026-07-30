@@ -52,6 +52,7 @@ class Installer
       self::ensureTicketProjectTable();
       self::ensureProjectInteractionTable();
       self::ensureProjectPriorityTable();
+      self::ensureTicketPriorityTable();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -118,6 +119,7 @@ class Installer
    }
    private static function ensureProjectInteractionTable(): void { global $DB; $t=ProjectInteraction::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`users_id` int unsigned NOT NULL DEFAULT 0,`content` text NOT NULL,`is_internal` tinyint NOT NULL DEFAULT 0,`notify_participants` tinyint NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),KEY `projects_id`(`projects_id`),KEY `entities_id`(`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
    private static function ensureProjectPriorityTable(): void { global $DB; $t=ProjectPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `projects_id`(`projects_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
+   private static function ensureTicketPriorityTable(): void { global $DB; $t=TicketPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`tickets_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `tickets_id`(`tickets_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
 
    private static function ensureDropdownTable(string $table): void
    {
@@ -366,10 +368,8 @@ class Installer
       /** @var DBmysql $DB */
       global $DB;
       $table = DocumentAcceptance::getTable();
-      if ($DB->tableExists($table)) {
-         return;
-      }
-      $DB->doQuery(
+      if (!$DB->tableExists($table)) {
+         $DB->doQuery(
          "CREATE TABLE `{$table}` (
             `id` int unsigned NOT NULL AUTO_INCREMENT,
             `itemtype` varchar(64) NOT NULL DEFAULT '',
@@ -387,7 +387,20 @@ class Installer
             UNIQUE KEY `item_document_type` (`itemtype`, `items_id`, `document_type`),
             KEY `entity_status` (`entities_id`, `status`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
-      );
+         );
+      }
+      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+      foreach ([
+         'rejected_users_id' => 'int unsigned NOT NULL DEFAULT 0',
+         'rejection_justification' => 'text NULL',
+         'date_rejected' => 'timestamp NULL DEFAULT NULL',
+      ] as $field => $definition) {
+         if (!$DB->fieldExists($table, $field)) {
+            $migration->addField($table, $field, $definition);
+         }
+      }
+      $migration->addKey($table, 'rejected_users_id', 'rejected_users_id_index');
+      $migration->executeMigration();
    }
 
    private static function ensureDocumentTemplateTable(): void

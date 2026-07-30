@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0-beta
+
+- Unifica o acesso documental do projeto na área **Project+**, com abas internas para Termos, Interações e Priorização.
+- Exibe TIP, TAP, TEP e TA na sequência documental, com estados visuais, legenda e expansão individual.
+- Amplia o portal do solicitante/ponto focal com Termos e Interações vinculados ao projeto.
+- Mantém a aba interna atual após ações de interação, priorização, documentos e aceite.
+- Evolui a abertura do projeto a partir do chamado, com vínculo nativo, validações do fluxo e solução informada ao solicitante.
+- Inclui priorização institucional no chamado e no projeto, com ranking e sincronização da prioridade nativa do GLPI.
+- Evolui os documentos TAP, TEP e TA para campos configuráveis, rascunho, geração, envio, aceite e recusa auditáveis.
+
 ## 0.7.2-beta
 
 - Consolida a área **Project+** no projeto com Termos, Interações e Priorização.

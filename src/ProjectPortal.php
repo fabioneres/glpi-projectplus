@@ -140,16 +140,31 @@ class ProjectPortal
    }
 
    /**
-    * Display the native Project layout in read-only form controls. This keeps
-    * the portal familiar while deliberately exposing neither edit actions nor
-    * any other project tabs.
+    * Display the Project data in read-only form controls. Terms and public
+    * interactions are available below for the requester and focal point.
     *
     * @param array<string, mixed> $project
     */
    public static function displayProject(array $project): void
    {
-      echo "<ul class='nav nav-tabs mb-3'><li class='nav-item'><span class='nav-link active'>"
-         . self::escape(__('Projeto', 'projectplus')) . '</span></li></ul>';
+      $projectId = (int) $project['id'];
+      $nativeProject = new \Project();
+      $hasNativeProject = $nativeProject->getFromDB($projectId);
+      $canViewInteractions = $hasNativeProject && ProjectInteraction::canViewProjectplus($nativeProject);
+      $workspaceId = 'projectplus-portal-workspace-' . $projectId;
+
+      echo "<section id='{$workspaceId}' class='projectplus-portal-workspace'>";
+      echo "<style>#{$workspaceId} .projectplus-portal-workspace__panel{display:none}#{$workspaceId} .projectplus-portal-workspace__panel.is-active{display:block}</style>";
+      echo "<ul class='nav nav-tabs mb-3' role='tablist'>";
+      self::portalTabButton('project', __('Projeto', 'projectplus'), true);
+      if ($hasNativeProject) {
+         self::portalTabButton('documents', __('Termos', 'projectplus'));
+      }
+      if ($canViewInteractions) {
+         self::portalTabButton('interactions', __('Interações', 'projectplus'));
+      }
+      echo '</ul>';
+      echo "<div class='projectplus-portal-workspace__panel is-active' data-projectplus-portal-panel='project'>";
       echo "<div class='center'><table class='tab_cadre_fixe'>";
 
       self::headerRow(__('Dados do Projeto', 'projectplus'));
@@ -174,12 +189,28 @@ class ProjectPortal
       self::durationRow((int) $project['id']);
       self::textareaRow(__('Descrição', 'projectplus'), (string) $project['content'], __('Objetivo', 'projectplus'), (string) $project['objective']);
       self::textareaRow(__('Comentários', 'projectplus'), (string) $project['comment'], __('Produto/Resultado esperado', 'projectplus'), (string) $project['expected_result']);
-      echo '</table></div>';
+      echo '</table></div></div>';
 
-      $nativeProject = new \Project();
-      if ($nativeProject->getFromDB((int) $project['id'])) {
+      if ($hasNativeProject) {
+         echo "<div class='projectplus-portal-workspace__panel' data-projectplus-portal-panel='documents'>";
          DocumentAcceptance::showPortalForProject($nativeProject);
+         echo '</div>';
+         if ($canViewInteractions) {
+            echo "<div class='projectplus-portal-workspace__panel' data-projectplus-portal-panel='interactions'>";
+            echo "<section class='projectplus-portal-interactions'><h3>" . self::escape(__('Interações', 'projectplus')) . '</h3>';
+            ProjectInteraction::show($nativeProject);
+            echo '</section></div>';
+         }
       }
+      echo "<script>(function () { var workspace = document.getElementById('{$workspaceId}'); if (!workspace || workspace.dataset.projectplusPortalReady) { return; } workspace.dataset.projectplusPortalReady = '1'; function isAvailable(target) { return !!workspace.querySelector('[data-projectplus-portal-tab=' + target + ']'); } function setActiveTab(target, updateLocation) { if (!isAvailable(target)) { target = 'project'; } workspace.querySelectorAll('[data-projectplus-portal-tab]').forEach(function (item) { var active = item.dataset.projectplusPortalTab === target; item.classList.toggle('active', active); item.setAttribute('aria-selected', active ? 'true' : 'false'); }); workspace.querySelectorAll('[data-projectplus-portal-panel]').forEach(function (panel) { panel.classList.toggle('is-active', panel.dataset.projectplusPortalPanel === target); }); workspace.querySelectorAll('form').forEach(function (form) { var field = form.querySelector('input[name=projectplus_portal_tab]'); if (!field) { field = document.createElement('input'); field.type = 'hidden'; field.name = 'projectplus_portal_tab'; form.appendChild(field); } field.value = target; }); if (updateLocation && window.history && window.history.replaceState && window.URL) { var url = new URL(window.location.href); url.searchParams.set('projectplus_portal_tab', target); window.history.replaceState({}, document.title, url.toString()); } } workspace.querySelectorAll('[data-projectplus-portal-tab]').forEach(function (tab) { tab.addEventListener('click', function () { setActiveTab(tab.dataset.projectplusPortalTab, true); }); }); var requested = window.URL ? new URL(window.location.href).searchParams.get('projectplus_portal_tab') : ''; setActiveTab(isAvailable(requested) ? requested : 'project', false); })();</script>";
+      echo '</section>';
+   }
+
+   private static function portalTabButton(string $name, string $label, bool $active = false): void
+   {
+      echo "<li class='nav-item'><button type='button' class='nav-link" . ($active ? ' active' : '')
+         . "' role='tab' aria-selected='" . ($active ? 'true' : 'false')
+         . "' data-projectplus-portal-tab='{$name}'>" . self::escape($label) . '</button></li>';
    }
 
    private static function getProjectUrl(int $projectId): string

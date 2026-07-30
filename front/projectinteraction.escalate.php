@@ -3,6 +3,7 @@
 include('../../../inc/includes.php');
 
 use GlpiPlugin\Projectplus\ProjectInteraction;
+use GlpiPlugin\Projectplus\ProjectWorkspace;
 
 Session::checkLoginUser();
 
@@ -19,4 +20,4 @@ try {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
 
-Html::redirect(Project::getFormURLWithID($projectId));
+Html::redirect(ProjectWorkspace::getProjectRedirectUrl($projectId, (string) ($_POST['projectplus_workspace_tab'] ?? 'interactions')));

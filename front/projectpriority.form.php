@@ -3,6 +3,7 @@
 include('../../../inc/includes.php');
 
 use GlpiPlugin\Projectplus\ProjectPriority;
+use GlpiPlugin\Projectplus\ProjectWorkspace;
 
 Session::checkLoginUser();
 $project = new Project();
@@ -16,4 +17,4 @@ try {
 } catch (Throwable $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
-Html::redirect(Project::getFormURLWithID($projectId));
+Html::redirect(ProjectWorkspace::getProjectRedirectUrl($projectId, (string) ($_POST['projectplus_workspace_tab'] ?? 'priority')));

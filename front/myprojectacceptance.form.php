@@ -20,13 +20,20 @@ if (!$project->getFromDB($projectId)) {
 }
 
 try {
-   if (!isset($_POST['accept_document']) || (int) ($_POST['accepted'] ?? 0) !== 1) {
-      throw new RuntimeException(__('Marque a confirmação de aceite antes de continuar.', 'projectplus'));
+   if (isset($_POST['accept_document'])) {
+      if ((int) ($_POST['accepted'] ?? 0) !== 1) {
+         throw new RuntimeException(__('Marque a confirmação de aceite antes de continuar.', 'projectplus'));
+      }
+      DocumentAcceptance::accept($project, (int) ($_POST['acceptance_id'] ?? 0));
+      Session::addMessageAfterRedirect(__('Aceite registrado com sucesso.', 'projectplus'), true, INFO);
+   } elseif (isset($_POST['reject_document'])) {
+      DocumentAcceptance::reject($project, (int) ($_POST['acceptance_id'] ?? 0), (string) ($_POST['rejection_justification'] ?? ''));
+      Session::addMessageAfterRedirect(__('Documento recusado e devolvido para revisão.', 'projectplus'), true, INFO);
+   } else {
+      throw new RuntimeException(__('Ação documental inválida.', 'projectplus'));
    }
-   DocumentAcceptance::accept($project, (int) ($_POST['acceptance_id'] ?? 0));
-   Session::addMessageAfterRedirect(__('Aceite registrado com sucesso.', 'projectplus'), true, INFO);
 } catch (Throwable $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
 
-Html::redirect(rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/myproject.php?id=' . $projectId);
+Html::redirect(rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/myproject.php?id=' . $projectId . '&projectplus_portal_tab=documents');

@@ -31,6 +31,12 @@ class ProjectPriority extends CommonDBTM
       return 'glpi_plugin_projectplus_projectpriorities';
    }
 
+   /** @return array<string, string> */
+   public static function getCriteria(): array
+   {
+      return self::CRITERIA;
+   }
+
    /** @return array<string, mixed> */
    public static function getForProject(int $projectId): array
    {
@@ -217,7 +223,7 @@ class ProjectPriority extends CommonDBTM
     * Configurar > Geral > Cores das prioridades. The session values are the
     * native GLPI source used throughout the core project and ticket views.
     */
-   private static function getPriorityStyle(int $priority): string
+   public static function getPriorityStyle(int $priority): string
    {
       if ($priority < 1 || $priority > 6) {
          return '';

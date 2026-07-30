@@ -126,6 +126,9 @@ class TicketPhase extends CommonDBTM
       if ($phase === 'rejected_cancelled' && $justification === '') {
          return false;
       }
+      if ($phase === 'authorized_opening' && !TicketPriority::isComplete((int) $ticket->getID())) {
+         throw new \RuntimeException(__('Conclua a priorização institucional antes de autorizar a abertura do projeto.', 'projectplus'));
+      }
       if ($current === null || $phase === (string) $current['phase']) {
          return true;
       }
@@ -172,7 +175,7 @@ class TicketPhase extends CommonDBTM
       if (!$item instanceof Ticket || $withtemplate || !TicketConfig::isEnabledForTicket($item)) {
          return '';
       }
-         return self::createTabEntry(__('Termos', 'projectplus'), 0, $item::getType(), 'ti ti-file-check');
+         return self::createTabEntry(__('Project+', 'projectplus'), 0, $item::getType(), 'ti ti-file-check');
    }
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
@@ -206,6 +209,12 @@ class TicketPhase extends CommonDBTM
       self::showDocumentStep('TIP - Termo de Intenção do Projeto', 'ti ti-file-text', $tipState, false, static function () use ($ticket): void {
          TicketIntent::showForTicket($ticket);
       });
+      if (Session::haveRight(ProjectProfile::RIGHT_PORTFOLIO, READ)) {
+         $priorityState = TicketPriority::isComplete((int) $ticket->getID()) ? 'accepted' : 'released';
+         self::showDocumentStep(__('Priorização institucional', 'projectplus'), 'ti ti-list-numbers', $priorityState, false, static function () use ($ticket): void {
+            TicketPriority::showForTicket($ticket);
+         });
+      }
       self::showDocumentStep('TAP - Termo de Abertura do Projeto', 'ti ti-file-description', $tapState, false, static function () use ($ticket): void {
          DocumentAcceptance::showTicketDocument($ticket);
       });

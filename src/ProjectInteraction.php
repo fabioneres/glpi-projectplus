@@ -42,10 +42,14 @@ class ProjectInteraction extends CommonDBTM
 
    private static function isAllowed(Project $project): bool
    {
-      $data = ProjectData::getForProject((int) $project->getID());
-      $userId = (int) Session::getLoginUserID();
+      return self::isManager() || self::isParticipant($project);
+   }
 
-      return self::isManager() || in_array($userId, [
+   /** Requester and focal point may always publish public interactions. */
+   private static function isParticipant(Project $project): bool
+   {
+      $data = ProjectData::getForProject((int) $project->getID());
+      return in_array((int) Session::getLoginUserID(), [
          (int) ($data['requester_users_id'] ?? 0),
          (int) ($data['focal_point_users_id'] ?? 0),
       ], true);
@@ -60,9 +64,13 @@ class ProjectInteraction extends CommonDBTM
    /** A profile can remove a button without weakening the native Project right. */
    public static function canAction(Project $project, string $right, bool $managerOnly = false): bool
    {
-      return self::isAllowed($project)
-         && Session::haveRight($right, READ)
-         && (!$managerOnly || self::isManager());
+      if (!self::isAllowed($project)) {
+         return false;
+      }
+      if ($right === ProjectProfile::RIGHT_INTERACTION_REPLY && self::isParticipant($project)) {
+         return true;
+      }
+      return Session::haveRight($right, READ) && (!$managerOnly || self::isManager());
    }
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string

@@ -303,6 +303,8 @@
    background: #fff;
 }
 .projectplus-workspace__panel.is-active { display: block; }
+.projectplus-portal-workspace__panel { display: none; }
+.projectplus-portal-workspace__panel.is-active { display: block; }
 .projectplus-workspace__panel > .projectplus-tip,
 .projectplus-workspace__panel > .projectplus-followups,
 .projectplus-workspace__panel > .projectplus-priority { margin-top: 20px; margin-bottom: 12px; }

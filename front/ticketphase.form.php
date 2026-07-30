@@ -16,10 +16,14 @@ if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEn
 }
 
 if (isset($_POST['update_phase'])) {
-   if (!TicketPhase::updateForTicket($ticket, $_POST)) {
-      Session::addMessageAfterRedirect(__('Não foi possível atualizar a fase. Informe uma justificativa ao recusar ou cancelar.', 'projectplus'), false, ERROR);
-   } else {
-      Session::addMessageAfterRedirect(__('Fase da solicitação de projeto atualizada.', 'projectplus'));
+   try {
+      if (!TicketPhase::updateForTicket($ticket, $_POST)) {
+         Session::addMessageAfterRedirect(__('Não foi possível atualizar a fase. Informe uma justificativa ao recusar ou cancelar.', 'projectplus'), false, ERROR);
+      } else {
+         Session::addMessageAfterRedirect(__('Fase da solicitação de projeto atualizada.', 'projectplus'));
+      }
+   } catch (\Throwable $exception) {
+      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
    }
 }
 

@@ -3,6 +3,7 @@
 include('../../../inc/includes.php');
 
 use GlpiPlugin\Projectplus\ProjectInteraction;
+use GlpiPlugin\Projectplus\ProjectWorkspace;
 
 Session::checkLoginUser();
 
@@ -25,4 +26,8 @@ try {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
 
-Html::redirect(Project::getFormURLWithID($project_id));
+if (Session::getCurrentInterface() === 'helpdesk') {
+   global $CFG_GLPI;
+   Html::redirect(rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/myproject.php?id=' . $project_id . '&projectplus_portal_tab=' . rawurlencode((string) ($_POST['projectplus_portal_tab'] ?? 'interactions')));
+}
+Html::redirect(ProjectWorkspace::getProjectRedirectUrl($project_id, (string) ($_POST['projectplus_workspace_tab'] ?? 'interactions')));
