@@ -7,35 +7,74 @@
 
 .projectplus-config-nav {
    align-self: start;
-   border: 1px solid var(--tblr-border-color, #d9dee7);
-   border-radius: 4px;
-   background: var(--tblr-card-bg, #fff);
-   overflow: hidden;
+   display: grid;
+   gap: 0;
+   border: 0;
+   border-radius: 8px;
+   background: transparent;
+   overflow: visible;
 }
 
 .projectplus-config-nav__title {
-   padding: 10px 12px;
-   color: var(--tblr-body-color, #182433);
+   display: flex;
+   gap: 10px;
+   align-items: center;
+   min-height: 52px;
+   padding: 11px 12px;
+   border: 1px solid #d8e0ea;
+   border-radius: 8px 8px 0 0;
+   color: #263d5f;
+   background: #fff;
    font-weight: 700;
-   border-bottom: 1px solid var(--tblr-border-color, #d9dee7);
+   box-shadow: 0 1px 2px rgba(32, 53, 84, .03);
+}
+.projectplus-config-nav__title i {
+   display: grid;
+   width: 28px;
+   height: 28px;
+   place-items: center;
+   border-radius: 7px;
+   color: #4d6f9d;
+   background: #edf2f8;
+   font-size: .95rem;
 }
 
 .projectplus-config-nav__link {
-   display: block;
+   display: flex;
+   gap: 10px;
+   align-items: center;
+   min-height: 47px;
    padding: 9px 12px;
-   color: var(--tblr-body-color, #182433);
+   border: 1px solid #dce3ec;
+   border-radius: 0;
+   color: #42556f;
+   background: #fff;
    text-decoration: none;
-   border-bottom: 1px solid var(--tblr-border-color, #e8ebf0);
+   box-shadow: 0 1px 2px rgba(32, 53, 84, .025);
+   transition: border-color .15s ease, background-color .15s ease, color .15s ease;
 }
 
-.projectplus-config-nav__link:last-child { border-bottom: 0; }
 .projectplus-config-nav__link:hover,
 .projectplus-config-nav__link.is-active {
-   color: var(--tblr-primary, #206bc4);
-   background: rgba(32, 107, 196, .08);
+   color: #284f82;
+   background: #f5f8fc;
 }
 
-.projectplus-config-nav__link i { margin-right: 6px; }
+.projectplus-config-nav__link:hover { border-color: #c5d2e2; }
+.projectplus-config-nav__link.is-active { border-color: #aebfd4; color: #284f82; background: #eef4fb; font-weight: 700; }
+.projectplus-config-nav__link i {
+   display: grid;
+   flex: 0 0 28px;
+   width: 28px;
+   height: 28px;
+   place-items: center;
+   border-radius: 7px;
+   color: #617b9d;
+   background: #f0f3f7;
+   font-size: .95rem;
+}
+.projectplus-config-nav__link.is-active i { color: #315f98; background: #dfeaf7; }
+.projectplus-config-nav__link:last-child { border-radius: 0 0 8px 8px; }
 .projectplus-config-content { min-width: 0; }
 
 .projectplus-config-card {
@@ -112,9 +151,41 @@
 .projectplus-config-option p { margin: 0 0 14px; color: var(--tblr-secondary, #667382); }
 .projectplus-config-help { margin: 16px 0 0; color: var(--tblr-secondary, #667382); }
 
+/* General configuration screen follows the same visual language as Terms. */
+.projectplus-config-overview { max-width: none; margin: 0; }
+.projectplus-config-overview__body { border-radius: 0 0 12px 12px; }
+.projectplus-config-overview__section-title { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
+.projectplus-config-overview__section-title > i { margin-top: 2px; color: #17613d; font-size: 1.25rem; }
+.projectplus-config-overview__section-title h3 { margin: 0; color: #1c4430; font-size: 1.06rem; font-weight: 700; }
+.projectplus-config-overview__section-title p { margin: 4px 0 0; color: #6a7a72; font-size: .89rem; }
+.projectplus-config-overview__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.projectplus-config-overview .projectplus-config-option {
+   display: flex;
+   align-items: flex-start;
+   gap: 13px;
+   padding: 22px;
+   border-color: #dce5e1;
+   border-radius: 9px;
+   background: #fbfdfc;
+   box-shadow: 0 1px 3px rgba(31, 73, 50, .04);
+}
+.projectplus-config-overview .projectplus-config-option__icon { color: #17613d; }
+.projectplus-config-overview .projectplus-config-option h3 { color: #1c4430; font-size: 1rem; }
+.projectplus-config-overview .projectplus-config-option p { margin: 0 0 14px; color: #667a70; line-height: 1.45; }
+.projectplus-config-overview .projectplus-config-option .btn { margin-top: 3px; }
+
+.projectplus-about { max-width: none; margin: 0; }
+.projectplus-about__body { border-radius: 0 0 12px 12px; }
+.projectplus-about__steps { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.projectplus-about__steps li { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border: 1px solid #dce5e1; border-radius: 8px; background: #fbfdfc; }
+.projectplus-about__step-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 8px; color: #17613d; background: #eaf5ee; font-size: 1.05rem; }
+.projectplus-about__steps h4 { margin: 1px 0 5px; color: #1c4430; font-size: .96rem; }
+.projectplus-about__steps p { margin: 0; color: #667a70; font-size: .88rem; line-height: 1.5; }
+
 @media (max-width: 768px) {
    .projectplus-config-layout { grid-template-columns: 1fr; margin: 12px; }
    .projectplus-config-grid { grid-template-columns: 1fr; }
+   .projectplus-config-overview__grid { grid-template-columns: 1fr; }
 }
 
 /* TIP: visual de documento, limitado ao formulário do plugin. */
@@ -165,6 +236,17 @@
 .projectplus-tip__footer .btn { padding: 9px 17px; color: #fff !important; background: #17613d; border-color: #17613d; }
 .projectplus-tip__footer .btn i { color: #fff !important; }
 .projectplus-tip__footer .btn:hover { color: #fff !important; background: #104d30; border-color: #104d30; }
+.projectplus-document-journey { display: grid; gap: 10px; margin: 16px 0; }
+.projectplus-document-step { overflow: hidden; border: 1px solid #dfe5ed; border-left: 4px solid #80a8fa; border-radius: 3px; background: #fff; box-shadow: 0 1px 2px rgba(32, 53, 84, .04); }
+.projectplus-document-step > summary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 14px 16px; list-style: none; cursor: pointer; color: #263c63; background: #fff; font-weight: 600; transition: background-color .15s ease; }
+.projectplus-document-step > summary::-webkit-details-marker { display: none; }
+.projectplus-document-step > summary:hover { background: #f5f8ff; }
+.projectplus-document-step > summary span { display: inline-flex; align-items: center; gap: 9px; }
+.projectplus-document-step > summary .ti { color: #4d74bf; }
+.projectplus-document-step[open] > summary { border-bottom: 1px solid #dfe5ed; background: #f5f8ff; }
+.projectplus-document-step[open] > summary > .ti-chevron-down { transform: rotate(180deg); }
+.projectplus-document-step__content { padding: 16px; background: #fff; }
+.projectplus-document-step__content > .projectplus-tip { margin: 0; }
 @media (max-width: 720px) {
    .projectplus-tip { margin: 12px; }
    .projectplus-tip__hero, .projectplus-tip__card { padding: 22px 18px; }

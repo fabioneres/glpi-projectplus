@@ -74,12 +74,12 @@ class ProjectProfile extends GlpiProfile
          ],
          [
             'itemtype' => TicketPhase::class,
-            'label' => __('Priorizacao de portfolio', 'projectplus'),
+            'label' => __('Priorização de portfólio', 'projectplus'),
             'field' => self::RIGHT_PORTFOLIO,
          ],
          [
             'itemtype' => TicketPhase::class,
-            'label' => __('Administracao do Project+', 'projectplus'),
+            'label' => __('Administração do Project+', 'projectplus'),
             'field' => self::RIGHT_CONFIG,
          ],
          [

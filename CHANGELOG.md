@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.2-beta
+
+- Consolida a área **Project+** no projeto com Termos, Interações e Priorização.
+- Amplia o fluxo documental TIP, TAP, TEP e TA, incluindo rascunhos, geração, aceite e rastreabilidade.
+- Inclui a priorização institucional por ranking e sua integração com a prioridade nativa do GLPI.
+- Evolui as Interações com modelos, privacidade, notificações, solução com TEP e escalação de projeto.
+- Atualiza a configuração e os layouts do fluxo, dos termos e das telas administrativas.
+- Corrige rótulos, mensagens e caracteres com acentuação/codificação incorreta.
+
 ## 0.7.0-beta
 
 - Torna o TIP configurável por entidade: título, introdução, campos, tipos, ordem, obrigatoriedade e ativação.

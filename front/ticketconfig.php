@@ -12,12 +12,12 @@ Session::checkRight('config', UPDATE);
 
 $entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
 if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
-   Html::displayErrorAndDie(__('Entidade invalida ou sem permissao de configuracao.', 'projectplus'));
+   Html::displayErrorAndDie(__('Entidade inválida ou sem permissão de configuração.', 'projectplus'));
 }
 
 if (isset($_POST['save_ticket_config'])) {
    if (TicketConfig::saveForEntity($entityId, $_POST)) {
-      Session::addMessageAfterRedirect(__('Configuracao do fluxo de solicitacao de projeto salva.', 'projectplus'));
+      Session::addMessageAfterRedirect(__('Configuração do fluxo de solicitação de projeto salva.', 'projectplus'));
    } else {
       Session::addMessageAfterRedirect(__('Selecione uma categoria para habilitar o fluxo.', 'projectplus'), false, ERROR);
    }
@@ -25,12 +25,12 @@ if (isset($_POST['save_ticket_config'])) {
 }
 
 $config = TicketConfig::getForEntity($entityId);
-Html::header(__('Fluxo de solicitacao de projeto', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Fluxo de solicitação de projeto', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
 
 ConfigPage::begin('ticketflow');
-echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-git-branch'></i> " . ConfigPage::escape(__('Fluxo de solicitacao de projeto', 'projectplus')) . '</header>';
+echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-git-branch'></i> " . ConfigPage::escape(__('Fluxo de solicitação de projeto', 'projectplus')) . '</header>';
 echo "<div class='projectplus-config-card__body'>";
-echo "<h3 class='projectplus-config-section-title'>" . __('Ativacao por entidade', 'projectplus') . '</h3>';
+echo "<h3 class='projectplus-config-section-title'>" . __('Ativação por entidade', 'projectplus') . '</h3>';
 echo "<form method='get' action='" . Html::clean($_SERVER['PHP_SELF']) . "' class='projectplus-config-form'><div class='projectplus-config-field'><label>" . __('Entidade', 'projectplus') . '</label><div>';
 Entity::dropdown(['name' => 'entities_id', 'value' => $entityId, 'entity' => $_SESSION['glpiactiveentities'] ?? [$entityId]]);
 echo '</div></div></form><script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll("form[method=get] select[name=entities_id]").forEach(function(s){s.addEventListener("change",function(){this.form.submit();});});});</script>';
@@ -50,6 +50,6 @@ ITILCategory::dropdown([
 echo '</div></div></div>';
 echo "<div class='projectplus-config-actions'><button class='btn btn-primary' type='submit' name='save_ticket_config' value='1'>" . __('Salvar', 'projectplus') . '</button></div></form>';
 
-echo "<p class='projectplus-config-help'>" . ConfigPage::escape(__('Quando um Ticket dessa entidade receber a categoria configurada, a aba Solicitacao de projeto sera exibida para controlar a fase interna. O status nativo do Ticket nao e alterado.', 'projectplus')) . '</p></div></section>';
+echo "<p class='projectplus-config-help'>" . ConfigPage::escape(__('Quando um Ticket dessa entidade receber a categoria configurada, a aba Solicitação de projeto será exibida para controlar a fase interna. O status nativo do Ticket não é alterado.', 'projectplus')) . '</p></div></section>';
 ConfigPage::end();
 Html::footer();

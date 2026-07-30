@@ -14,14 +14,13 @@ class ConfigPage
    public static function begin(string $active): void
    {
       echo "<div class='projectplus-config-layout'>";
-      echo "<aside class='projectplus-config-nav'><div class='projectplus-config-nav__title'>" . self::escape(__('Configuracoes', 'projectplus')) . '</div>';
+      echo "<aside class='projectplus-config-nav'><div class='projectplus-config-nav__title'><i class='ti ti-settings'></i><span>" . self::escape(__('Configurações', 'projectplus')) . '</span></div>';
       self::navLink('overview', 'config.php', 'ti ti-settings', __('Geral', 'projectplus'), $active);
-      self::navLink('ticketflow', 'ticketconfig.php', 'ti ti-git-branch', __('Fluxo de solicitacao', 'projectplus'), $active);
       self::navLink('tipmodel', 'tipconfig.php', 'ti ti-forms', __('Modelo TIP', 'projectplus'), $active);
       self::navLink('tapmodel', 'documentfields.php?document_type=tap', 'ti ti-file-description', __('Modelo TAP', 'projectplus'), $active);
       self::navLink('tepmodel', 'documentfields.php?document_type=tep', 'ti ti-file-description', __('Modelo TEP', 'projectplus'), $active);
       self::navLink('tamodel', 'documentfields.php?document_type=ta', 'ti ti-file-description', __('Modelo TA', 'projectplus'), $active);
-      self::navLink('import', ProjectImport::getFormURL(), 'ti ti-file-import', __('Importacao de projetos', 'projectplus'), $active);
+      self::navLink('about', 'about.php', 'ti ti-info-circle', __('Sobre', 'projectplus'), $active);
       echo '</aside><main class="projectplus-config-content">';
    }
 

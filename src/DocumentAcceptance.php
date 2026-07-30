@@ -42,7 +42,7 @@ class DocumentAcceptance extends CommonDBTM
    {
       if ($withtemplate || !($item instanceof Ticket || $item instanceof Project)) { return ''; }
       if ($item instanceof Ticket && !TicketConfig::isEnabledForTicket($item)) { return ''; }
-      return self::createTabEntry(__('Documentos e aceites', 'projectplus'), 0, $item::getType(), 'ti ti-file-check');
+      return self::createTabEntry(__('Termos', 'projectplus'), 0, $item::getType(), 'ti ti-file-check');
    }
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
@@ -57,6 +57,15 @@ class DocumentAcceptance extends CommonDBTM
       /** @var DBmysql $DB */ global $DB;
       $row = $DB->request(['FROM'=>self::getTable(),'WHERE'=>['itemtype'=>$item::getType(),'items_id'=>(int)$item->getID(),'document_type'=>$type],'LIMIT'=>1])->current();
       return $row ?: null;
+   }
+
+   /** @param array<string,mixed>|null $row */
+   public static function getVisualState(?array $row): string
+   {
+      if ($row === null) { return 'disabled'; }
+      if ((string) $row['status'] === 'accepted') { return 'accepted'; }
+      if ((string) $row['status'] === 'rejected') { return 'rejected'; }
+      return 'released';
    }
 
    private static function canManage(CommonDBTM $item): bool
@@ -159,10 +168,89 @@ class DocumentAcceptance extends CommonDBTM
 
    public static function showForItem(CommonDBTM $item): void
    {
+      if ($item instanceof Project) {
+         self::showProjectJourney($item);
+         return;
+      }
+
       $types = self::typesForItem($item);
-      echo "<div class='projectplus-tip projectplus-acceptance'><header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-check'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::esc(__('Validação documental', 'projectplus')) . '</span><h2>' . self::esc(__('Documentos e aceites', 'projectplus')) . '</h2><p>' . self::esc(__('Leia o documento publicado e registre seu aceite de forma auditável.', 'projectplus')) . '</p></div></header>';
+      echo "<div class='projectplus-tip projectplus-acceptance'><header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-check'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::esc(__('Validação documental', 'projectplus')) . '</span><h2>' . self::esc(__('Termos', 'projectplus')) . '</h2><p>' . self::esc(__('Leia o documento publicado e registre seu aceite de forma auditável.', 'projectplus')) . '</p></div></header>';
       foreach ($types as $type => $label) { self::showDocument($item, $type, $label); }
       echo '</div>';
+   }
+
+   /** Renders the TAP step inside the unified Ticket documents journey. */
+   public static function showTicketDocument(Ticket $ticket): void
+   {
+      $phase = TicketPhase::getForTicket((int) $ticket->getID());
+      $row = self::getForItem($ticket, 'tap');
+      $allowedPhases = ['authorized_opening', 'awaiting_tap_acceptance', 'project_opened'];
+      if (!$row && !in_array((string) ($phase['phase'] ?? ''), $allowedPhases, true)) {
+         echo "<div class='alert alert-info'>" . self::esc(__('O TAP será liberado após a autorização de abertura do projeto.', 'projectplus')) . '</div>';
+         return;
+      }
+      self::showDocument($ticket, 'tap', __('TAP - Termo de Abertura do Projeto', 'projectplus'));
+   }
+
+   /**
+    * Presents the complete documentary sequence in a project, using the
+    * linked ticket as the source for TIP and TAP.
+    */
+   private static function showProjectJourney(Project $project): void
+   {
+      $ticketId = TicketProject::getTicketIdForProject((int) $project->getID());
+      echo "<div class='projectplus-tip projectplus-acceptance'><header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-check'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::esc(__('Jornada documental', 'projectplus')) . '</span><h2>' . self::esc(__('Termos', 'projectplus')) . '</h2><p>' . self::esc(__('Acompanhe os documentos do projeto na ordem do fluxo.', 'projectplus')) . '</p></div></header>';
+      self::showDocumentLegend();
+      echo '<div class="projectplus-document-journey">';
+
+      $ticket = new Ticket();
+      $hasTicket = $ticketId > 0 && $ticket->getFromDB($ticketId);
+      $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID()) : null;
+      $tipState = (string) ($intent['status'] ?? '') === 'accepted' ? 'accepted' : ((string) ($intent['status'] ?? '') === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
+      $tapState = $hasTicket ? self::getVisualState(self::getForItem($ticket, 'tap')) : 'disabled';
+      $tepState = self::getVisualState(self::getForItem($project, 'tep'));
+      if ($tepState === 'disabled') {
+         $tepState = 'released';
+      }
+      $taState = self::getVisualState(self::getForItem($project, 'ta'));
+      if ($taState === 'disabled' && $tepState === 'accepted') {
+         $taState = 'released';
+      }
+      self::showJourneyStep(__('TIP - Termo de Intenção do Projeto', 'projectplus'), 'ti ti-file-text', $tipState, false, static function () use ($hasTicket, $ticket): void {
+         if ($hasTicket) { TicketIntent::showForTicket($ticket); }
+         else { echo "<div class='alert alert-info'>" . self::esc(__('Não há chamado de origem vinculado a este projeto.', 'projectplus')) . '</div>'; }
+      });
+      self::showJourneyStep(__('TAP - Termo de Abertura do Projeto', 'projectplus'), 'ti ti-file-description', $tapState, false, static function () use ($hasTicket, $ticket): void {
+         if ($hasTicket) { self::showDocument($ticket, 'tap', __('TAP - Termo de Abertura do Projeto', 'projectplus')); }
+         else { echo "<div class='alert alert-info'>" . self::esc(__('Documento indisponível.', 'projectplus')) . '</div>'; }
+      });
+      self::showJourneyStep(__('TEP - Relatório de Entrega do Projeto', 'projectplus'), 'ti ti-report', $tepState, false, static function () use ($project): void {
+         self::showDocument($project, 'tep', __('TEP - Relatório de Entrega do Projeto', 'projectplus'));
+      });
+      self::showJourneyStep(__('TA - Termo de Aceite', 'projectplus'), 'ti ti-file-certificate', $taState, false, static function () use ($project): void {
+         self::showDocument($project, 'ta', __('TA - Termo de Aceite', 'projectplus'));
+      });
+      echo '</div></div>';
+      self::showJourneyAccordionScript();
+   }
+
+   /** Ensures a document journey behaves as a one-at-a-time accordion. */
+   public static function showJourneyAccordionScript(): void
+   {
+      echo "<script>(function () { document.querySelectorAll('.projectplus-document-journey').forEach(function (journey) { if (journey.dataset.projectplusAccordionReady) { return; } journey.dataset.projectplusAccordionReady = '1'; journey.querySelectorAll('.projectplus-document-step').forEach(function (step) { step.addEventListener('toggle', function () { if (!step.open) { return; } journey.querySelectorAll('.projectplus-document-step[open]').forEach(function (other) { if (other !== step) { other.removeAttribute('open'); } }); }); }); }); })();</script>";
+   }
+
+   private static function showDocumentLegend(): void
+   {
+      echo "<div class='projectplus-document-legend' aria-label='" . self::esc(__('Legenda dos documentos', 'projectplus')) . "'><span class='projectplus-document-legend__title'><i class='ti ti-info-circle'></i> " . self::esc(__('Legenda', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--accepted'><i></i>" . self::esc(__('Aceito pelo gestor', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--released'><i></i>" . self::esc(__('Liberado para preenchimento', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--rejected'><i></i>" . self::esc(__('Recusado', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--disabled'><i></i>" . self::esc(__('Não enviado / desabilitado', 'projectplus')) . '</span></div>';
+   }
+
+   /** @param callable():void $content */
+   private static function showJourneyStep(string $label, string $icon, string $state, bool $open, callable $content): void
+   {
+      echo "<details class='projectplus-document-step projectplus-document-step--" . self::esc($state) . "'" . ($open ? ' open' : '') . "><summary><span><i class='" . self::esc($icon) . "'></i> " . self::esc($label) . "</span><i class='ti ti-chevron-down'></i></summary><div class='projectplus-document-step__content'>";
+      $content();
+      echo '</div></details>';
    }
 
    /**
@@ -186,7 +274,7 @@ class DocumentAcceptance extends CommonDBTM
          return;
       }
 
-      echo "<section class='projectplus-tip projectplus-acceptance projectplus-portal-acceptance'><header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-check'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::esc(__('Validação documental', 'projectplus')) . '</span><h2>' . self::esc(__('Documentos e aceites', 'projectplus')) . '</h2><p>' . self::esc(__('Leia o documento publicado e registre seu aceite.', 'projectplus')) . '</p></div></header>';
+      echo "<section class='projectplus-tip projectplus-acceptance projectplus-portal-acceptance'><header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-check'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::esc(__('Validação documental', 'projectplus')) . '</span><h2>' . self::esc(__('Termos', 'projectplus')) . '</h2><p>' . self::esc(__('Leia o documento publicado e registre seu aceite.', 'projectplus')) . '</p></div></header>';
       foreach ($documents as $document) {
          echo "<section class='projectplus-tip__card projectplus-acceptance__card'><div class='projectplus-tip__section-title'><i class='ti ti-file-description'></i><div><h3>" . self::esc((string) $document['label']) . '</h3><p>' . self::esc(__('Documento disponível para aceite.', 'projectplus')) . '</p></div></div>';
          self::showAcceptance($project, $document['row'], self::portalUrl());

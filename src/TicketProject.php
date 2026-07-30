@@ -25,6 +25,14 @@ class TicketProject
       return (int) ($row['projects_id'] ?? 0);
    }
 
+   public static function getTicketIdForProject(int $projectId): int
+   {
+      global $DB;
+      if ($projectId <= 0 || !$DB->tableExists(self::getTable())) { return 0; }
+      $row = $DB->request(['FROM' => self::getTable(), 'WHERE' => ['projects_id' => $projectId], 'LIMIT' => 1])->current();
+      return (int) ($row['tickets_id'] ?? 0);
+   }
+
    public static function canCreate(Ticket $ticket): bool
    {
       $phase = TicketPhase::getForTicket((int) $ticket->getID());

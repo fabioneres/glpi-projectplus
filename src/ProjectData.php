@@ -110,17 +110,17 @@ class ProjectData extends CommonDBTM
 
          $user = new User();
          if (!$user->getFromDB($userId) || empty($user->fields['is_active'])) {
-            Session::addMessageAfterRedirect(__('UsuÃ¡rio selecionado invÃ¡lido ou inativo.', 'projectplus'), false, ERROR);
+            Session::addMessageAfterRedirect(__('Usuário selecionado inválido ou inativo.', 'projectplus'), false, ERROR);
             return;
          }
          if (!in_array($entityId, Profile_User::getUserEntities($userId, true))) {
-            Session::addMessageAfterRedirect(__('O usuÃ¡rio selecionado nÃ£o possui acesso Ã  entidade do projeto.', 'projectplus'), false, ERROR);
+            Session::addMessageAfterRedirect(__('O usuário selecionado não possui acesso à entidade do projeto.', 'projectplus'), false, ERROR);
             return;
          }
 
          $email = UserEmail::getDefaultForUser($userId);
          if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            Session::addMessageAfterRedirect(__('O usuÃ¡rio selecionado nÃ£o possui e-mail vÃ¡lido cadastrado.', 'projectplus'), false, ERROR);
+            Session::addMessageAfterRedirect(__('O usuário selecionado não possui e-mail válido cadastrado.', 'projectplus'), false, ERROR);
             return;
          }
          $values[$displayFields[0]] = User::getFriendlyNameById($userId);

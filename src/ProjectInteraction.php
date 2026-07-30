@@ -51,6 +51,12 @@ class ProjectInteraction extends CommonDBTM
       ], true);
    }
 
+   /** Indicates whether the current user may see the project interaction workspace. */
+   public static function canViewProjectplus(Project $project): bool
+   {
+      return self::isAllowed($project);
+   }
+
    /** A profile can remove a button without weakening the native Project right. */
    public static function canAction(Project $project, string $right, bool $managerOnly = false): bool
    {
@@ -273,8 +279,7 @@ class ProjectInteraction extends CommonDBTM
          $('#{$toolbarId} [data-projectplus-action=solution]').on('click', function () { openComposer('solution'); });
          composer.find('.projectplus-followups__close').on('click', function () { composer.removeClass('is-open'); });
          $('#{$toolbarId} [data-projectplus-action=escalate]').on('click', function () { $('#{$escalateId}').toggleClass('is-open'); });
-         $('#{$toolbarId} [data-projectplus-action=document]').on('click', function () { var tab = $('a[href*=Document_Item]').first(); if (tab.length) { tab.trigger('click'); } });
-         $('#{$toolbarId} [data-projectplus-action=validation]').on('click', function () { var tab = $('a[href*=DocumentAcceptance]').first(); if (tab.length) { tab.trigger('click'); } });
+         $('#{$toolbarId} [data-projectplus-action=document], #{$toolbarId} [data-projectplus-action=validation]').on('click', function () { var tab = $('[data-projectplus-workspace-tab=documents]').first(); if (tab.length) { tab.trigger('click'); } });
          function applyTemplate(type, templateId) {
             if (!templateId || String(templateId) === '0') { return; }
             $.getJSON('" . self::url('projectinteraction.template.php') . "', {
