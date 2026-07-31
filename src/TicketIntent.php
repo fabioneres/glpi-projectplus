@@ -62,9 +62,8 @@ class TicketIntent
       $right = $documentType === 'pretip'
          ? ProjectProfile::RIGHT_FILL_PRETIP
          : ProjectProfile::RIGHT_FILL_TIP;
-      $hasRight = Session::haveRight($right, UPDATE)
-         || ($documentType === 'pretip' && Session::haveRight(ProjectProfile::RIGHT_FILL_TIP, UPDATE));
-      return Session::haveRight('ticket', UPDATE) && $hasRight;
+      return Session::haveRight('ticket', UPDATE)
+         && Session::haveRight($right, UPDATE);
    }
 
    public static function canReviewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
