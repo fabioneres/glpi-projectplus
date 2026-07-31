@@ -82,7 +82,19 @@ class TicketIntent
    public static function canViewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
       $documentType = self::documentType($documentType);
-      return Session::haveRight(ProjectProfile::getIntentRequestRight($documentType), READ);
+      // The "Ler" column is the persistent consultation permission for both
+      // TIP documents. It must be enough for requesters to consult a document
+      // after it has been submitted, accepted or rejected.
+      if (Session::haveRight(ProjectProfile::getIntentRequestRight($documentType), READ)) {
+         return true;
+      }
+
+      // A manager who has only the validation action still needs temporary
+      // access to the submitted document in order to accept or reject it.
+      $intent = self::getForTicket((int) $ticket->getID(), $documentType);
+      return $intent !== null
+         && (string) $intent['status'] === 'submitted'
+         && self::canReviewForTicket($ticket, $documentType);
    }
 
    public static function requestForTicket(Ticket $ticket, string $documentType = 'tip'): void
@@ -207,13 +219,21 @@ class TicketIntent
       if ($intent !== null && (string) $intent['status'] === 'submitted') {
          if (self::canReviewForTicket($ticket, $documentType)) {
             self::showReviewForm($ticket, $documentType);
-         } else {
+         } elseif (self::canViewForTicket($ticket, $documentType)) {
             self::showSubmittedReadOnly($ticket, $documentType);
+         } else {
+            echo "<div class='alert alert-info'>" . self::escape(__('O documento foi enviado e aguarda validação.', 'projectplus')) . '</div>';
          }
       } elseif ($intent !== null && (string) $intent['status'] === 'accepted') {
          echo "<div class='alert alert-success'><i class='ti ti-circle-check'></i> " . self::escape(sprintf(__('%s aceito pelo gestor. A solicitação está disponível para classificação da necessidade.', 'projectplus'), self::documentName($documentType))) . '</div>';
+         if (self::canViewForTicket($ticket, $documentType)) {
+            self::showSubmittedReadOnly($ticket, $documentType);
+         }
       } elseif ($intent !== null && (string) $intent['status'] === 'rejected') {
          echo "<div class='alert alert-danger'><i class='ti ti-circle-x'></i> " . self::escape(sprintf(__('%s recusado. O chamado foi solucionado com a justificativa informada.', 'projectplus'), self::documentName($documentType))) . '</div>';
+         if (self::canViewForTicket($ticket, $documentType)) {
+            self::showSubmittedReadOnly($ticket, $documentType);
+         }
       } elseif ($intent !== null && self::canSubmitForTicket($ticket, $documentType)) {
          self::showForm($ticket, $documentType);
       } elseif ($intent !== null) {
