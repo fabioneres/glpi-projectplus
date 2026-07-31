@@ -57,13 +57,19 @@ class TicketIntent
          return false;
       }
 
-      // Both TIP steps are internal portfolio-management records. The
-      // requester consults their generated content but does not edit it.
       $right = $documentType === 'pretip'
          ? ProjectProfile::RIGHT_FILL_PRETIP
          : ProjectProfile::RIGHT_FILL_TIP;
-      return Session::haveRight('ticket', UPDATE)
-         && Session::haveRight($right, UPDATE);
+      if (!Session::haveRight($right, UPDATE)) {
+         return false;
+      }
+
+      // TIP is completed by the requester. TIP-DT is an internal technical
+      // detail completed by a manager who can update the native ticket.
+      if ($documentType === 'pretip') {
+         return self::isRequester($ticket, (int) Session::getLoginUserID());
+      }
+      return Session::haveRight('ticket', UPDATE);
    }
 
    public static function canReviewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
@@ -80,12 +86,7 @@ class TicketIntent
       if (Session::haveRight(ProjectProfile::getIntentRequestRight($documentType), READ)) {
          return true;
       }
-      $userId = (int) Session::getLoginUserID();
-      global $DB;
-      return $userId > 0 && (int) ($DB->request([
-         'COUNT' => 'count', 'FROM' => Ticket_User::getTable(),
-         'WHERE' => ['tickets_id' => (int) $ticket->getID(), 'users_id' => $userId, 'type' => CommonITILActor::REQUESTER],
-      ])->current()['count'] ?? 0) > 0;
+      return self::isRequester($ticket, (int) Session::getLoginUserID());
    }
 
    public static function requestForTicket(Ticket $ticket, string $documentType = 'tip'): void
@@ -273,6 +274,23 @@ class TicketIntent
          'LIMIT' => 1,
       ])->current();
       return (int) ($row['users_id'] ?? 0);
+   }
+
+   private static function isRequester(Ticket $ticket, int $userId): bool
+   {
+      if ($userId <= 0) {
+         return false;
+      }
+      global $DB;
+      return (int) ($DB->request([
+         'COUNT' => 'count',
+         'FROM' => Ticket_User::getTable(),
+         'WHERE' => [
+            'tickets_id' => (int) $ticket->getID(),
+            'users_id' => $userId,
+            'type' => CommonITILActor::REQUESTER,
+         ],
+      ])->current()['count'] ?? 0) > 0;
    }
 
    /** @param array<string,mixed> $field */
