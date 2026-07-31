@@ -65,8 +65,7 @@ class TicketPriority
          throw new \RuntimeException(__('Tipo de priorização inválido.', 'projectplus'));
       }
       $editable = ProjectPriority::getEditableCriteria($type);
-      if ($editable === [] || !Session::haveRight('ticket', UPDATE)
-         || !Session::haveAccessToEntity((int) $ticket->getEntityID(), true)) {
+      if ($editable === [] || !Session::haveAccessToEntity((int) $ticket->getEntityID(), true)) {
          throw new \RuntimeException(__('Sem permissão para priorizar esta solicitação.', 'projectplus'));
       }
 
@@ -137,8 +136,7 @@ class TicketPriority
       $ranking = (int) $data['ranking'];
       $nativePriority = ProjectPriority::getNativePriorityForRanking($ranking);
       $editable = ProjectPriority::getEditableCriteria($type);
-      $canEdit = $editable !== [] && Session::haveRight('ticket', UPDATE)
-         && Session::haveAccessToEntity((int) $ticket->getEntityID(), true);
+      $canEdit = $editable !== [] && Session::haveAccessToEntity((int) $ticket->getEntityID(), true);
       global $CFG_GLPI;
       $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/ticketpriority.form.php';
       $priorityLabel = $ranking

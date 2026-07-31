@@ -24,11 +24,6 @@ class ProjectInteraction extends CommonDBTM
       return 'glpi_plugin_projectplus_projectinteractions';
    }
 
-   private static function isManager(): bool
-   {
-      return Session::haveRight('project', UPDATE);
-   }
-
    /**
     * Internal interactions belong to the management workspace. A native
     * Project UPDATE right alone is not enough: focal points can legitimately
@@ -42,35 +37,31 @@ class ProjectInteraction extends CommonDBTM
 
    private static function isAllowed(Project $project): bool
    {
-      return self::isManager() || self::isParticipant($project);
-   }
-
-   /** Requester and focal point may always publish public interactions. */
-   private static function isParticipant(Project $project): bool
-   {
-      $data = ProjectData::getForProject((int) $project->getID());
-      return in_array((int) Session::getLoginUserID(), [
-         (int) ($data['requester_users_id'] ?? 0),
-         (int) ($data['focal_point_users_id'] ?? 0),
-      ], true);
+      return self::canViewProjectplus($project);
    }
 
    /** Indicates whether the current user may see the project interaction workspace. */
    public static function canViewProjectplus(Project $project): bool
    {
-      return self::isAllowed($project);
+      foreach ([
+         ProjectProfile::RIGHT_INTERACTION_REPLY,
+         ProjectProfile::RIGHT_INTERACTION_TASK,
+         ProjectProfile::RIGHT_INTERACTION_SOLUTION,
+         ProjectProfile::RIGHT_INTERACTION_DOCUMENT,
+         ProjectProfile::RIGHT_INTERACTION_VALIDATION,
+         ProjectProfile::RIGHT_INTERACTION_ESCALATE,
+      ] as $right) {
+         if (Session::haveRight($right, READ)) {
+            return true;
+         }
+      }
+      return false;
    }
 
    /** A profile can remove a button without weakening the native Project right. */
    public static function canAction(Project $project, string $right, bool $managerOnly = false): bool
    {
-      if (!self::isAllowed($project)) {
-         return false;
-      }
-      if ($right === ProjectProfile::RIGHT_INTERACTION_REPLY && self::isParticipant($project)) {
-         return true;
-      }
-      return Session::haveRight($right, CREATE) && (!$managerOnly || self::isManager());
+      return self::isAllowed($project) && Session::haveRight($right, CREATE);
    }
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string

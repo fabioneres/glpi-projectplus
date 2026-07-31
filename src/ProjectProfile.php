@@ -803,6 +803,35 @@ class ProjectProfile extends GlpiProfile
       return Session::haveRight(self::getDocumentActionRight($documentType, $action), $right);
    }
 
+   /** Indicates whether the profile has access to at least one Project+ project workspace resource. */
+   public static function canAccessProjectWorkspace(): bool
+   {
+      $rights = [
+         self::RIGHT_PORTFOLIO,
+         self::RIGHT_OPEN_PROJECT,
+         self::RIGHT_PRIORITY_TECHNICAL,
+         self::RIGHT_PRIORITY_STRATEGIC,
+         self::RIGHT_MANAGE_DOCUMENTS,
+         self::RIGHT_MANAGE_TAP,
+         self::RIGHT_MANAGE_TEP,
+         self::RIGHT_MANAGE_TA,
+         self::RIGHT_REQUEST_PRETIP,
+         self::RIGHT_REQUEST_TIP,
+         self::RIGHT_INTERACTION_REPLY,
+         self::RIGHT_INTERACTION_TASK,
+         self::RIGHT_INTERACTION_SOLUTION,
+         self::RIGHT_INTERACTION_DOCUMENT,
+         self::RIGHT_INTERACTION_VALIDATION,
+         self::RIGHT_INTERACTION_ESCALATE,
+      ];
+      foreach ($rights as $right) {
+         if (Session::haveRight($right, READ)) {
+            return true;
+         }
+      }
+      return false;
+   }
+
    public static function installRights(): void
    {
       $migration = new \Migration(PLUGIN_PROJECTPLUS_VERSION);

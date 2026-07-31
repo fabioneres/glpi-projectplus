@@ -48,6 +48,19 @@ class TicketPhase extends CommonDBTM
       return $phases[$phase] ?? $phase;
    }
 
+   /** @return array<string, string> Phases that may be changed manually in Project+. */
+   private static function getManualPhases(): array
+   {
+      $phases = self::getPhases();
+      return array_intersect_key($phases, array_flip([
+         'classification',
+         'portfolio_analysis',
+         'awaiting_authorization',
+         'authorized_opening',
+         'rejected_cancelled',
+      ]));
+   }
+
    public static function postTicketAdd(Ticket $ticket): void
    {
       self::ensureForTicket($ticket);
@@ -125,7 +138,7 @@ class TicketPhase extends CommonDBTM
       $current = self::getForTicket((int) $ticket->getID());
       $phase = (string) ($input['phase'] ?? '');
       $justification = trim((string) ($input['justification'] ?? ''));
-      if (!array_key_exists($phase, self::getPhases())) {
+      if (!array_key_exists($phase, self::getManualPhases())) {
          return false;
       }
       if ($phase === 'rejected_cancelled' && $justification === '') {
@@ -251,7 +264,7 @@ class TicketPhase extends CommonDBTM
 
       TicketProject::showForTicket($ticket);
 
-      if (Session::haveRight('ticket', UPDATE) && Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE)) {
+      if (Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE)) {
          self::showUpdateForm($ticket, $phase);
       }
       if (Session::haveRight(ProjectProfile::RIGHT_REQUEST_DOCUMENTS, READ)) {
@@ -268,7 +281,7 @@ class TicketPhase extends CommonDBTM
       echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
       echo Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]);
       echo "<div class='projectplus-phase-form__grid'><div class='projectplus-phase-form__field'><label>" . self::escape(__('Nova fase', 'projectplus')) . "</label><div class='projectplus-phase-select'>";
-      Dropdown::showFromArray('phase', self::getPhases(), ['value' => (string) $phase['phase']]);
+      Dropdown::showFromArray('phase', self::getManualPhases(), ['value' => (string) $phase['phase']]);
       echo '</div>';
       self::showPhaseSelectScript();
       echo "</div><div class='projectplus-phase-form__field projectplus-phase-form__field--wide'><label>" . self::escape(__('Justificativa', 'projectplus')) . '</label>';

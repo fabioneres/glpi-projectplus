@@ -21,7 +21,7 @@ class ProjectWorkspace extends CommonDBTM
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string
    {
-      if ($item instanceof Project && !$withtemplate && Session::haveRight('project', READ)) {
+      if ($item instanceof Project && !$withtemplate && ProjectProfile::canAccessProjectWorkspace()) {
          return self::createTabEntry('Project+', 0, $item::getType(), 'ti ti-apps');
       }
       return '';
@@ -29,7 +29,7 @@ class ProjectWorkspace extends CommonDBTM
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
    {
-      if ($item instanceof Project) {
+      if ($item instanceof Project && ProjectProfile::canAccessProjectWorkspace()) {
          self::show($item);
       }
       return true;

@@ -7,7 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\TicketPriority;
 
-Session::checkRight('ticket', UPDATE);
+Session::checkLoginUser();
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
 $ticket = new Ticket();
 if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEntity((int) $ticket->getEntityID(), true)) {

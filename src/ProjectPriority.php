@@ -220,8 +220,7 @@ class ProjectPriority extends CommonDBTM
    public static function saveForProject(Project $project, array $input): void
    {
       $editable = self::getEditableCriteria();
-      if ($editable === [] || !Session::haveRight('project', UPDATE)
-         || !Session::haveAccessToEntity((int) $project->getEntityID(), true)) {
+      if ($editable === [] || !Session::haveAccessToEntity((int) $project->getEntityID(), true)) {
          throw new \RuntimeException(__('Sem permissão para priorizar este projeto.', 'projectplus'));
       }
       $current = self::getForProject((int) $project->getID());
@@ -262,8 +261,7 @@ class ProjectPriority extends CommonDBTM
       $priorityLabel = $ranking ? __('Prioridade', 'projectplus') . ' – ' . \CommonITILObject::getPriorityName($nativePriority) : self::getInstitutionalRange($ranking);
       $priorityStyle = self::getPriorityStyle($nativePriority);
       $editable = self::getEditableCriteria();
-      $canEdit = $editable !== [] && Session::haveRight('project', UPDATE)
-         && Session::haveAccessToEntity((int) $project->getEntityID(), true);
+      $canEdit = $editable !== [] && Session::haveAccessToEntity((int) $project->getEntityID(), true);
       echo "<div class='projectplus-priority projectplus-priority--{$nativePriority}' {$priorityStyle}><header class='projectplus-priority__header projectplus-priority__header--{$nativePriority}'><div><h3>" . self::escape(__('Priorização institucional', 'projectplus')) . '</h3><p>' . self::escape(__('O ranking calcula automaticamente a prioridade nativa do GLPI.', 'projectplus')) . "</p></div><div class='projectplus-priority__score projectplus-priority__score--{$nativePriority}'><span>" . self::escape(__('Ranking', 'projectplus')) . '</span><strong>' . ($ranking ?: '—') . "</strong><em class='projectplus-priority__native projectplus-priority__native--{$nativePriority}'>" . self::escape($priorityLabel) . '</em></div></header>';
       if ($canEdit) {
          echo "<form method='post' action='" . self::escape($url) . "' data-track-changes='true'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('projects_id', ['value' => (int) $project->getID()]);

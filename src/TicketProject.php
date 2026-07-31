@@ -53,10 +53,7 @@ class TicketProject
 
    public static function canCreate(Ticket $ticket): bool
    {
-      return Session::haveRight('project', CREATE)
-         && Session::haveRight('ticket', UPDATE)
-         && Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, CREATE)
-         && $ticket->canSolve()
+      return Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, CREATE)
          && self::getMissingOpeningRequirements($ticket) === []
          && self::getProjectId((int) $ticket->getID()) === 0;
    }
@@ -168,7 +165,7 @@ class TicketProject
          echo "<div class='alert alert-success'>" . self::escape(__('Projeto criado a partir desta solicitação:', 'projectplus'))
             . ' <a href="' . self::escape(Project::getFormURLWithID($projectId)) . '">'
             . self::escape(__('Acessar projeto', 'projectplus')) . '</a></div>';
-      } elseif (Session::haveRight('project', CREATE) && Session::haveRight('ticket', UPDATE) && Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, CREATE)) {
+      } elseif (Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, CREATE)) {
          $missing = self::getMissingOpeningRequirements($ticket);
          if ($missing !== []) {
             echo "<div class='alert alert-warning'><strong>" . self::escape(__('O projeto ainda não pode ser aberto.', 'projectplus')) . '</strong><ul>';
@@ -176,10 +173,6 @@ class TicketProject
                echo '<li>' . self::escape($requirement) . '</li>';
             }
             echo '</ul></div>';
-            return;
-         }
-         if (!$ticket->canSolve()) {
-            echo "<div class='alert alert-warning'>" . self::escape(__('Você não possui permissão para solucionar este chamado.', 'projectplus')) . '</div>';
             return;
          }
          global $CFG_GLPI;

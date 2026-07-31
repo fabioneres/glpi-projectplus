@@ -7,7 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\TicketPhase;
 
-Session::checkRight('ticket', UPDATE);
+Session::checkLoginUser();
 
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
 $ticket = new Ticket();

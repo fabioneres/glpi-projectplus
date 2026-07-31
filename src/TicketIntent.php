@@ -44,7 +44,6 @@ class TicketIntent
    {
       return TicketConfig::isEnabledForTicket($ticket)
          && TipConfig::isActiveForEntity((int) $ticket->getEntityID())
-         && Session::haveRight('ticket', UPDATE)
          && Session::haveRight(ProjectProfile::getIntentRequestRight(self::documentType($documentType)), UPDATE);
    }
 
@@ -69,24 +68,21 @@ class TicketIntent
       if ($documentType === 'pretip') {
          return self::isRequester($ticket, (int) Session::getLoginUserID());
       }
-      return Session::haveRight('ticket', UPDATE);
+      return true;
    }
 
    public static function canReviewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
       return $intent !== null && (string) $intent['status'] === 'submitted'
-         && TicketConfig::isEnabledForTicket($ticket) && Session::haveRight('ticket', UPDATE)
+         && TicketConfig::isEnabledForTicket($ticket)
          && Session::haveRight(ProjectProfile::getIntentValidationRight(self::documentType($documentType)), UPDATE);
    }
 
    public static function canViewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
       $documentType = self::documentType($documentType);
-      if (Session::haveRight(ProjectProfile::getIntentRequestRight($documentType), READ)) {
-         return true;
-      }
-      return self::isRequester($ticket, (int) Session::getLoginUserID());
+      return Session::haveRight(ProjectProfile::getIntentRequestRight($documentType), READ);
    }
 
    public static function requestForTicket(Ticket $ticket, string $documentType = 'tip'): void

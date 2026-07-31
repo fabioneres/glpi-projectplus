@@ -7,7 +7,6 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\DocumentDraft;
-use GlpiPlugin\Projectplus\ProjectData;
 
 Session::checkLoginUser();
 $itemtype = (string) ($_GET['itemtype'] ?? '');
@@ -21,20 +20,8 @@ if (!$item->getFromDB($id) || !Session::haveAccessToEntity((int) $item->getEntit
    Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
 }
 
-// A visualização pelo portal é limitada ao solicitante ou ponto focal e
-// somente depois que a versão gerada foi efetivamente publicada para aceite.
-if ($item instanceof Project && !Session::haveRight('project', UPDATE)) {
-   $projectData = ProjectData::getForProject((int) $item->getID());
-   $userId = (int) Session::getLoginUserID();
-   $isParticipant = $projectData !== null
-      && in_array($userId, [
-         (int) ($projectData['requester_users_id'] ?? 0),
-         (int) ($projectData['focal_point_users_id'] ?? 0),
-      ], true);
-   $acceptance = DocumentAcceptance::getForItem($item, $type);
-   if (!$isParticipant || !$acceptance || !in_array((string) $acceptance['status'], ['published', 'accepted'], true)) {
-      Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
-   }
+if (!DocumentAcceptance::canViewDocument($item, $type)) {
+   Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
 }
 $draft = DocumentDraft::get($itemtype, $id, $type);
 if (!$draft || (string) $draft['status'] !== 'generated') {
