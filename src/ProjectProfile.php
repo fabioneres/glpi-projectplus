@@ -800,8 +800,7 @@ class ProjectProfile extends GlpiProfile
 
    public static function haveDocumentActionRight(string $documentType, string $action, int $right = UPDATE): bool
    {
-      return Session::haveRight(self::getDocumentActionRight($documentType, $action), $right)
-         || Session::haveRight(self::getDocumentManagementRight($documentType), UPDATE);
+      return Session::haveRight(self::getDocumentActionRight($documentType, $action), $right);
    }
 
    public static function installRights(): void

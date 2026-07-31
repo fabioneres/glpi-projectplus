@@ -180,7 +180,12 @@ class TicketPhase extends CommonDBTM
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string
    {
-      if (!$item instanceof Ticket || $withtemplate || !TicketConfig::isEnabledForTicket($item)) {
+      if (
+         !$item instanceof Ticket
+         || $withtemplate
+         || !TicketConfig::isEnabledForTicket($item)
+         || !Session::haveRight(ProjectProfile::RIGHT_REQUESTS, READ)
+      ) {
          return '';
       }
          return self::createTabEntry(__('Project+', 'projectplus'), 0, $item::getType(), 'ti ti-file-check');
@@ -188,7 +193,11 @@ class TicketPhase extends CommonDBTM
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
    {
-      if ($item instanceof Ticket && TicketConfig::isEnabledForTicket($item)) {
+      if (
+         $item instanceof Ticket
+         && TicketConfig::isEnabledForTicket($item)
+         && Session::haveRight(ProjectProfile::RIGHT_REQUESTS, READ)
+      ) {
          self::showForTicket($item);
       }
       return true;
@@ -245,7 +254,9 @@ class TicketPhase extends CommonDBTM
       if (Session::haveRight('ticket', UPDATE) && Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE)) {
          self::showUpdateForm($ticket, $phase);
       }
-      self::showHistory((int) $ticket->getID());
+      if (Session::haveRight(ProjectProfile::RIGHT_REQUEST_DOCUMENTS, READ)) {
+         self::showHistory((int) $ticket->getID());
+      }
       self::showPhaseSectionsAccordionScript();
       echo '</section>';
    }

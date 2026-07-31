@@ -77,7 +77,8 @@ class TicketIntent
 
    public static function canViewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
-      if (Session::haveRight('ticket', UPDATE)) {
+      $documentType = self::documentType($documentType);
+      if (Session::haveRight(ProjectProfile::getIntentRequestRight($documentType), READ)) {
          return true;
       }
       $userId = (int) Session::getLoginUserID();
