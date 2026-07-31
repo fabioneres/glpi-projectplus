@@ -423,15 +423,17 @@ class ProjectProfile extends GlpiProfile
    ): void {
       echo "<section class='spaced'>";
       echo "<h3 class='mb-2'>" . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h3>';
-      echo "<div class='table-responsive'><table class='tab_cadre_fixe table table-hover'>";
+      $matrixId = 'projectplus-rights-matrix-' . mt_rand();
+      echo "<div class='table-responsive'><table id='" . $matrixId . "' class='tab_cadre_fixe table table-hover'>";
       echo '<thead><tr class="tab_bg_1"><th>' . htmlspecialchars(__('Nome', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</th>';
       foreach ($columns as $column => $label) {
          echo '<th class="text-center">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</th>';
       }
+      echo '<th class="text-center">' . htmlspecialchars(__('Marcar/desmarcar todos', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</th>';
       echo '</tr></thead><tbody>';
 
       foreach ($rows as $row) {
-         echo "<tr class='tab_bg_2'><td><strong>" . htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8') . '</strong></td>';
+         echo "<tr class='tab_bg_2 projectplus-rights-row'><td><strong>" . htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8') . '</strong></td>';
          foreach ($columns as $column => $label) {
             if (!isset($row['cells'][$column])) {
                echo "<td class='text-center text-muted'>—</td>";
@@ -450,14 +452,41 @@ class ProjectProfile extends GlpiProfile
                'checked'       => (($profileRight & $level) === $level),
                'readonly'      => !$canEdit,
                'title'         => $row['label'] . ': ' . $label,
+               'class'         => 'projectplus-rights-cell',
                'zero_on_empty' => true,
             ]);
             echo '</td>';
          }
+         echo "<td class='text-center'>";
+         echo "<input type='checkbox' class='form-check-input projectplus-rights-row-toggle' data-projectplus-rights-row-toggle='1' title='"
+            . htmlspecialchars(__('Marcar/desmarcar todos', 'projectplus'), ENT_QUOTES, 'UTF-8') . "'"
+            . (!$canEdit ? ' disabled' : '') . ">";
+         echo '</td>';
          echo '</tr>';
       }
 
       echo '</tbody></table></div></section>';
+      echo Html::scriptBlock("$(function () {
+         var matrix = $('#" . $matrixId . "');
+         var refreshToggle = function (row) {
+            var cells = row.find('input.projectplus-rights-cell:not(:disabled)');
+            var selected = cells.filter(':checked').length;
+            var toggle = row.find('[data-projectplus-rights-row-toggle]');
+            toggle.prop('checked', cells.length > 0 && selected === cells.length);
+            toggle.prop('indeterminate', selected > 0 && selected < cells.length);
+         };
+         matrix.find('tbody tr.projectplus-rights-row').each(function () {
+            refreshToggle($(this));
+         });
+         matrix.on('change', '[data-projectplus-rights-row-toggle]', function () {
+            $(this).closest('tr').find('input.projectplus-rights-cell:not(:disabled)')
+               .prop('checked', this.checked)
+               .trigger('change');
+         });
+         matrix.on('change', 'input.projectplus-rights-cell', function () {
+            refreshToggle($(this).closest('tr'));
+         });
+      });");
    }
 
    /** @return array<int, array{title: string, columns: array<string, string>, rows: array<int, array{label: string, cells: array<string, array{right: string, level: int}>}>}> */
@@ -476,6 +505,10 @@ class ProjectProfile extends GlpiProfile
          'update' => __('Atualizar', 'projectplus'),
       ];
       $flowColumns = [
+         'read' => __('Ler', 'projectplus'),
+         'update' => __('Atualizar', 'projectplus'),
+      ];
+      $projectColumns = [
          'read' => __('Ler', 'projectplus'),
          'update' => __('Atualizar', 'projectplus'),
          'create' => __('Criar', 'projectplus'),
@@ -584,7 +617,7 @@ class ProjectProfile extends GlpiProfile
          ],
          [
             'title' => __('Projetos', 'projectplus'),
-            'columns' => $flowColumns,
+            'columns' => $projectColumns,
             'rows' => [
                [
                   'label' => __('Abrir projeto', 'projectplus'),
@@ -598,7 +631,7 @@ class ProjectProfile extends GlpiProfile
          ],
          [
             'title' => __('Interações', 'projectplus'),
-            'columns' => $flowColumns,
+            'columns' => $projectColumns,
             'rows' => [
                ['label' => __('Responder', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_REPLY)],
                ['label' => __('Tarefa', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_TASK)],
