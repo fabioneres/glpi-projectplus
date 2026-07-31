@@ -92,14 +92,23 @@ class DocumentAcceptance extends CommonDBTM
          return true;
       }
 
-      foreach (['fill', 'generate', 'send', 'accept'] as $action) {
-         // Action columns in the Project+ profile matrix are persisted as
-         // UPDATE rights. Possessing one of them also grants document view.
+      foreach (['fill', 'generate', 'send'] as $action) {
+         // Management actions in the Project+ profile matrix are persisted as
+         // UPDATE rights. They include access to the document while it is
+         // being prepared or published.
          if (ProjectProfile::haveDocumentActionRight($type, $action, UPDATE)) {
             return true;
          }
       }
-      return self::canAccept($item, $type);
+
+      // Accept/Refuse is intentionally not a lasting read permission. It
+      // grants the related requester/focal point temporary access only while
+      // the document awaits their decision. Afterwards, viewing requires the
+      // explicit "Ler" right above.
+      $acceptance = self::getForItem($item, $type);
+      return $acceptance !== null
+         && (string) $acceptance['status'] === 'published'
+         && self::canAccept($item, $type);
    }
 
    private static function canAccept(CommonDBTM $item, string $type = ''): bool
