@@ -55,7 +55,7 @@ class TicketProject
    {
       return Session::haveRight('project', CREATE)
          && Session::haveRight('ticket', UPDATE)
-         && Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, UPDATE)
+         && Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, CREATE)
          && $ticket->canSolve()
          && self::getMissingOpeningRequirements($ticket) === []
          && self::getProjectId((int) $ticket->getID()) === 0;
@@ -168,7 +168,7 @@ class TicketProject
          echo "<div class='alert alert-success'>" . self::escape(__('Projeto criado a partir desta solicitação:', 'projectplus'))
             . ' <a href="' . self::escape(Project::getFormURLWithID($projectId)) . '">'
             . self::escape(__('Acessar projeto', 'projectplus')) . '</a></div>';
-      } elseif (Session::haveRight('project', CREATE) && Session::haveRight('ticket', UPDATE) && Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, UPDATE)) {
+      } elseif (Session::haveRight('project', CREATE) && Session::haveRight('ticket', UPDATE) && Session::haveRight(ProjectProfile::RIGHT_OPEN_PROJECT, CREATE)) {
          $missing = self::getMissingOpeningRequirements($ticket);
          if ($missing !== []) {
             echo "<div class='alert alert-warning'><strong>" . self::escape(__('O projeto ainda não pode ser aberto.', 'projectplus')) . '</strong><ul>';

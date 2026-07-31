@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1-beta
+
+- Reorganiza as permissões do Project+ em matrizes por domínio: Documentos, Priorização, Fluxo, Projetos, Interações e Configurar.
+- Separa visualmente as permissões de Ler, Atualizar e Criar das Interações, preservando a configuração individual de cada ação.
+- Alinha Abrir projeto e as ações de Interação à permissão Criar correspondente.
+
 ## 0.9.0-beta
 
 - Inclui a matriz granular de permissões do Project+, separada nos blocos Assistência, Projetos e Configurar.

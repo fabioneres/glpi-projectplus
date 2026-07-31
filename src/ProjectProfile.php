@@ -405,6 +405,235 @@ class ProjectProfile extends GlpiProfile
       return $blocks;
    }
 
+   /**
+    * Renders the Project+ rights by business domain instead of exposing the
+    * generic GLPI CRUD matrix once for every action.  Each checkbox keeps the
+    * native ProfileRight field format, so the core Profile update handler
+    * persists it without a parallel permission mechanism.
+    *
+    * @param array<int, array{label: string, cells: array<string, array{right: string, level: int}>}> $rows
+    * @param array<string, string> $columns
+    */
+   private static function showBusinessRightsMatrix(
+      GlpiProfile $profile,
+      string $title,
+      array $columns,
+      array $rows,
+      bool $canEdit
+   ): void {
+      echo "<section class='spaced'>";
+      echo "<h3 class='mb-2'>" . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h3>';
+      echo "<div class='table-responsive'><table class='tab_cadre_fixe table table-hover'>";
+      echo '<thead><tr class="tab_bg_1"><th>' . htmlspecialchars(__('Nome', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</th>';
+      foreach ($columns as $column => $label) {
+         echo '<th class="text-center">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</th>';
+      }
+      echo '</tr></thead><tbody>';
+
+      foreach ($rows as $row) {
+         echo "<tr class='tab_bg_2'><td><strong>" . htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8') . '</strong></td>';
+         foreach ($columns as $column => $label) {
+            if (!isset($row['cells'][$column])) {
+               echo "<td class='text-center text-muted'>—</td>";
+               continue;
+            }
+
+            $cell = $row['cells'][$column];
+            $right = $cell['right'];
+            $level = $cell['level'];
+            $profileRight = (int) ($profile->fields[$right] ?? 0);
+            $name = '_' . $right . '[' . $level . '_0]';
+            echo "<td class='text-center'>";
+            echo Html::getCheckbox([
+               'name'          => $name,
+               'value'         => 1,
+               'checked'       => (($profileRight & $level) === $level),
+               'readonly'      => !$canEdit,
+               'title'         => $row['label'] . ': ' . $label,
+               'zero_on_empty' => true,
+            ]);
+            echo '</td>';
+         }
+         echo '</tr>';
+      }
+
+      echo '</tbody></table></div></section>';
+   }
+
+   /** @return array<int, array{title: string, columns: array<string, string>, rows: array<int, array{label: string, cells: array<string, array{right: string, level: int}>}>}> */
+   private static function getBusinessRightsMatrices(): array
+   {
+      $documentsColumns = [
+         'read' => __('Ler', 'projectplus'),
+         'generate' => __('Gerar', 'projectplus'),
+         'release' => __('Liberar', 'projectplus'),
+         'fill' => __('Preencher', 'projectplus'),
+         'send' => __('Enviar para aceite', 'projectplus'),
+         'accept' => __('Aceitar/recusar', 'projectplus'),
+      ];
+      $priorityColumns = [
+         'read' => __('Ler', 'projectplus'),
+         'update' => __('Atualizar', 'projectplus'),
+      ];
+      $flowColumns = [
+         'read' => __('Ler', 'projectplus'),
+         'update' => __('Atualizar', 'projectplus'),
+         'create' => __('Criar', 'projectplus'),
+      ];
+
+      return [
+         [
+            'title' => __('Documentos', 'projectplus'),
+            'columns' => $documentsColumns,
+            'rows' => [
+               [
+                  'label' => __('TIP', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_REQUEST_PRETIP, 'level' => READ],
+                     'release' => ['right' => self::RIGHT_REQUEST_PRETIP, 'level' => UPDATE],
+                     'fill' => ['right' => self::RIGHT_FILL_PRETIP, 'level' => UPDATE],
+                     'accept' => ['right' => self::RIGHT_VALIDATE_PRETIP, 'level' => UPDATE],
+                  ],
+               ],
+               [
+                  'label' => __('TIP - DT', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_REQUEST_TIP, 'level' => READ],
+                     'generate' => ['right' => self::RIGHT_GENERATE_TIP, 'level' => UPDATE],
+                     'release' => ['right' => self::RIGHT_REQUEST_TIP, 'level' => UPDATE],
+                     'fill' => ['right' => self::RIGHT_FILL_TIP, 'level' => UPDATE],
+                     'accept' => ['right' => self::RIGHT_VALIDATE_TIP, 'level' => UPDATE],
+                  ],
+               ],
+               [
+                  'label' => __('TAP', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_MANAGE_TAP, 'level' => READ],
+                     'generate' => ['right' => self::RIGHT_GENERATE_TAP, 'level' => UPDATE],
+                     'fill' => ['right' => self::RIGHT_FILL_TAP, 'level' => UPDATE],
+                     'send' => ['right' => self::RIGHT_SEND_TAP, 'level' => UPDATE],
+                     'accept' => ['right' => self::RIGHT_ACCEPT_TAP, 'level' => UPDATE],
+                  ],
+               ],
+               [
+                  'label' => __('TEP', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_MANAGE_TEP, 'level' => READ],
+                     'generate' => ['right' => self::RIGHT_GENERATE_TEP, 'level' => UPDATE],
+                     'fill' => ['right' => self::RIGHT_FILL_TEP, 'level' => UPDATE],
+                     'send' => ['right' => self::RIGHT_SEND_TEP, 'level' => UPDATE],
+                     'accept' => ['right' => self::RIGHT_ACCEPT_TEP, 'level' => UPDATE],
+                  ],
+               ],
+               [
+                  'label' => __('TA', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_MANAGE_TA, 'level' => READ],
+                     'generate' => ['right' => self::RIGHT_GENERATE_TA, 'level' => UPDATE],
+                     'fill' => ['right' => self::RIGHT_FILL_TA, 'level' => UPDATE],
+                     'send' => ['right' => self::RIGHT_SEND_TA, 'level' => UPDATE],
+                     'accept' => ['right' => self::RIGHT_ACCEPT_TA, 'level' => UPDATE],
+                  ],
+               ],
+            ],
+         ],
+         [
+            'title' => __('Priorização', 'projectplus'),
+            'columns' => $priorityColumns,
+            'rows' => [
+               [
+                  'label' => __('Técnica', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_PRIORITY_TECHNICAL, 'level' => READ],
+                     'update' => ['right' => self::RIGHT_PRIORITY_TECHNICAL, 'level' => UPDATE],
+                  ],
+               ],
+               [
+                  'label' => __('Estratégica', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_PRIORITY_STRATEGIC, 'level' => READ],
+                     'update' => ['right' => self::RIGHT_PRIORITY_STRATEGIC, 'level' => UPDATE],
+                  ],
+               ],
+            ],
+         ],
+         [
+            'title' => __('Fluxo', 'projectplus'),
+            'columns' => $flowColumns,
+            'rows' => [
+               [
+                  'label' => __('Solicitação de projeto', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_REQUESTS, 'level' => READ],
+                  ],
+               ],
+               [
+                  'label' => __('Fases da solicitação', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_FLOW_UPDATE, 'level' => READ],
+                     'update' => ['right' => self::RIGHT_FLOW_UPDATE, 'level' => UPDATE],
+                  ],
+               ],
+               [
+                  'label' => __('Histórico das fases', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_REQUEST_DOCUMENTS, 'level' => READ],
+                  ],
+               ],
+            ],
+         ],
+         [
+            'title' => __('Projetos', 'projectplus'),
+            'columns' => $flowColumns,
+            'rows' => [
+               [
+                  'label' => __('Abrir projeto', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_OPEN_PROJECT, 'level' => READ],
+                     'update' => ['right' => self::RIGHT_OPEN_PROJECT, 'level' => UPDATE],
+                     'create' => ['right' => self::RIGHT_OPEN_PROJECT, 'level' => CREATE],
+                  ],
+               ],
+            ],
+         ],
+         [
+            'title' => __('Interações', 'projectplus'),
+            'columns' => $flowColumns,
+            'rows' => [
+               ['label' => __('Responder', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_REPLY)],
+               ['label' => __('Tarefa', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_TASK)],
+               ['label' => __('Solução com TEP', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_SOLUTION)],
+               ['label' => __('Documento', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_DOCUMENT)],
+               ['label' => __('Validação', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_VALIDATION)],
+               ['label' => __('Escalar', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_ESCALATE)],
+            ],
+         ],
+         [
+            'title' => __('Configurar', 'projectplus'),
+            'columns' => $priorityColumns,
+            'rows' => [
+               [
+                  'label' => __('Administração do Project+', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_CONFIG, 'level' => READ],
+                     'update' => ['right' => self::RIGHT_CONFIG, 'level' => UPDATE],
+                  ],
+               ],
+            ],
+         ],
+      ];
+   }
+
+   /** @return array<string, array{right: string, level: int}> */
+   private static function getInteractionCells(string $right): array
+   {
+      return [
+         'read' => ['right' => $right, 'level' => READ],
+         'update' => ['right' => $right, 'level' => UPDATE],
+         'create' => ['right' => $right, 'level' => CREATE],
+      ];
+   }
+
    /** @return array<string, int> */
    public static function getDefaultRights(): array
    {
@@ -585,12 +814,14 @@ class ProjectProfile extends GlpiProfile
       if ($canEdit) {
          echo "<form method='post' action='" . GlpiProfile::getFormURL() . "' data-track-changes='true'>";
       }
-      foreach (self::getRightsByBlock() as $title => $rights) {
-         $profile->displayRightsChoiceMatrix($rights, [
-            'title' => $title,
-            'canedit' => $canEdit,
-            'default_class' => 'tab_bg_2',
-         ]);
+      foreach (self::getBusinessRightsMatrices() as $matrix) {
+         self::showBusinessRightsMatrix(
+            $profile,
+            $matrix['title'],
+            $matrix['columns'],
+            $matrix['rows'],
+            $canEdit
+         );
       }
       if ($canEdit) {
          echo "<div class='center'>";

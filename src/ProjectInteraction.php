@@ -70,7 +70,7 @@ class ProjectInteraction extends CommonDBTM
       if ($right === ProjectProfile::RIGHT_INTERACTION_REPLY && self::isParticipant($project)) {
          return true;
       }
-      return Session::haveRight($right, READ) && (!$managerOnly || self::isManager());
+      return Session::haveRight($right, CREATE) && (!$managerOnly || self::isManager());
    }
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string
