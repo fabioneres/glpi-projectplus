@@ -423,7 +423,7 @@ class ProjectProfile extends GlpiProfile
    ): void {
       $matrixId = 'projectplus-rights-matrix-' . mt_rand();
       $columnCount = count($columns) + 2;
-      echo "<div class='tab_cadre_fixe mb-3'><div class='table-responsive'><table id='" . $matrixId . "' class='table table-hover mb-0'>";
+      echo "<div class='table-responsive mb-3'><table id='" . $matrixId . "' class='tab_cadre_fixe table table-hover mb-0'>";
       echo '<thead>';
       echo '<tr class="tab_bg_1"><th colspan="' . $columnCount . '" class="text-uppercase">'
          . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</th></tr>';
@@ -479,7 +479,7 @@ class ProjectProfile extends GlpiProfile
          echo '</td>';
       }
       echo '<td></td></tr>';
-      echo '</tbody></table></div></div>';
+      echo '</tbody></table></div>';
       echo Html::scriptBlock("$(function () {
          var matrix = $('#" . $matrixId . "');
          var refreshToggle = function (row) {
