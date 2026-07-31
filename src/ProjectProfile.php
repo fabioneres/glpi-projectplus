@@ -423,11 +423,11 @@ class ProjectProfile extends GlpiProfile
    ): void {
       $matrixId = 'projectplus-rights-matrix-' . mt_rand();
       $columnCount = count($columns) + 2;
-      echo "<div class='table-responsive mb-3'><table id='" . $matrixId . "' class='tab_cadre_fixe table table-hover mb-0'>";
+      echo "<div class='mx-n2 mb-4 table-responsive'><table id='" . $matrixId . "' class='table table-hover card-table'>";
       echo '<thead>';
-      echo '<tr class="tab_bg_1"><th colspan="' . $columnCount . '" class="text-uppercase">'
-         . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</th></tr>';
-      echo '<tr class="tab_bg_1"><th>' . htmlspecialchars(__('Nome', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</th>';
+      echo '<tr class="border-top"><th colspan="' . $columnCount . '"><h4>'
+         . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h4></th></tr>';
+      echo '<tr><th>' . htmlspecialchars(__('Nome', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</th>';
       foreach ($columns as $column => $label) {
          echo '<th class="text-center">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</th>';
       }
@@ -435,7 +435,7 @@ class ProjectProfile extends GlpiProfile
       echo '</tr></thead><tbody>';
 
       foreach ($rows as $row) {
-         echo "<tr class='tab_bg_2 projectplus-rights-row'><td><strong>" . htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8') . '</strong></td>';
+         echo "<tr class='projectplus-rights-row'><td>" . htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8') . '</td>';
          foreach ($columns as $column => $label) {
             if (!isset($row['cells'][$column])) {
                echo "<td class='text-center text-muted'>—</td>";
@@ -468,8 +468,8 @@ class ProjectProfile extends GlpiProfile
          echo '</tr>';
       }
 
-      echo "<tr class='tab_bg_2 projectplus-rights-columns-toggle'><td><strong>"
-         . htmlspecialchars(__('Marcar/desmarcar todos', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</strong></td>';
+      echo "<tr class='projectplus-rights-columns-toggle'><td>"
+         . htmlspecialchars(__('Marcar/desmarcar todos', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</td>';
       foreach ($columns as $column => $label) {
          echo "<td class='text-center'>";
          echo "<input type='checkbox' class='form-check-input projectplus-rights-column-toggle' data-projectplus-rights-column-toggle='"
