@@ -247,16 +247,32 @@ class TicketIntent
    {
       $config = TipConfig::getForEntity((int) $ticket->getEntityID());
       $userId = (int) Session::getLoginUserID();
+      $requesterId = self::getRequesterId($ticket);
+      $displayUserId = $requesterId > 0 ? $requesterId : $userId;
       $name = self::documentName($documentType);
       $title = $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : (string) $config['title'];
       echo "<div class='projectplus-tip'><form method='post' action='" . self::escape(self::getActionUrl()) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . Html::hidden('document_type', ['value' => $documentType]);
       echo "<header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-text'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::escape(__('Solicitação de projeto', 'projectplus')) . "</span><h2>" . self::escape($title) . '</h2><p>' . nl2br(self::escape((string) $config['introduction'])) . '</p></div></header>';
-      echo "<section class='projectplus-tip__card'><div class='projectplus-tip__section-title'><i class='ti ti-info-circle'></i><div><h3>" . self::escape(__('Identificação do preenchimento', 'projectplus')) . '</h3><p>' . self::escape(__('Confira os dados antes de enviar o formulário.', 'projectplus')) . '</p></div></div><div class="projectplus-tip__summary"><div><span>' . self::escape(__('Ticket', 'projectplus')) . '</span><strong>#' . (int) $ticket->getID() . '</strong></div><div><span>' . self::escape(__('Nome de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(User::getFriendlyNameById($userId)) . '</strong></div><div><span>' . self::escape(__('E-mail de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(UserEmail::getDefaultForUser($userId)) . '</strong></div></div></section>';
+      echo "<section class='projectplus-tip__card'><div class='projectplus-tip__section-title'><i class='ti ti-info-circle'></i><div><h3>" . self::escape(__('Identificação do preenchimento', 'projectplus')) . '</h3><p>' . self::escape(__('Confira os dados antes de enviar o formulário.', 'projectplus')) . '</p></div></div><div class="projectplus-tip__summary"><div><span>' . self::escape(__('Ticket', 'projectplus')) . '</span><strong>#' . (int) $ticket->getID() . '</strong></div><div><span>' . self::escape(__('Nome de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(User::getFriendlyNameById($displayUserId)) . '</strong></div><div><span>' . self::escape(__('E-mail de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(UserEmail::getDefaultForUser($displayUserId)) . '</strong></div></div></section>';
       echo "<section class='projectplus-tip__card projectplus-tip__fields'><div class='projectplus-tip__grid'>";
       foreach (TipField::getForEntity((int) $ticket->getEntityID()) as $field) {
          self::showField($field, (string) ($ticket->fields['name'] ?? ''));
       }
       echo "</div></section><footer class='projectplus-tip__footer'><span><i class='ti ti-asterisk'></i> " . self::escape(__('Campos obrigatórios', 'projectplus')) . "</span><button class='btn btn-primary' type='submit' name='save_intent' value='1'><i class='ti ti-send'></i> " . self::escape(sprintf(__('Enviar %s para análise', 'projectplus'), $name)) . '</button></footer></form></div>';
+   }
+
+   private static function getRequesterId(Ticket $ticket): int
+   {
+      global $DB;
+      $row = $DB->request([
+         'FROM'  => Ticket_User::getTable(),
+         'WHERE' => [
+            'tickets_id' => (int) $ticket->getID(),
+            'type'       => CommonITILActor::REQUESTER,
+         ],
+         'LIMIT' => 1,
+      ])->current();
+      return (int) ($row['users_id'] ?? 0);
    }
 
    /** @param array<string,mixed> $field */
