@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0-beta
+
+- Inclui a matriz granular de permissões do Project+, separada nos blocos Assistência, Projetos e Configurar.
+- Mantém as novas permissões desabilitadas por padrão em todos os perfis; a concessão passa a ser explícita pelo administrador.
+- Ajusta a exibição de data e hora do fluxo, portal, aceite documental e PDF do TIP para obedecer ao formato configurado no GLPI.
+
 ## 0.8.0-beta
 
 - Unifica o acesso documental do projeto na área **Project+**, com abas internas para Termos, Interações e Priorização.

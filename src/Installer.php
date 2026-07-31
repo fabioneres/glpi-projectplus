@@ -22,7 +22,11 @@ class Installer
          return false;
       }
 
+      $installedVersion = (string) \Config::getConfigurationValue('plugin:projectplus', 'dbversion');
       ProjectProfile::installRights();
+      if ($installedVersion === '' || version_compare($installedVersion, '0.9.0-beta', '<')) {
+         ProjectProfile::disableGranularRightsForAllProfiles();
+      }
       ProjectProfile::initProfile();
       \Config::setConfigurationValues('plugin:projectplus', ['dbversion' => PLUGIN_PROJECTPLUS_VERSION]);
       return true;
@@ -38,6 +42,8 @@ class Installer
       self::ensureDropdownTable(PdticAction::getTable());
       self::ensureDropdownTable(FollowupTemplate::getTable());
       self::ensureDropdownTable(SolutionTemplate::getTable());
+      self::ensureITILTemplateFields(FollowupTemplate::getTable(), true);
+      self::ensureITILTemplateFields(SolutionTemplate::getTable(), false);
       self::ensureTicketConfigTable();
       self::ensureTicketPhaseTable();
       self::ensureTicketPhaseHistoryTable();
@@ -53,6 +59,7 @@ class Installer
       self::ensureProjectInteractionTable();
       self::ensureProjectPriorityTable();
       self::ensureTicketPriorityTable();
+      self::normalizePriorityRankings();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
             "CREATE TABLE `{$table}` (
@@ -121,6 +128,42 @@ class Installer
    private static function ensureProjectPriorityTable(): void { global $DB; $t=ProjectPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `projects_id`(`projects_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
    private static function ensureTicketPriorityTable(): void { global $DB; $t=TicketPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`tickets_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `tickets_id`(`tickets_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
 
+   /** Converts legacy five-level values and recalculates rankings without risk. */
+   private static function normalizePriorityRankings(): void
+   {
+      global $DB;
+      $sets = [
+         [TicketPriority::getTable(), 'tickets_id', '\\Ticket'],
+         [ProjectPriority::getTable(), 'projects_id', '\\Project'],
+      ];
+      foreach ($sets as $set) {
+         list($table, $itemField, $itemClass) = $set;
+         if (!$DB->tableExists($table)) {
+            continue;
+         }
+         foreach ($DB->request(['FROM' => $table]) as $row) {
+            $values = [];
+            $complete = true;
+            foreach (ProjectPriority::getCriteria() as $field => $label) {
+               $value = (int) ($row[$field] ?? 0);
+               if ($value === 2) {
+                  $value = 1;
+               } elseif ($value === 4) {
+                  $value = 5;
+               }
+               if (!in_array($value, [0, 1, 3, 5], true)) {
+                  $value = 0;
+               }
+               $values[$field] = $value;
+               $complete = $complete && $value > 0;
+            }
+            $ranking = $complete ? array_sum($values) : 0;
+            $DB->update($table, $values + ['ranking' => $ranking, 'date_mod' => date('Y-m-d H:i:s')], ['id' => (int) $row['id']]);
+            $DB->update($itemClass::getTable(), ['priority' => ProjectPriority::getNativePriorityForRanking($ranking)], ['id' => (int) $row[$itemField]]);
+         }
+      }
+   }
+
    private static function ensureDropdownTable(string $table): void
    {
       /** @var DBmysql $DB */
@@ -147,6 +190,31 @@ class Installer
       );
    }
 
+   /** Adds the native ITIL-template fields while preserving existing models. */
+   private static function ensureITILTemplateFields(string $table, bool $isFollowup): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $fields = [
+         'content' => 'MEDIUMTEXT NULL',
+      ];
+      if ($isFollowup) {
+         $fields['requesttypes_id'] = 'INT UNSIGNED NOT NULL DEFAULT 0';
+         $fields['is_private'] = 'TINYINT NOT NULL DEFAULT 0';
+      } else {
+         $fields['solutiontypes_id'] = 'INT UNSIGNED NOT NULL DEFAULT 0';
+      }
+      foreach ($fields as $field => $definition) {
+         if (!$DB->fieldExists($table, $field)) {
+            $DB->doQuery("ALTER TABLE `{$table}` ADD `{$field}` {$definition}");
+         }
+      }
+
+      // Legacy Project+ templates stored their rich content in comment.
+      $DB->doQuery("UPDATE `{$table}` SET `content` = `comment` WHERE (`content` IS NULL OR `content` = '') AND `comment` IS NOT NULL AND `comment` <> ''");
+   }
+
    private static function ensureTicketConfigTable(): void
    {
       /** @var DBmysql $DB */
@@ -154,6 +222,24 @@ class Installer
 
       $table = TicketConfig::getTable();
       if ($DB->tableExists($table)) {
+         $legacyKeyExists = false;
+         $entityCategoryKeyExists = false;
+         $entityActiveKeyExists = false;
+         foreach ($DB->request("SHOW INDEX FROM `{$table}`") as $index) {
+            $key = (string) ($index['Key_name'] ?? '');
+            $legacyKeyExists = $legacyKeyExists || $key === 'entities_id';
+            $entityCategoryKeyExists = $entityCategoryKeyExists || $key === 'entity_category';
+            $entityActiveKeyExists = $entityActiveKeyExists || $key === 'entity_active';
+         }
+         if ($legacyKeyExists) {
+            $DB->doQuery("ALTER TABLE `{$table}` DROP INDEX `entities_id`");
+         }
+         if (!$entityCategoryKeyExists) {
+            $DB->doQuery("ALTER TABLE `{$table}` ADD UNIQUE KEY `entity_category` (`entities_id`, `itilcategories_id`)");
+         }
+         if (!$entityActiveKeyExists) {
+            $DB->doQuery("ALTER TABLE `{$table}` ADD KEY `entity_active` (`entities_id`, `is_active`)");
+         }
          return;
       }
 
@@ -167,7 +253,8 @@ class Installer
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
-            UNIQUE KEY `entities_id` (`entities_id`),
+            UNIQUE KEY `entity_category` (`entities_id`, `itilcategories_id`),
+            KEY `entity_active` (`entities_id`, `is_active`),
             KEY `itilcategories_id` (`itilcategories_id`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
       );
@@ -187,6 +274,7 @@ class Installer
          "CREATE TABLE `{$table}` (
             `id` int unsigned NOT NULL AUTO_INCREMENT,
             `tickets_id` int unsigned NOT NULL DEFAULT 0,
+            `document_type` varchar(16) NOT NULL DEFAULT 'tip',
             `entities_id` int unsigned NOT NULL DEFAULT 0,
             `phase` varchar(64) NOT NULL DEFAULT 'classification',
             `users_id` int unsigned NOT NULL DEFAULT 0,
@@ -194,7 +282,7 @@ class Installer
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
-            UNIQUE KEY `tickets_id` (`tickets_id`),
+            UNIQUE KEY `ticket_document` (`tickets_id`, `document_type`),
             KEY `entities_phase` (`entities_id`, `phase`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
       );
@@ -269,6 +357,7 @@ class Installer
 
       $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
       foreach ([
+         'document_type' => "varchar(16) NOT NULL DEFAULT 'tip'",
          'status' => "varchar(32) NOT NULL DEFAULT 'requested'",
          'requested_users_id' => 'int unsigned NOT NULL DEFAULT 0',
          'date_requested' => 'timestamp NULL DEFAULT NULL',
@@ -281,6 +370,26 @@ class Installer
             $migration->addField($table, $field, $definition);
          }
       }
+      // Apply column additions before inspecting indexes. On an upgrade from
+      // an older release, document_type only exists after this migration.
+      $migration->executeMigration();
+      // A single Ticket can now contain both Pre-TIP and TIP. Existing rows
+      // keep the default "tip" type so the upgrade is non-destructive.
+      if ($DB->fieldExists($table, 'document_type')) {
+         $legacyKeyExists = false;
+         $newKeyExists = false;
+         foreach ($DB->request("SHOW INDEX FROM `{$table}`") as $index) {
+            $legacyKeyExists = $legacyKeyExists || (string) ($index['Key_name'] ?? '') === 'tickets_id';
+            $newKeyExists = $newKeyExists || (string) ($index['Key_name'] ?? '') === 'ticket_document';
+         }
+         if ($legacyKeyExists) {
+            $DB->doQuery("ALTER TABLE `{$table}` DROP INDEX `tickets_id`");
+         }
+         if (!$newKeyExists) {
+            $DB->doQuery("ALTER TABLE `{$table}` ADD UNIQUE KEY `ticket_document` (`tickets_id`, `document_type`)");
+         }
+      }
+      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
       $migration->addKey($table, 'status', 'status_index');
       $migration->executeMigration();
    }

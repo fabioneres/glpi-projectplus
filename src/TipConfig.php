@@ -26,7 +26,7 @@ class TipConfig
          'id' => 0,
          'entities_id' => $entityId,
          'is_active' => 1,
-         'title' => __('Termo de Intenção do Projeto - TIP', 'projectplus'),
+         'title' => __('TIP - Detalhamento Técnico', 'projectplus'),
          'introduction' => __('Preencha as informações para análise da demanda de intenção de projeto.', 'projectplus'),
       ];
       if (!$DB->tableExists(self::getTable())) {
@@ -37,6 +37,11 @@ class TipConfig
          'WHERE' => ['entities_id' => $entityId],
          'LIMIT' => 1,
       ])->current();
+      // Keep installations created with the former default title aligned with
+      // the renamed document, without changing administrator-customized titles.
+      if ($row && (string) ($row['title'] ?? '') === 'Termo de Intenção do Projeto - TIP') {
+         $row['title'] = $default['title'];
+      }
       return $row ? array_merge($default, $row) : $default;
    }
 

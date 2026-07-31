@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\DocumentDraft;
 use GlpiPlugin\Projectplus\DocumentField;
+use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
 
 Session::checkLoginUser();
@@ -23,8 +24,11 @@ $item = new $itemtype();
 if (!$item->getFromDB($id) || !Session::haveAccessToEntity((int) $item->getEntityID())) {
    Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
 }
-if (!Session::haveRight($item instanceof Ticket ? 'ticket' : 'project', UPDATE)) {
+if (!DocumentAcceptance::canManageDocument($item, $type)) {
    Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
+}
+if (isset($_POST['generate_document']) && !DocumentAcceptance::canManageDocument($item, $type, 'generate')) {
+   Html::displayErrorAndDie(__('Sem permissão para gerar este documento.', 'projectplus'));
 }
 
 $redirectUrl = $item instanceof Project

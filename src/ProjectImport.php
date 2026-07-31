@@ -152,21 +152,28 @@ class ProjectImport
 
    public static function renderUploadForm(): void
    {
-      echo "<div class='center'><form method='post' enctype='multipart/form-data' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
+      echo "<section class='projectplus-import__upload'><div class='projectplus-import__section-title'><i class='ti ti-file-spreadsheet'></i><div><h3>"
+         . __('Enviar planilha CSV', 'projectplus') . '</h3><p>'
+         . __('Use o modelo oficial para manter os campos e cabeçalhos esperados pela importação.', 'projectplus')
+         . "</p></div></div><form method='post' enctype='multipart/form-data' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
       echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
-      echo "<table class='tab_cadre_fixe'><tr><th colspan='2'>" . __('Importar projetos existentes', 'projectplus') . '</th></tr>';
+      echo "<table class='projectplus-import__legacy-table'><tr><th colspan='2'>" . __('Importar projetos existentes', 'projectplus') . '</th></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Planilha modelo', 'projectplus') . "</td><td><a class='btn btn-outline-secondary' href='"
          . Html::clean(self::getTemplateURL()) . "'>" . __('Baixar modelo CSV', 'projectplus') . '</a></td></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Arquivo CSV UTF-8', 'projectplus') . "</td><td><input type='file' name='import_file' accept='.csv,text/csv' required></td></tr>";
       echo "<tr class='tab_bg_1'><td colspan='2' class='text-muted'>" . __('Use o modelo oficial. Informe o ID da entidade e seu nome curto ou caminho completo (por exemplo, Entidade pai > Entidade filha). A operação primeiro mostra uma pré-validação; nenhum projeto é criado nesta etapa.', 'projectplus') . '</td></tr>';
       echo "<tr class='tab_bg_2'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='action' value='preview'>" . __('Validar arquivo', 'projectplus') . '</button></td></tr>';
-      echo '</table></form></div>';
+      echo '</table></form></section>';
    }
 
    public static function renderPreview(array $preview): void
    {
       $valid = count(array_filter($preview['rows'], static fn($row) => $row['valid']));
       $invalid = count($preview['rows']) - $valid;
+      echo "<section class='projectplus-import__preview'><div class='projectplus-import__section-title'><i class='ti ti-list-check'></i><div><h3>"
+         . __('Pré-validação da importação', 'projectplus') . '</h3><p>'
+         . __('Revise o resultado antes de confirmar a criação dos projetos válidos.', 'projectplus')
+         . '</p></div></div>';
       echo "<div class='center'><table class='tab_cadre_fixe'><tr><th colspan='3'>" . __('Pré-validação da importação', 'projectplus') . '</th></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Linhas válidas', 'projectplus') . "</td><td>$valid</td><td>" . __('Linhas com erro', 'projectplus') . "</td><td>$invalid</td></tr>";
       echo "<tr><th>" . __('Linha', 'projectplus') . '</th><th>' . __('Projeto', 'projectplus') . '</th><th colspan="2">' . __('Resultado', 'projectplus') . '</th></tr>';
@@ -181,17 +188,21 @@ class ProjectImport
          echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
          echo "<button class='btn btn-success' type='submit' name='action' value='import'>" . __('Confirmar importação das linhas válidas', 'projectplus') . '</button></form>';
       }
-      echo '</div>';
+      echo '</div></section>';
    }
 
    public static function renderResult(array $result): void
    {
+      echo "<section class='projectplus-import__result'><div class='projectplus-import__section-title'><i class='ti ti-circle-check'></i><div><h3>"
+         . __('Resultado da importação', 'projectplus') . '</h3><p>'
+         . __('A importação foi concluída. Consulte abaixo o resumo do processamento.', 'projectplus')
+         . '</p></div></div>';
       echo "<div class='center'><table class='tab_cadre_fixe'><tr><th colspan='2'>" . __('Resultado da importação', 'projectplus') . '</th></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Projetos criados', 'projectplus') . '</td><td>' . count($result['created']) . '</td></tr>';
       foreach ($result['errors'] as $error) {
          echo "<tr class='tab_bg_2'><td>" . sprintf(__('Linha %s', 'projectplus'), $error['line']) . '</td><td>' . Html::clean($error['message']) . '</td></tr>';
       }
-      echo '</table></div>';
+      echo '</table></div></section>';
    }
 
    private static function validateRecord(array $record, int $line, array $seen): array

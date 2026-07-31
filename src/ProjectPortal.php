@@ -131,7 +131,7 @@ class ProjectPortal
          echo '<td>' . self::textValue((string) $project['code']) . '</td>';
          echo '<td>' . self::escape(self::getProjectState((int) $project['projectstates_id'])) . '</td>';
          echo '<td>' . self::escape((string) ((int) $project['percent_done'])) . '%</td>';
-         echo '<td>' . self::textValue((string) $project['date_creation']) . '</td>';
+         echo '<td>' . self::textValue(self::formatDateTime((string) $project['date_creation'])) . '</td>';
          echo '<td>' . self::textValue((string) $project['content']) . '</td>';
          echo '</tr>';
       }
@@ -168,7 +168,7 @@ class ProjectPortal
       echo "<div class='center'><table class='tab_cadre_fixe'>";
 
       self::headerRow(__('Dados do Projeto', 'projectplus'));
-      self::fieldRow(__('Data de criação', 'projectplus'), (string) $project['date'], __('Última atualização', 'projectplus'), (string) $project['date_mod']);
+      self::fieldRow(__('Data de criação', 'projectplus'), self::formatDateTime((string) $project['date']), __('Última atualização', 'projectplus'), self::formatDateTime((string) $project['date_mod']));
       self::fieldRow(__('Nome', 'projectplus'), (string) $project['name'], __('Código', 'projectplus'), (string) $project['code']);
       self::fieldRow(__('Prioridade', 'projectplus'), \CommonITILObject::getPriorityName((int) $project['priority']), __('Filho de', 'projectplus'), self::friendlyName(\Project::class, (int) $project['projects_id']));
       self::fieldRow(__('Status', 'projectplus'), self::getProjectState((int) $project['projectstates_id']), __('Percentual finalizado', 'projectplus'), (string) ((int) $project['percent_done']) . '%');
@@ -362,5 +362,11 @@ class ProjectPortal
    private static function escape(string $value): string
    {
       return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+   }
+
+   /** Formats stored dates using the GLPI date/time preference of the current user. */
+   private static function formatDateTime(string $value): string
+   {
+      return $value === '' || $value === '0000-00-00 00:00:00' ? '' : Html::convDateTime($value);
    }
 }

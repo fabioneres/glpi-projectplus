@@ -2,15 +2,21 @@
 
 namespace GlpiPlugin\Projectplus;
 
-use CommonDropdown;
+use AbstractITILChildTemplate;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
-/** Reusable rich-text content for project followups. Content is kept in comment. */
-class FollowupTemplate extends CommonDropdown
+/**
+ * Project followup template using the same native form structure as ticket
+ * followup templates: source, privacy and rich-text content.
+ */
+class FollowupTemplate extends AbstractITILChildTemplate
 {
+   public $dohistory = true;
+   public $can_be_translated = true;
+
    public static function getTable($classname = null): string
    {
       return 'glpi_plugin_projectplus_followuptemplates';
@@ -31,5 +37,33 @@ class FollowupTemplate extends CommonDropdown
    {
       global $CFG_GLPI;
       return ($full ? rtrim($CFG_GLPI['root_doc'], '/') : '') . '/plugins/projectplus/front/followuptemplate.php';
+   }
+
+   public function getAdditionalFields(): array
+   {
+      return [
+         [
+            'name' => 'requesttypes_id',
+            'label' => __('Origem do acompanhamento', 'projectplus'),
+            'type' => 'dropdownValue',
+            'list' => true,
+         ],
+         [
+            'name' => 'is_private',
+            'label' => __('Privado', 'projectplus'),
+            'type' => 'bool',
+         ],
+         [
+            'name' => 'content',
+            'label' => __('Conteúdo', 'projectplus'),
+            'type' => 'tinymce',
+            'convert_images_to_documents' => false,
+         ],
+      ];
+   }
+
+   public static function getIcon()
+   {
+      return 'fas fa-layer-group';
    }
 }

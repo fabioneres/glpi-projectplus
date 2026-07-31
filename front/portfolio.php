@@ -3,9 +3,11 @@
 include('../../../inc/includes.php');
 
 use GlpiPlugin\Projectplus\ProjectPriority;
-use GlpiPlugin\Projectplus\ProjectProfile;
 
-Session::checkRight(ProjectProfile::RIGHT_PORTFOLIO, READ);
+Session::checkLoginUser();
+if (!ProjectPriority::canViewPriority()) {
+   Html::displayRightError();
+}
 Html::header(__('Visão do portfólio', 'projectplus'), $_SERVER['PHP_SELF'], 'tools', 'project');
 $projects = ProjectPriority::getPortfolioProjects();
 echo "<div class='projectplus-portfolio'><header><div><h2>" . __('Visão do portfólio', 'projectplus') . '</h2><p>' . __('Projetos ordenados pelo ranking institucional.', 'projectplus') . "</p></div></header><div class='table-responsive'><table class='table table-hover table-striped'><thead><tr><th>" . __('Ranking', 'projectplus') . '</th><th>' . __('Faixa institucional', 'projectplus') . '</th><th>' . __('Projeto', 'projectplus') . '</th><th>' . __('Entidade', 'projectplus') . '</th><th>' . __('Prioridade geral GLPI', 'projectplus') . '</th><th>' . __('Concluído', 'projectplus') . '</th></tr></thead><tbody>';

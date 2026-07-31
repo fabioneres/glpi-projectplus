@@ -29,8 +29,10 @@ class TicketPhase extends CommonDBTM
    {
       return [
          'classification' => self::label('Classifica&ccedil;&atilde;o da necessidade'),
-         'awaiting_tip' => __('Aguardando preenchimento do TIP', 'projectplus'),
-         'awaiting_tip_review' => __('Aguardando validação do TIP', 'projectplus'),
+         'awaiting_pretip' => __('Aguardando preenchimento do TIP - Termo de Intenção de Projeto', 'projectplus'),
+         'awaiting_pretip_review' => __('Aguardando validação do TIP - Termo de Intenção de Projeto', 'projectplus'),
+         'awaiting_tip' => __('Aguardando preenchimento do TIP - Detalhamento Técnico', 'projectplus'),
+         'awaiting_tip_review' => __('Aguardando validação do TIP - Detalhamento Técnico', 'projectplus'),
          'portfolio_analysis' => self::label('An&aacute;lise do portf&oacute;lio'),
          'awaiting_authorization' => self::label('Aguardando autoriza&ccedil;&atilde;o de abertura'),
          'authorized_opening' => __('Autorizado para abertura', 'projectplus'),
@@ -116,6 +118,9 @@ class TicketPhase extends CommonDBTM
       if (!TicketConfig::isEnabledForTicket($ticket)) {
          return false;
       }
+      if (!Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE)) {
+         throw new \RuntimeException(__('Você não possui permissão para atualizar as fases da solicitação.', 'projectplus'));
+      }
       self::ensureForTicket($ticket);
       $current = self::getForTicket((int) $ticket->getID());
       $phase = (string) ($input['phase'] ?? '');
@@ -128,6 +133,9 @@ class TicketPhase extends CommonDBTM
       }
       if ($phase === 'authorized_opening' && !TicketPriority::isComplete((int) $ticket->getID())) {
          throw new \RuntimeException(__('Conclua a priorização institucional antes de autorizar a abertura do projeto.', 'projectplus'));
+      }
+      if ($phase === 'authorized_opening' && !Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
+         throw new \RuntimeException(__('Você não possui permissão para autorizar a abertura do projeto.', 'projectplus'));
       }
       if ($current === null || $phase === (string) $current['phase']) {
          return true;
@@ -196,23 +204,34 @@ class TicketPhase extends CommonDBTM
 
       echo "<section class='projectplus-phase-shell'>";
       echo "<header class='projectplus-phase-header'><div class='projectplus-phase-header__title'><span class='projectplus-phase-header__icon'><i class='ti ti-git-branch'></i></span><div><span>" . self::escape(__('Solicitação de projeto', 'projectplus')) . '</span><h3>' . self::escape(self::label('Fluxo interno da solicita&ccedil;&atilde;o de projeto')) . '</h3></div></div>';
-      echo "<div class='projectplus-phase-header__details'><div><span>" . self::escape(__('Fase atual', 'projectplus')) . '</span>' . self::renderPhaseBadge((string) $phase['phase']) . '</div><div><span>' . self::escape(self::label('&Uacute;ltima atualiza&ccedil;&atilde;o')) . '</span><strong>' . self::escape((string) $phase['date_mod']) . '</strong></div></div></header>';
+      echo "<div class='projectplus-phase-header__details'><div><span>" . self::escape(__('Fase atual', 'projectplus')) . '</span>' . self::renderPhaseBadge((string) $phase['phase']) . '</div><div><span>' . self::escape(self::label('&Uacute;ltima atualiza&ccedil;&atilde;o')) . '</span><strong>' . self::escape(self::formatDateTime((string) $phase['date_mod'])) . '</strong></div></div></header>';
       echo "<div class='projectplus-document-legend' aria-label='" . self::escape(__('Legenda dos documentos', 'projectplus')) . "'><span class='projectplus-document-legend__title'><i class='ti ti-info-circle'></i> " . self::escape(__('Legenda', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--accepted'><i></i>" . self::escape(__('Aceito pelo gestor', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--released'><i></i>" . self::escape(__('Liberado para preenchimento', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--rejected'><i></i>" . self::escape(__('Recusado', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--disabled'><i></i>" . self::escape(__('Não enviado / desabilitado', 'projectplus')) . '</span></div>';
 
       echo "<div class='projectplus-document-journey'>";
-      $intent = TicketIntent::getForTicket((int) $ticket->getID());
+      $preTip = TicketIntent::getForTicket((int) $ticket->getID(), 'pretip');
+      $preTipState = self::getIntentVisualState($preTip);
+      $intent = TicketIntent::getForTicket((int) $ticket->getID(), 'tip');
       $tipState = self::getIntentVisualState($intent);
       $tapState = DocumentAcceptance::getVisualState(DocumentAcceptance::getForItem($ticket, 'tap'));
       if ($tapState === 'disabled' && (string) $phase['phase'] === 'authorized_opening') {
          $tapState = 'released';
       }
-      self::showDocumentStep('TIP - Termo de Intenção do Projeto', 'ti ti-file-text', $tipState, false, static function () use ($ticket): void {
+      self::showDocumentStep('TIP - Termo de Intenção de Projeto', 'ti ti-file-search', $preTipState, false, static function () use ($ticket): void {
+         TicketIntent::showForTicket($ticket, 'pretip');
+      });
+      self::showDocumentStep('TIP - Detalhamento Técnico', 'ti ti-file-text', $tipState, false, static function () use ($ticket): void {
          TicketIntent::showForTicket($ticket);
       });
-      if (Session::haveRight(ProjectProfile::RIGHT_PORTFOLIO, READ)) {
-         $priorityState = TicketPriority::isComplete((int) $ticket->getID()) ? 'accepted' : 'released';
-         self::showDocumentStep(__('Priorização institucional', 'projectplus'), 'ti ti-list-numbers', $priorityState, false, static function () use ($ticket): void {
-            TicketPriority::showForTicket($ticket);
+      if (ProjectPriority::canViewPriorityType('technical')) {
+         $technicalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'technical') ? 'accepted' : 'released';
+         self::showDocumentStep(__('Priorização técnica', 'projectplus'), 'ti ti-list-numbers', $technicalState, false, static function () use ($ticket): void {
+            TicketPriority::showForTicket($ticket, 'technical');
+         });
+      }
+      if (ProjectPriority::canViewPriorityType('institutional')) {
+         $institutionalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'institutional') ? 'accepted' : 'released';
+         self::showDocumentStep(__('Priorização estratégica', 'projectplus'), 'ti ti-list-numbers', $institutionalState, false, static function () use ($ticket): void {
+            TicketPriority::showForTicket($ticket, 'institutional');
          });
       }
       self::showDocumentStep('TAP - Termo de Abertura do Projeto', 'ti ti-file-description', $tapState, false, static function () use ($ticket): void {
@@ -223,7 +242,7 @@ class TicketPhase extends CommonDBTM
 
       TicketProject::showForTicket($ticket);
 
-      if (Session::haveRight('ticket', UPDATE)) {
+      if (Session::haveRight('ticket', UPDATE) && Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE)) {
          self::showUpdateForm($ticket, $phase);
       }
       self::showHistory((int) $ticket->getID());
@@ -258,7 +277,7 @@ class TicketPhase extends CommonDBTM
          'ORDER' => ['date_creation DESC', 'id DESC'],
       ]) as $entry) {
          $user = (int) $entry['users_id'] > 0 ? User::getFriendlyNameById((int) $entry['users_id']) : '';
-         echo '<tr><td>' . self::escape((string) $entry['date_creation']) . '</td>';
+         echo '<tr><td>' . self::escape(self::formatDateTime((string) $entry['date_creation'])) . '</td>';
          echo '<td>' . self::renderPhaseBadge((string) $entry['old_phase']) . '</td>';
          echo '<td>' . self::renderPhaseBadge((string) $entry['new_phase']) . '</td>';
          echo '<td>' . self::escape($user . ($entry['justification'] !== '' ? ' - ' . $entry['justification'] : '')) . '</td></tr>';
@@ -303,6 +322,8 @@ class TicketPhase extends CommonDBTM
    {
       $classes = [
          'classification'             => 'classification',
+         'awaiting_pretip'            => 'awaiting-tip',
+         'awaiting_pretip_review'     => 'tip-review',
          'awaiting_tip'               => 'awaiting-tip',
          'awaiting_tip_review'        => 'tip-review',
          'portfolio_analysis'         => 'portfolio',
@@ -324,6 +345,12 @@ class TicketPhase extends CommonDBTM
    private static function escape(string $value): string
    {
       return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+   }
+
+   /** Formats stored dates using the GLPI date/time preference of the current user. */
+   private static function formatDateTime(string $value): string
+   {
+      return $value === '' || $value === '0000-00-00 00:00:00' ? '' : Html::convDateTime($value);
    }
 
    private static function label(string $value): string

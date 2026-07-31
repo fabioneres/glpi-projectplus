@@ -39,7 +39,7 @@ class ProjectWorkspace extends CommonDBTM
    {
       $workspaceId = 'projectplus-workspace-' . (int) $project->getID();
       $showInteractions = ProjectInteraction::canViewProjectplus($project);
-      $showPriority = Session::haveRight(ProjectProfile::RIGHT_PORTFOLIO, READ);
+      $showPriority = ProjectPriority::canViewPriority();
       $activeTab = self::getRequestedTab();
       if (($activeTab === 'interactions' && !$showInteractions)
          || ($activeTab === 'priority' && !$showPriority)) {

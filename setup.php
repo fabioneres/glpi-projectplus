@@ -29,6 +29,17 @@ function plugin_init_projectplus(): void
       return;
    }
 
+   // The Project+ interaction composer uses the same rich-text editor as
+   // native ticket followups.  It must be queued before GLPI renders the
+   // page header; queuing it while rendering a Project tab is too late for
+   // the current response.
+   $requestPath = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '');
+   if (substr($requestPath, -strlen('/front/project.form.php')) === '/front/project.form.php'
+      || strpos($requestPath, '/plugins/projectplus/front/followuptemplate.form.php') !== false
+      || strpos($requestPath, '/plugins/projectplus/front/solutiontemplate.form.php') !== false) {
+      Html::requireJs('tinymce');
+   }
+
    // Dropdowns use legacy class names so GLPI can resolve the current
    // menu option and render the native list actions.
    Plugin::registerClass('PluginProjectplusPortfolioBasket');
@@ -46,6 +57,12 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus.css';
    // Dedicated versioned asset to refresh the unified document-journey UI.
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-documents-v2.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-config-v2.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-pagination.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-import-v1.css';
+   // Loaded after legacy layout assets so configuration labels keep their
+   // intended width even in browser sessions with cached stylesheets.
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-config-nav-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v3.css';

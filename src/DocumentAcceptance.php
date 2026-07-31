@@ -68,15 +68,22 @@ class DocumentAcceptance extends CommonDBTM
       return 'released';
    }
 
-   private static function canManage(CommonDBTM $item): bool
+   public static function canManageDocument(CommonDBTM $item, string $type, string $action = 'fill'): bool
    {
-      return ($item instanceof Ticket && Session::haveRight('ticket', UPDATE)) || ($item instanceof Project && Session::haveRight('project', UPDATE));
+      if (!array_key_exists($type, self::typesForItem($item))) {
+         return false;
+      }
+      return (($item instanceof Ticket && Session::haveRight('ticket', UPDATE)) || ($item instanceof Project && Session::haveRight('project', UPDATE)))
+         && ProjectProfile::haveDocumentActionRight($type, $action);
    }
 
-   private static function canAccept(CommonDBTM $item): bool
+   private static function canAccept(CommonDBTM $item, string $type = ''): bool
    {
       $userId = (int) Session::getLoginUserID();
       if ($userId <= 0) { return false; }
+      if ($type !== '' && !ProjectProfile::haveDocumentActionRight($type, 'accept', READ)) {
+         return false;
+      }
       /** @var DBmysql $DB */ global $DB;
       if ($item instanceof Ticket) {
          return (int)($DB->request(['COUNT'=>'count','FROM'=>Ticket_User::getTable(),'WHERE'=>['tickets_id'=>(int)$item->getID(),'users_id'=>$userId,'type'=>CommonITILActor::REQUESTER]])->current()['count'] ?? 0) > 0;
@@ -90,7 +97,7 @@ class DocumentAcceptance extends CommonDBTM
 
    public static function publish(CommonDBTM $item, string $type, int $templateId): void
    {
-      if (!self::canManage($item) || !array_key_exists($type, self::typesForItem($item))) { throw new \RuntimeException(__('Sem permissão para publicar este documento.', 'projectplus')); }
+      if (!self::canManageDocument($item, $type, 'send')) { throw new \RuntimeException(__('Sem permissão para publicar este documento.', 'projectplus')); }
       if ($item instanceof Project && $type === 'ta') {
          $tep = self::getForItem($item, 'tep');
          if (!$tep || (string) $tep['status'] !== 'accepted') {
@@ -113,7 +120,7 @@ class DocumentAcceptance extends CommonDBTM
 
    public static function publishGenerated(CommonDBTM $item, string $type): void
    {
-      if (!self::canManage($item)) throw new \RuntimeException(__('Sem permissão para enviar este documento.', 'projectplus'));
+      if (!self::canManageDocument($item, $type, 'send')) throw new \RuntimeException(__('Sem permissão para enviar este documento.', 'projectplus'));
       $draft = DocumentDraft::get($item::getType(), (int)$item->getID(), $type);
       if (!$draft || (string)$draft['status'] !== 'generated') throw new \RuntimeException(__('Gere o documento antes de enviá-lo para aceite.', 'projectplus'));
       global $DB; $now=date('Y-m-d H:i:s'); $current=self::getForItem($item,$type);
@@ -127,7 +134,7 @@ class DocumentAcceptance extends CommonDBTM
    {
       /** @var DBmysql $DB */ global $DB;
       $row = $DB->request(['FROM'=>self::getTable(),'WHERE'=>['id'=>$acceptanceId,'itemtype'=>$item::getType(),'items_id'=>(int)$item->getID(),'status'=>'published'],'LIMIT'=>1])->current();
-      if (!$row || !self::canAccept($item)) { throw new \RuntimeException(__('Você não possui permissão para aceitar este documento.', 'projectplus')); }
+      if (!$row || !self::canAccept($item, (string) $row['document_type'])) { throw new \RuntimeException(__('Você não possui permissão para aceitar este documento.', 'projectplus')); }
       $now = date('Y-m-d H:i:s');
       $DB->update(self::getTable(),['status'=>'accepted','accepted_users_id'=>(int)Session::getLoginUserID(),'date_accepted'=>$now,'date_mod'=>$now],['id'=>(int)$row['id']]);
       self::addFollowup($item, (string)$row['document_type'], __('Aceite do documento registrado.', 'projectplus'));
@@ -160,7 +167,7 @@ class DocumentAcceptance extends CommonDBTM
          ],
          'LIMIT' => 1,
       ])->current();
-      if (!$row || !self::canAccept($item)) {
+      if (!$row || !self::canAccept($item, (string) $row['document_type'])) {
          throw new \RuntimeException(__('Você não possui permissão para recusar este documento.', 'projectplus'));
       }
       $now = date('Y-m-d H:i:s');
@@ -198,7 +205,7 @@ class DocumentAcceptance extends CommonDBTM
    {
       /** @var DBmysql $DB */ global $DB;
       $row = $DB->request(['FROM'=>self::getTable(),'WHERE'=>['id'=>$acceptanceId,'itemtype'=>$item::getType(),'items_id'=>(int)$item->getID()],'LIMIT'=>1])->current();
-      if (!$row || (!self::canManage($item) && !self::canAccept($item))) { return null; }
+      if (!$row || (!self::canManageDocument($item, (string) $row['document_type']) && !self::canAccept($item, (string) $row['document_type']))) { return null; }
       return $row;
    }
 
@@ -241,7 +248,9 @@ class DocumentAcceptance extends CommonDBTM
 
       $ticket = new Ticket();
       $hasTicket = $ticketId > 0 && $ticket->getFromDB($ticketId);
-      $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID()) : null;
+       $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'pretip') : null;
+       $preTipState = (string) ($preTip['status'] ?? '') === 'accepted' ? 'accepted' : ((string) ($preTip['status'] ?? '') === 'rejected' ? 'rejected' : ($preTip ? 'released' : 'disabled'));
+       $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'tip') : null;
       $tipState = (string) ($intent['status'] ?? '') === 'accepted' ? 'accepted' : ((string) ($intent['status'] ?? '') === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
       $tapState = $hasTicket ? self::getVisualState(self::getForItem($ticket, 'tap')) : 'disabled';
       $tepState = self::getVisualState(self::getForItem($project, 'tep'));
@@ -252,7 +261,11 @@ class DocumentAcceptance extends CommonDBTM
       if ($taState === 'disabled' && $tepState === 'accepted') {
          $taState = 'released';
       }
-      self::showJourneyStep(__('TIP - Termo de Intenção do Projeto', 'projectplus'), 'ti ti-file-text', $tipState, false, static function () use ($hasTicket, $ticket): void {
+       self::showJourneyStep(__('TIP - Termo de Intenção de Projeto', 'projectplus'), 'ti ti-file-search', $preTipState, false, static function () use ($hasTicket, $ticket): void {
+          if ($hasTicket) { TicketIntent::showForTicket($ticket, 'pretip'); }
+          else { echo "<div class='alert alert-info'>" . self::esc(__('Não há chamado de origem vinculado a este projeto.', 'projectplus')) . '</div>'; }
+       });
+       self::showJourneyStep(__('TIP - Detalhamento Técnico', 'projectplus'), 'ti ti-file-text', $tipState, false, static function () use ($hasTicket, $ticket): void {
          if ($hasTicket) { TicketIntent::showForTicket($ticket); }
          else { echo "<div class='alert alert-info'>" . self::esc(__('Não há chamado de origem vinculado a este projeto.', 'projectplus')) . '</div>'; }
       });
@@ -328,7 +341,10 @@ class DocumentAcceptance extends CommonDBTM
       $ticketId = TicketProject::getTicketIdForProject((int) $project->getID());
       $ticket = new Ticket();
       $hasTicket = $ticketId > 0 && $ticket->getFromDB($ticketId);
-      $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID()) : null;
+       $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'pretip') : null;
+       $preTipStatus = (string) ($preTip['status'] ?? '');
+       $preTipState = $preTipStatus === 'accepted' ? 'accepted' : ($preTipStatus === 'rejected' ? 'rejected' : ($preTip ? 'released' : 'disabled'));
+       $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'tip') : null;
       $tipStatus = (string) ($intent['status'] ?? '');
       $tipState = $tipStatus === 'accepted' ? 'accepted' : ($tipStatus === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
       $tap = $hasTicket ? self::getForItem($ticket, 'tap') : null;
@@ -339,7 +355,25 @@ class DocumentAcceptance extends CommonDBTM
       self::showDocumentLegend();
       echo '<div class="projectplus-document-journey">';
 
-      self::showJourneyStep(__('TIP - Termo de Intenção do Projeto', 'projectplus'), 'ti ti-file-text', $tipState, false, static function () use ($hasTicket, $ticket, $intent, $tipStatus): void {
+       self::showJourneyStep(__('TIP - Termo de Intenção de Projeto', 'projectplus'), 'ti ti-file-search', $preTipState, false, static function () use ($hasTicket, $ticket, $preTip, $preTipStatus): void {
+          if (!$hasTicket || !$preTip) {
+             echo "<div class='alert alert-info'>" . self::esc(__('TIP - Termo de Intenção de Projeto ainda não disponibilizado.', 'projectplus')) . '</div>';
+             return;
+          }
+          if (in_array($preTipStatus, ['submitted', 'accepted', 'rejected'], true)) {
+             global $CFG_GLPI;
+             $src = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.pdf.php?tickets_id=' . (int) $ticket->getID() . '&document_type=pretip';
+             echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc(__('TIP - Termo de Intenção de Projeto', 'projectplus')) . "</strong><a target='_blank' rel='noopener' href='" . self::esc($src) . "'>" . self::esc(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='" . self::esc(__('TIP - Termo de Intenção de Projeto', 'projectplus')) . "' src='" . self::esc($src) . "'></iframe></div>";
+          }
+          if ($preTipStatus === 'accepted') {
+             echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::esc(__('TIP - Termo de Intenção de Projeto aceito pelo gestor.', 'projectplus')) . '</div>';
+          } elseif ($preTipStatus === 'rejected') {
+             echo "<div class='alert alert-danger'>" . self::esc(__('TIP - Termo de Intenção de Projeto recusado pelo gestor.', 'projectplus')) . '</div>';
+          } else {
+             echo "<div class='alert alert-info'>" . self::esc(__('O TIP - Termo de Intenção de Projeto foi solicitado e aguarda o preenchimento.', 'projectplus')) . '</div>';
+          }
+       });
+       self::showJourneyStep(__('TIP - Detalhamento Técnico', 'projectplus'), 'ti ti-file-text', $tipState, false, static function () use ($hasTicket, $ticket, $intent, $tipStatus): void {
          if (!$hasTicket || !$intent) {
             echo "<div class='alert alert-info'>" . self::esc(__('TIP ainda nÃ£o disponibilizado.', 'projectplus')) . '</div>';
             return;
@@ -397,12 +431,12 @@ class DocumentAcceptance extends CommonDBTM
                : __('Aguardando aceite do cliente.', 'projectplus'));
       }
       echo "<section class='projectplus-tip__card projectplus-acceptance__card'><div class='projectplus-tip__section-title'><i class='ti ti-file-description'></i><div><h3>" . self::esc($label) . '</h3><p>' . self::esc($description) . '</p></div></div>';
-      if (!$row && self::canManage($item)) {
+      if (!$row && self::canManageDocument($item, $type)) {
          if ($item instanceof Project && $type === 'ta' && (!(self::getForItem($item, 'tep')) || (string) (self::getForItem($item, 'tep')['status'] ?? '') !== 'accepted')) {
             echo "<div class='alert alert-info'>" . self::esc(__('O TA será liberado após o aceite do TEP.', 'projectplus')) . '</div>';
          } else { self::showDraftForm($item, $type); }
       }
-      elseif ($row && (string) $row['status'] === 'rejected' && self::canManage($item)) {
+      elseif ($row && (string) $row['status'] === 'rejected' && self::canManageDocument($item, $type)) {
          self::showRejection($row);
          self::showDraftForm($item, $type);
       }
@@ -445,7 +479,7 @@ class DocumentAcceptance extends CommonDBTM
          echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc(strtoupper((string)$row['document_type'])) . "</strong><a target='_blank' rel='noopener' href='" . self::esc($src) . "'>" . self::esc(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='Documento gerado' src='" . self::esc($src) . "'></iframe></div>";
          if ((string)$row['status'] === 'accepted') { echo "<div class='projectplus-acceptance__accepted'>" . self::esc(__('Aceite registrado.', 'projectplus')) . '</div>'; return; }
          if ((string)$row['status'] === 'rejected') { self::showRejection($row); return; }
-         if (self::canAccept($item)) { self::showDecisionForms($item, $row, $actionUrl); }
+         if (self::canAccept($item, (string) $row['document_type'])) { self::showDecisionForms($item, $row, $actionUrl); }
          return;
       }
       $document = new Document(); $document->getFromDB((int)$row['documents_id']);
@@ -453,7 +487,7 @@ class DocumentAcceptance extends CommonDBTM
       echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc((string)$document->getName()) . '</strong><a target="_blank" rel="noopener" href="' . self::esc($src) . '">' . self::esc(__('Abrir documento', 'projectplus')) . '</a></div><iframe title="' . self::esc((string)$document->getName()) . '" src="' . self::esc($src) . '"></iframe></div>';
       if ((string)$row['status'] === 'accepted') { echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::esc(__('Aceito por', 'projectplus')) . ' ' . self::esc(User::getFriendlyNameById((int)$row['accepted_users_id'])) . ' — ' . self::esc((string)$row['date_accepted']) . '</div>'; return; }
       if ((string)$row['status'] === 'rejected') { self::showRejection($row); return; }
-      if (self::canAccept($item)) { self::showDecisionForms($item, $row, $actionUrl); }
+      if (self::canAccept($item, (string) $row['document_type'])) { self::showDecisionForms($item, $row, $actionUrl); }
    }
 
    /** @param array<string,mixed> $row */
@@ -492,5 +526,12 @@ class DocumentAcceptance extends CommonDBTM
       if ($item instanceof Ticket) { $f = new ITILFollowup(); $f->add(['itemtype'=>Ticket::class,'items_id'=>(int)$item->getID(),'users_id'=>(int)Session::getLoginUserID(),'content'=>$content,'is_private'=>0]); return; }
       if ($item instanceof Project && $DB->tableExists(ProjectInteraction::getTable())) $DB->insert(ProjectInteraction::getTable(), ['projects_id'=>(int)$item->getID(),'entities_id'=>(int)$item->getEntityID(),'users_id'=>(int)Session::getLoginUserID(),'content'=>$content,'is_internal'=>0,'notify_participants'=>1,'date_creation'=>date('Y-m-d H:i:s')]);
    }
-   private static function esc(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+   private static function esc(string $value): string
+   {
+      if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value) === 1) {
+         $value = self::formatDateTime($value);
+      }
+      return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+   }
+   private static function formatDateTime(string $value): string { return $value === '' || $value === '0000-00-00 00:00:00' ? '' : Html::convDateTime($value); }
 }

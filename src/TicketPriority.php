@@ -46,19 +46,39 @@ class TicketPriority
       return true;
    }
 
+   /** Checks completion only for one of the two independent priority blocks. */
+   public static function isCompleteForType(int $ticketId, string $type): bool
+   {
+      $data = self::getForTicket($ticketId);
+      foreach (ProjectPriority::getCriteriaForPriorityType($type) as $field => $label) {
+         if ((int) ($data[$field] ?? 0) < 1) {
+            return false;
+         }
+      }
+      return true;
+   }
+
    public static function saveForTicket(Ticket $ticket, array $input): void
    {
-      if (!Session::haveRight(ProjectProfile::RIGHT_PORTFOLIO, UPDATE)
-         || !Session::haveRight('ticket', UPDATE)
+      $type = (string) ($input['priority_type'] ?? '');
+      if (!in_array($type, ['technical', 'institutional'], true)) {
+         throw new \RuntimeException(__('Tipo de priorização inválido.', 'projectplus'));
+      }
+      $editable = ProjectPriority::getEditableCriteria($type);
+      if ($editable === [] || !Session::haveRight('ticket', UPDATE)
          || !Session::haveAccessToEntity((int) $ticket->getEntityID(), true)) {
          throw new \RuntimeException(__('Sem permissão para priorizar esta solicitação.', 'projectplus'));
       }
 
+      $current = self::getForTicket((int) $ticket->getID());
       $values = [];
       $complete = true;
       foreach (ProjectPriority::getCriteria() as $field => $label) {
-         $value = (int) ($input[$field] ?? 0);
-         if ($value < 0 || $value > 5) {
+         if (!isset($editable[$field]) && array_key_exists($field, $input)) {
+            throw new \RuntimeException(__('Sem permissÃ£o para alterar este critÃ©rio.', 'projectplus'));
+         }
+         $value = isset($editable[$field]) ? (int) ($input[$field] ?? $current[$field] ?? 0) : (int) ($current[$field] ?? 0);
+         if (!in_array($value, [0, 1, 3, 5], true)) {
             throw new \RuntimeException(__('Valor de priorização inválido.', 'projectplus'));
          }
          $values[$field] = $value;
@@ -108,16 +128,16 @@ class TicketPriority
       ]);
    }
 
-   public static function showForTicket(Ticket $ticket): void
+   public static function showForTicket(Ticket $ticket, string $type = 'technical'): void
    {
-      if (!Session::haveRight(ProjectProfile::RIGHT_PORTFOLIO, READ)) {
+      if (!in_array($type, ['technical', 'institutional'], true) || !ProjectPriority::canViewPriorityType($type)) {
          return;
       }
       $data = self::getForTicket((int) $ticket->getID());
       $ranking = (int) $data['ranking'];
       $nativePriority = ProjectPriority::getNativePriorityForRanking($ranking);
-      $canEdit = Session::haveRight(ProjectProfile::RIGHT_PORTFOLIO, UPDATE)
-         && Session::haveRight('ticket', UPDATE)
+      $editable = ProjectPriority::getEditableCriteria($type);
+      $canEdit = $editable !== [] && Session::haveRight('ticket', UPDATE)
          && Session::haveAccessToEntity((int) $ticket->getEntityID(), true);
       global $CFG_GLPI;
       $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/ticketpriority.form.php';
@@ -126,17 +146,18 @@ class TicketPriority
          : __('Não classificada', 'projectplus');
       $style = ProjectPriority::getPriorityStyle($nativePriority);
 
-      echo "<section class='projectplus-priority projectplus-priority--{$nativePriority}' {$style}><header class='projectplus-priority__header projectplus-priority__header--{$nativePriority}'><div><h3>" . self::escape(__('Priorização para abertura do projeto', 'projectplus')) . '</h3><p>' . self::escape(__('Preencha os critérios para subsidiar a decisão de transformar esta solicitação em projeto.', 'projectplus')) . "</p></div><div class='projectplus-priority__score projectplus-priority__score--{$nativePriority}'><span>" . self::escape(__('Ranking', 'projectplus')) . '</span><strong>' . ($ranking ?: '—') . "</strong><em class='projectplus-priority__native projectplus-priority__native--{$nativePriority}'>" . self::escape($priorityLabel) . '</em></div></header>';
+      $title = $type === 'technical' ? __('Priorização técnica', 'projectplus') : __('Priorização estratégica', 'projectplus');
+      echo "<section class='projectplus-priority projectplus-priority--{$nativePriority}' {$style}><header class='projectplus-priority__header projectplus-priority__header--{$nativePriority}'><div><h3>" . self::escape($title) . '</h3><p>' . self::escape(__('Preencha os critérios para subsidiar a decisão de transformar esta solicitação em projeto.', 'projectplus')) . "</p></div><div class='projectplus-priority__score projectplus-priority__score--{$nativePriority}'><span>" . self::escape(__('Ranking', 'projectplus')) . '</span><strong>' . ($ranking ?: '—') . "</strong><em class='projectplus-priority__native projectplus-priority__native--{$nativePriority}'>" . self::escape($priorityLabel) . '</em></div></header>';
       if ($canEdit) {
-         echo "<form method='post' action='" . self::escape($url) . "' data-track-changes='true'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]);
+         echo "<form method='post' action='" . self::escape($url) . "' data-track-changes='true'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . Html::hidden('priority_type', ['value' => $type]);
       }
       echo "<div class='projectplus-priority__grid'>";
-      foreach (ProjectPriority::getCriteria() as $field => $label) {
+      foreach (ProjectPriority::getCriteriaForPriorityType($type) as $field => $label) {
          echo "<div class='projectplus-priority__field'><label>" . self::escape(__($label, 'projectplus')) . '</label>';
-         Dropdown::showFromArray($field, ProjectPriority::getLevelOptions(), ['value' => (int) $data[$field], 'disabled' => !$canEdit]);
+         Dropdown::showFromArray($field, ProjectPriority::getLevelOptionsForCriterion($field), ['value' => (int) $data[$field], 'disabled' => !$canEdit || !isset($editable[$field])]);
          echo '</div>';
       }
-      echo '</div><footer class="projectplus-priority__footer"><small>' . self::escape(__('O ranking é calculado pela soma dos sete critérios preenchidos. A autorização de abertura requer o preenchimento completo.', 'projectplus')) . '</small>';
+      echo '</div><footer class="projectplus-priority__footer"><small>' . self::escape(__('O ranking é calculado pela soma dos seis critérios preenchidos. A autorização de abertura requer o preenchimento completo.', 'projectplus')) . '</small>';
       if ($canEdit) {
          echo "<button class='btn btn-primary' type='submit' name='save_ticket_priority' value='1'><i class='ti ti-device-floppy'></i> " . self::escape(__('Salvar priorização', 'projectplus')) . '</button></form>';
       }

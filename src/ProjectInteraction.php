@@ -144,7 +144,7 @@ class ProjectInteraction extends CommonDBTM
          || !Session::haveAccessToEntity((int) ($template->fields['entities_id'] ?? 0))) {
          throw new \RuntimeException(__('Modelo não encontrado ou sem acesso para a entidade atual.', 'projectplus'));
       }
-      return (string) ($template->fields['comment'] ?? '');
+      return (string) ($template->fields['content'] ?? $template->fields['comment'] ?? '');
    }
 
    /** Transfers the Project to a target entity and records the auditable event. */
@@ -273,6 +273,13 @@ class ProjectInteraction extends CommonDBTM
 
       echo Html::scriptBlock("$(function () {
          var composer = $('#{$composerId}');
+         // GLPI exposes the native TinyMCE API as tinyMCE in some builds and
+         // as tinymce in others. Supporting both keeps the template loader
+         // aligned with the editor rendered by the core.
+         function getRichTextEditor() {
+            var editorApi = window.tinymce || window.tinyMCE;
+            return editorApi && editorApi.get ? editorApi.get('{$editorId}') : null;
+         }
          function openComposer(action) {
             composer.addClass('is-open');
             composer.toggleClass('projectplus-followups__composer--solution', action === 'solution');
@@ -280,7 +287,7 @@ class ProjectInteraction extends CommonDBTM
          $('#{$composerId}-submit')
             .toggleClass('projectplus-followups__submit--solution', action === 'solution')
             .html(action === 'solution' ? '<i class=\"ti ti-circle-check\"></i> Solucionar e enviar o TEP' : '<i class=\"ti ti-plus\"></i> Adicionar');
-            var editor = window.tinymce ? window.tinymce.get('{$editorId}') : null;
+            var editor = getRichTextEditor();
             if (editor) { editor.focus(); }
          }
          $('#{$toolbarId} [data-projectplus-action=reply]').on('click', function () { openComposer('reply'); });
@@ -294,12 +301,26 @@ class ProjectInteraction extends CommonDBTM
                projects_id: " . (int) $project->getID() . ", template_type: type, template_id: templateId
             }).done(function (data) {
                if (!data || !data.success) { return; }
-               var editor = window.tinymce ? window.tinymce.get('{$editorId}') : null;
-               if (editor) { editor.setContent(data.content || ''); };
+               var editor = getRichTextEditor();
+               if (editor) {
+                  editor.setContent(data.content || '');
+                  editor.save();
+               } else {
+                  // Keep selection useful while the native rich-text editor
+                  // is still loading (or when a browser temporarily blocks it).
+                  $('#{$editorId}').val(data.content || '');
+               }
             });
          }
-         $('#{$followupTemplateId}').on('change', function () { applyTemplate('followup', $(this).val()); });
-         $('#{$solutionTemplateId}').on('change', function () { applyTemplate('solution', $(this).val()); });
+         // GLPI generates the concrete dropdown DOM id itself. Bind by the
+         // native field name, scoped to this composer, rather than assuming a
+         // custom id supplied to Dropdown::show() will be kept unchanged.
+         composer.find('select[name=followup_template_id]').on('change', function () {
+            applyTemplate('followup', $(this).val());
+         });
+         composer.find('select[name=solution_template_id]').on('change', function () {
+            applyTemplate('solution', $(this).val());
+         });
       });");
       echo '</section>';
    }

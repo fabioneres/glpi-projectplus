@@ -14,9 +14,10 @@ class ConfigPage
    public static function begin(string $active): void
    {
       echo "<div class='projectplus-config-layout'>";
-      echo "<aside class='projectplus-config-nav'><div class='projectplus-config-nav__title'><i class='ti ti-settings'></i><span>" . self::escape(__('Configurações', 'projectplus')) . '</span></div>';
+      echo "<aside class='projectplus-config-nav'>";
       self::navLink('overview', 'config.php', 'ti ti-settings', __('Geral', 'projectplus'), $active);
-      self::navLink('tipmodel', 'tipconfig.php', 'ti ti-forms', __('Modelo TIP', 'projectplus'), $active);
+      self::navLink('pretipmodel', 'tipconfig.php?document_type=pretip', 'ti ti-file-search', __('Modelo TIP', 'projectplus'), $active);
+      self::navLink('tipmodel', 'tipconfig.php?document_type=tip', 'ti ti-file-text', __('Modelo TIP - DT', 'projectplus'), $active);
       self::navLink('tapmodel', 'documentfields.php?document_type=tap', 'ti ti-file-description', __('Modelo TAP', 'projectplus'), $active);
       self::navLink('tepmodel', 'documentfields.php?document_type=tep', 'ti ti-file-description', __('Modelo TEP', 'projectplus'), $active);
       self::navLink('tamodel', 'documentfields.php?document_type=ta', 'ti ti-file-description', __('Modelo TA', 'projectplus'), $active);
