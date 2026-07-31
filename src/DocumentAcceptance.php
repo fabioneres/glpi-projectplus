@@ -84,8 +84,18 @@ class DocumentAcceptance extends CommonDBTM
       if (!array_key_exists($type, self::typesForItem($item))) {
          return false;
       }
+
+      // "Ler" is an explicit Project+ permission in the profile matrix.
+      // A requester with only this right must be able to open the generated
+      // document, even when they are not allowed to fill, generate or send it.
+      if (Session::haveRight(ProjectProfile::getDocumentManagementRight($type), READ)) {
+         return true;
+      }
+
       foreach (['fill', 'generate', 'send', 'accept'] as $action) {
-         if (ProjectProfile::haveDocumentActionRight($type, $action, READ)) {
+         // Action columns in the Project+ profile matrix are persisted as
+         // UPDATE rights. Possessing one of them also grants document view.
+         if (ProjectProfile::haveDocumentActionRight($type, $action, UPDATE)) {
             return true;
          }
       }
@@ -96,7 +106,7 @@ class DocumentAcceptance extends CommonDBTM
    {
       $userId = (int) Session::getLoginUserID();
       if ($userId <= 0) { return false; }
-      if ($type !== '' && !ProjectProfile::haveDocumentActionRight($type, 'accept', READ)) {
+      if ($type !== '' && !ProjectProfile::haveDocumentActionRight($type, 'accept', UPDATE)) {
          return false;
       }
       /** @var DBmysql $DB */ global $DB;
