@@ -421,11 +421,13 @@ class ProjectProfile extends GlpiProfile
       array $rows,
       bool $canEdit
    ): void {
-      echo "<section class='spaced'>";
-      echo "<h3 class='mb-2'>" . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h3>';
       $matrixId = 'projectplus-rights-matrix-' . mt_rand();
-      echo "<div class='table-responsive'><table id='" . $matrixId . "' class='tab_cadre_fixe table table-hover'>";
-      echo '<thead><tr class="tab_bg_1"><th>' . htmlspecialchars(__('Nome', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</th>';
+      $columnCount = count($columns) + 2;
+      echo "<div class='tab_cadre_fixe mb-3'><div class='table-responsive'><table id='" . $matrixId . "' class='table table-hover mb-0'>";
+      echo '<thead>';
+      echo '<tr class="tab_bg_1"><th colspan="' . $columnCount . '" class="text-uppercase">'
+         . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</th></tr>';
+      echo '<tr class="tab_bg_1"><th>' . htmlspecialchars(__('Nome', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</th>';
       foreach ($columns as $column => $label) {
          echo '<th class="text-center">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</th>';
       }
@@ -452,7 +454,8 @@ class ProjectProfile extends GlpiProfile
                'checked'       => (($profileRight & $level) === $level),
                'readonly'      => !$canEdit,
                'title'         => $row['label'] . ': ' . $label,
-               'class'         => 'projectplus-rights-cell',
+               'class'         => 'projectplus-rights-cell projectplus-rights-column-' . $column,
+               'specific_tags' => ['data-projectplus-rights-column' => $column],
                'zero_on_empty' => true,
             ]);
             echo '</td>';
@@ -465,7 +468,18 @@ class ProjectProfile extends GlpiProfile
          echo '</tr>';
       }
 
-      echo '</tbody></table></div></section>';
+      echo "<tr class='tab_bg_2 projectplus-rights-columns-toggle'><td><strong>"
+         . htmlspecialchars(__('Marcar/desmarcar todos', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</strong></td>';
+      foreach ($columns as $column => $label) {
+         echo "<td class='text-center'>";
+         echo "<input type='checkbox' class='form-check-input projectplus-rights-column-toggle' data-projectplus-rights-column-toggle='"
+            . htmlspecialchars($column, ENT_QUOTES, 'UTF-8') . "' title='"
+            . htmlspecialchars(__('Marcar/desmarcar todos', 'projectplus'), ENT_QUOTES, 'UTF-8') . "'"
+            . (!$canEdit ? ' disabled' : '') . ">";
+         echo '</td>';
+      }
+      echo '<td></td></tr>';
+      echo '</tbody></table></div></div>';
       echo Html::scriptBlock("$(function () {
          var matrix = $('#" . $matrixId . "');
          var refreshToggle = function (row) {
@@ -475,16 +489,33 @@ class ProjectProfile extends GlpiProfile
             toggle.prop('checked', cells.length > 0 && selected === cells.length);
             toggle.prop('indeterminate', selected > 0 && selected < cells.length);
          };
+         var refreshColumnToggle = function (column) {
+            var cells = matrix.find('input.projectplus-rights-cell[data-projectplus-rights-column=\"' + column + '\"]:not(:disabled)');
+            var selected = cells.filter(':checked').length;
+            var toggle = matrix.find('[data-projectplus-rights-column-toggle=\"' + column + '\"]');
+            toggle.prop('checked', cells.length > 0 && selected === cells.length);
+            toggle.prop('indeterminate', selected > 0 && selected < cells.length);
+         };
          matrix.find('tbody tr.projectplus-rights-row').each(function () {
             refreshToggle($(this));
+         });
+         matrix.find('[data-projectplus-rights-column-toggle]').each(function () {
+            refreshColumnToggle($(this).data('projectplus-rights-column-toggle'));
          });
          matrix.on('change', '[data-projectplus-rights-row-toggle]', function () {
             $(this).closest('tr').find('input.projectplus-rights-cell:not(:disabled)')
                .prop('checked', this.checked)
                .trigger('change');
          });
+         matrix.on('change', '[data-projectplus-rights-column-toggle]', function () {
+            var column = $(this).data('projectplus-rights-column-toggle');
+            matrix.find('input.projectplus-rights-cell[data-projectplus-rights-column=\"' + column + '\"]:not(:disabled)')
+               .prop('checked', this.checked)
+               .trigger('change');
+         });
          matrix.on('change', 'input.projectplus-rights-cell', function () {
             refreshToggle($(this).closest('tr'));
+            refreshColumnToggle($(this).data('projectplus-rights-column'));
          });
       });");
    }
