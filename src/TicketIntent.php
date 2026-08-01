@@ -287,7 +287,13 @@ class TicketIntent
       $config = TipConfig::getForEntity((int) $ticket->getEntityID());
       $userId = (int) Session::getLoginUserID();
       $requesterId = self::getRequesterId($ticket);
-      $displayUserId = $requesterId > 0 ? $requesterId : $userId;
+      $intent = self::getForTicket((int) $ticket->getID(), $documentType);
+      // For TIP-DT, the identification must reflect the manager who released
+      // the document for completion, rather than the requester of the ticket.
+      $releasedBy = (int) ($intent['requested_users_id'] ?? 0);
+      $displayUserId = $documentType === 'tip'
+         ? ($releasedBy > 0 ? $releasedBy : $userId)
+         : ($requesterId > 0 ? $requesterId : $userId);
       $name = self::documentName($documentType);
       $title = $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : (string) $config['title'];
       echo "<div class='projectplus-tip'><form method='post' action='" . self::escape(self::getActionUrl()) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . Html::hidden('document_type', ['value' => $documentType]);
