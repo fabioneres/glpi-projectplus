@@ -239,7 +239,14 @@ class DocumentAcceptance extends CommonDBTM
    {
       /** @var DBmysql $DB */ global $DB;
       $row = $DB->request(['FROM'=>self::getTable(),'WHERE'=>['id'=>$acceptanceId,'itemtype'=>$item::getType(),'items_id'=>(int)$item->getID()],'LIMIT'=>1])->current();
-      if (!$row || (!self::canManageDocument($item, (string) $row['document_type']) && !self::canAccept($item, (string) $row['document_type']))) { return null; }
+      // The PDF endpoint must obey the explicit "Ler" permission as well.
+      // Previously it tested the default management action ("Preencher"),
+      // making a user with only TAP -> Ler receive "Sem permissão".
+      // canViewDocument also grants a requester/focal point temporary access
+      // while a published document awaits their accept/refuse decision.
+      if (!$row || !self::canViewDocument($item, (string) $row['document_type'])) {
+         return null;
+      }
       return $row;
    }
 
