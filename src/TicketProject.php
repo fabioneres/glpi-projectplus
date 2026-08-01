@@ -62,9 +62,13 @@ class TicketProject
    public static function getMissingOpeningRequirements(Ticket $ticket): array
    {
       $missing = [];
-      $intent = TicketIntent::getForTicket((int) $ticket->getID());
-      if (!$intent || (string) $intent['status'] !== 'accepted') {
-         $missing[] = __('O TIP deve estar preenchido e aceito pelo gestor.', 'projectplus');
+      $tip = TicketIntent::getForTicket((int) $ticket->getID(), 'pretip');
+      if (!$tip || (string) $tip['status'] !== 'accepted') {
+         $missing[] = __('O TIP - Termo de Intenção de Projeto deve estar preenchido e aceito pelo gestor.', 'projectplus');
+      }
+      $tipDetail = TicketIntent::getForTicket((int) $ticket->getID(), 'tip');
+      if (!$tipDetail || !in_array((string) $tipDetail['status'], ['submitted', 'accepted'], true)) {
+         $missing[] = __('O TIP - Detalhamento Técnico deve estar preenchido pelo gestor responsável.', 'projectplus');
       }
       if (!TicketPriority::isComplete((int) $ticket->getID())) {
          $missing[] = __('A priorização institucional deve estar concluída.', 'projectplus');

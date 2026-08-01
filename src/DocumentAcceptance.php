@@ -124,7 +124,10 @@ class DocumentAcceptance extends CommonDBTM
       }
       if ($item instanceof Project) {
          $data = ProjectData::getForProject((int)$item->getID());
-         return in_array($userId, [(int)$data['requester_users_id'], (int)$data['focal_point_users_id']], true);
+         // TEP and TA are accepted by the requester. The focal point may
+         // consult documents and publish public interactions, but must not
+         // conclude the documentary workflow on the requester's behalf.
+         return $userId === (int) $data['requester_users_id'];
       }
       return false;
    }
