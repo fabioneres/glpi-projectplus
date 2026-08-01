@@ -456,7 +456,7 @@ class DocumentAcceptance extends CommonDBTM
        });
        self::showJourneyStep(__('TIP - Detalhamento Técnico', 'projectplus'), 'ti ti-file-text', $tipState, false, static function () use ($hasTicket, $ticket, $intent, $tipStatus): void {
          if (!$hasTicket || !$intent) {
-            echo "<div class='alert alert-info'>" . self::esc(__('TIP ainda nÃ£o disponibilizado.', 'projectplus')) . '</div>';
+            echo "<div class='alert alert-info'>" . self::esc(__('TIP ainda não disponibilizado.', 'projectplus')) . '</div>';
             return;
          }
          if (in_array($tipStatus, ['submitted', 'generated', 'accepted', 'rejected'], true)) {
@@ -477,7 +477,7 @@ class DocumentAcceptance extends CommonDBTM
 
       self::showJourneyStep(__('TAP - Termo de Abertura do Projeto', 'projectplus'), 'ti ti-file-description', self::getVisualState($tap), false, static function () use ($hasTicket, $ticket, $tap): void {
          if (!$hasTicket || !$tap) {
-            echo "<div class='alert alert-info'>" . self::esc(__('TAP ainda nÃ£o disponibilizado.', 'projectplus')) . '</div>';
+            echo "<div class='alert alert-info'>" . self::esc(__('TAP ainda não disponibilizado.', 'projectplus')) . '</div>';
             return;
          }
          self::showAcceptance($ticket, $tap);
@@ -485,7 +485,7 @@ class DocumentAcceptance extends CommonDBTM
 
       self::showJourneyStep(__('TEP - Relatório de Entrega do Projeto', 'projectplus'), 'ti ti-report', self::getVisualState($tep), false, static function () use ($project, $tep): void {
          if (!$tep) {
-            echo "<div class='alert alert-info'>" . self::esc(__('TEP ainda nÃ£o disponibilizado.', 'projectplus')) . '</div>';
+            echo "<div class='alert alert-info'>" . self::esc(__('TEP ainda não disponibilizado.', 'projectplus')) . '</div>';
             return;
          }
          self::showAcceptance($project, $tep, self::portalUrl());
@@ -493,7 +493,7 @@ class DocumentAcceptance extends CommonDBTM
 
       self::showJourneyStep(__('TA - Termo de Aceite', 'projectplus'), 'ti ti-file-certificate', self::getVisualState($ta), false, static function () use ($project, $ta): void {
          if (!$ta) {
-            echo "<div class='alert alert-info'>" . self::esc(__('TA ainda nÃ£o disponibilizado.', 'projectplus')) . '</div>';
+            echo "<div class='alert alert-info'>" . self::esc(__('TA ainda não disponibilizado.', 'projectplus')) . '</div>';
             return;
          }
          self::showAcceptance($project, $ta, self::portalUrl());
