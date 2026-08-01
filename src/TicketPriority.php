@@ -103,7 +103,10 @@ class TicketPriority
          $values[$field] = $value;
          $complete = $complete && $value > 0;
       }
-      $values['ranking'] = $complete ? array_sum($values) : 0;
+      // Keep the accumulated score visible after each block. The native GLPI
+      // priority remains unchanged until all technical and strategic criteria
+      // have been completed.
+      $values['ranking'] = array_sum($values);
       $values['entities_id'] = (int) $ticket->getEntityID();
       $values['date_mod'] = date('Y-m-d H:i:s');
       /** @var DBmysql $DB */
@@ -162,14 +165,15 @@ class TicketPriority
       }
       $data = self::getForTicket((int) $ticket->getID());
       $ranking = (int) $data['ranking'];
-      $nativePriority = ProjectPriority::getNativePriorityForRanking($ranking);
+      $fullyClassified = self::isComplete((int) $ticket->getID());
+      $nativePriority = $fullyClassified ? ProjectPriority::getNativePriorityForRanking($ranking) : 0;
       $editable = ProjectPriority::getEditableCriteria($type);
       $canEdit = $editable !== [] && Session::haveAccessToEntity((int) $ticket->getEntityID(), true);
       global $CFG_GLPI;
       $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/ticketpriority.form.php';
-      $priorityLabel = $ranking
+      $priorityLabel = $fullyClassified
          ? __('Prioridade', 'projectplus') . ' – ' . \CommonITILObject::getPriorityName($nativePriority)
-         : __('Não classificada', 'projectplus');
+         : ($ranking ? __('Ranking parcial', 'projectplus') : __('Não classificada', 'projectplus'));
       $style = ProjectPriority::getPriorityStyle($nativePriority);
 
       $title = $type === 'technical' ? __('Priorização técnica', 'projectplus') : __('Priorização estratégica', 'projectplus');
