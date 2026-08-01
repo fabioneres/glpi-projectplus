@@ -65,6 +65,13 @@ class TicketPriority
       return (string) ($intent['status'] ?? '') === 'generated';
    }
 
+   /** The strategic assessment follows completion of the technical assessment. */
+   public static function isStrategicPriorityAvailable(Ticket $ticket): bool
+   {
+      return self::isTechnicalPriorityAvailable($ticket)
+         && self::isCompleteForType((int) $ticket->getID(), 'technical');
+   }
+
    public static function saveForTicket(Ticket $ticket, array $input): void
    {
       $type = (string) ($input['priority_type'] ?? '');
@@ -73,6 +80,9 @@ class TicketPriority
       }
       if ($type === 'technical' && !self::isTechnicalPriorityAvailable($ticket)) {
          throw new \RuntimeException(__('A priorização técnica será liberada após a geração do TIP - Detalhamento Técnico.', 'projectplus'));
+      }
+      if ($type === 'institutional' && !self::isStrategicPriorityAvailable($ticket)) {
+         throw new \RuntimeException(__('A priorização estratégica será liberada após a conclusão da priorização técnica.', 'projectplus'));
       }
       $editable = ProjectPriority::getEditableCriteria($type);
       if ($editable === [] || !Session::haveAccessToEntity((int) $ticket->getEntityID(), true)) {
@@ -144,6 +154,10 @@ class TicketPriority
       }
       if ($type === 'technical' && !self::isTechnicalPriorityAvailable($ticket)) {
          echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Gere o TIP - Detalhamento Técnico para liberar esta etapa.', 'projectplus')) . '</div>';
+         return;
+      }
+      if ($type === 'institutional' && !self::isStrategicPriorityAvailable($ticket)) {
+         echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização estratégica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Conclua a priorização técnica para liberar esta etapa.', 'projectplus')) . '</div>';
          return;
       }
       $data = self::getForTicket((int) $ticket->getID());

@@ -256,8 +256,13 @@ class TicketPhase extends CommonDBTM
          });
       }
       if (ProjectPriority::canViewPriorityType('institutional')) {
-         $institutionalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'institutional') ? 'accepted' : 'released';
-         self::showDocumentStep(__('Priorização estratégica', 'projectplus'), 'ti ti-list-numbers', $institutionalState, false, static function () use ($ticket): void {
+         $technicalPriorityComplete = TicketPriority::isStrategicPriorityAvailable($ticket);
+         $institutionalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'institutional') ? 'accepted' : ($technicalPriorityComplete ? 'released' : 'disabled');
+         self::showDocumentStep(__('Priorização estratégica', 'projectplus'), 'ti ti-list-numbers', $institutionalState, false, static function () use ($ticket, $technicalPriorityComplete): void {
+            if (!$technicalPriorityComplete) {
+               echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização estratégica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Conclua a priorização técnica para liberar esta etapa.', 'projectplus')) . '</div>';
+               return;
+            }
             TicketPriority::showForTicket($ticket, 'institutional');
          });
       }
