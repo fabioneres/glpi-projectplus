@@ -644,6 +644,13 @@ class ProjectProfile extends GlpiProfile
                      'read' => ['right' => self::RIGHT_REQUEST_DOCUMENTS, 'level' => READ],
                   ],
                ],
+               [
+                  'label' => __('Autorizar abertura do projeto', 'projectplus'),
+                  'cells' => [
+                     'read' => ['right' => self::RIGHT_AUTHORIZE_OPENING, 'level' => READ],
+                     'update' => ['right' => self::RIGHT_AUTHORIZE_OPENING, 'level' => UPDATE],
+                  ],
+               ],
             ],
          ],
          [
