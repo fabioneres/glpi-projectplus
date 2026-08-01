@@ -321,13 +321,17 @@ class ProjectInteraction extends CommonDBTM
       global $DB;
       $data = ProjectData::getForProject((int) $project->getID());
       $participantIds = [(int) ($data['requester_users_id'] ?? 0), (int) ($data['focal_point_users_id'] ?? 0)];
+      // Follow the native GLPI followup convention: the authenticated user's
+      // own messages are on the right, while every other participant is on
+      // the left. The visual side must not depend on the author's role.
+      $currentUserId = (int) Session::getLoginUserID();
       echo "<div class='projectplus-followups__timeline'>";
       foreach ($DB->request(['FROM' => self::getTable(), 'WHERE' => ['projects_id' => (int) $project->getID()], 'ORDER' => ['date_creation ASC', 'id ASC']]) as $interaction) {
          if ((int) $interaction['is_internal'] && !self::canViewInternal($project)) { continue; }
          $authorId = (int) $interaction['users_id'];
          $author = User::getFriendlyNameById($authorId);
          $participant = in_array($authorId, $participantIds, true);
-         $position = $participant ? 'left' : 'right';
+         $position = $authorId === $currentUserId ? 'right' : 'left';
          $kind = (int) $interaction['is_internal'] ? 'internal' : ($participant ? 'participant' : 'manager');
          $date = Html::convDateTime((string) $interaction['date_creation']);
          $content = RichText::getEnhancedHtml((string) $interaction['content'], ['images_gallery' => true]);
