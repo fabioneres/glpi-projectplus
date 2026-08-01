@@ -10,6 +10,8 @@
 .projectplus-followup__card { position: relative !important; width: min(82%, 930px) !important; padding: 13px 16px 16px !important; border: 1px solid #dce7df !important; border-left: 3px solid #35a64b !important; border-radius: 7px !important; background: linear-gradient(110deg, #fff, #f7fbf8) !important; box-shadow: 0 1px 4px rgba(30, 47, 59, .05) !important; }
 .projectplus-followup--right .projectplus-followup__card { border-color: #f2d1cb !important; border-right: 3px solid #ef5a42 !important; border-left-width: 1px !important; background: linear-gradient(250deg, #fff, #fff9f8) !important; }
 .projectplus-followup--internal .projectplus-followup__card { border-color: #e2d9f1 !important; border-right-color: #846eca !important; background: #fbf9ff !important; }
+.projectplus-followup--solution .projectplus-followup__card { border-color: #84bddb !important; border-left: 3px solid #4b9fc5 !important; border-right: 1px solid #84bddb !important; background: #e7f4fb !important; }
+.projectplus-followup--solution.projectplus-followup--right .projectplus-followup__card { border-right: 3px solid #4b9fc5 !important; border-left: 1px solid #84bddb !important; }
 .projectplus-followup__meta { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; margin: 0 0 11px !important; }
 .projectplus-followup__meta > span { display: inline-flex !important; gap: 6px !important; align-items: center !important; min-height: 29px !important; padding: 4px 9px !important; border: 1px solid #e6eaf0 !important; border-radius: 5px !important; background: rgba(255, 255, 255, .8) !important; color: #41536b !important; font-size: .79rem !important; }
 .projectplus-followup__meta i { color: #263e58 !important; font-size: .96rem !important; }

@@ -183,6 +183,10 @@ class DocumentAcceptance extends CommonDBTM
             $projectUpdate['projectstates_id'] = $finishedStateId;
          }
          $item->update($projectUpdate);
+         ProjectInteraction::addSystemSolution(
+            $item,
+            __('TA aceito. O projeto foi encerrado documentalmente.', 'projectplus')
+         );
       }
    }
 

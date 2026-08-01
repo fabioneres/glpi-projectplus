@@ -19,6 +19,8 @@ if (!defined('GLPI_ROOT')) {
 /** Project+ discussion timeline and its controlled project actions. */
 class ProjectInteraction extends CommonDBTM
 {
+   private const SYSTEM_SOLUTION_PREFIX = '[projectplus:solution]';
+
    public static function getTable($classname = null): string
    {
       return 'glpi_plugin_projectplus_projectinteractions';
@@ -179,6 +181,12 @@ class ProjectInteraction extends CommonDBTM
       ]);
    }
 
+   /** Records a workflow event using the same visual treatment as a solution. */
+   public static function addSystemSolution(Project $project, string $content): void
+   {
+      self::insertInteraction($project, self::SYSTEM_SOLUTION_PREFIX . $content, 0, 1);
+   }
+
    public static function show(Project $project): void
    {
       if (!self::isAllowed($project)) {
@@ -333,9 +341,15 @@ class ProjectInteraction extends CommonDBTM
          $participant = in_array($authorId, $participantIds, true);
          $position = $authorId === $currentUserId ? 'right' : 'left';
          $kind = (int) $interaction['is_internal'] ? 'internal' : ($participant ? 'participant' : 'manager');
+         $isSolution = strpos((string) $interaction['content'], self::SYSTEM_SOLUTION_PREFIX) === 0;
          $date = Html::convDateTime((string) $interaction['date_creation']);
-         $content = RichText::getEnhancedHtml((string) $interaction['content'], ['images_gallery' => true]);
-         echo "<article class='projectplus-followup projectplus-followup--{$position} projectplus-followup--{$kind}'>";
+         $content = RichText::getEnhancedHtml(
+            $isSolution
+               ? substr((string) $interaction['content'], strlen(self::SYSTEM_SOLUTION_PREFIX))
+               : (string) $interaction['content'],
+            ['images_gallery' => true]
+         );
+         echo "<article class='projectplus-followup projectplus-followup--{$position} projectplus-followup--{$kind}" . ($isSolution ? ' projectplus-followup--solution' : '') . "'>";
          echo "<div class='projectplus-followup__avatar'>" . htmlspecialchars(self::getInitials($author), ENT_QUOTES, 'UTF-8') . '</div>';
          echo "<div class='projectplus-followup__card'><header class='projectplus-followup__meta'>";
          echo "<span><i class='ti ti-calendar-event'></i> " . __('Criado em:', 'projectplus') . " <strong>{$date}</strong></span>";
