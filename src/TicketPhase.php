@@ -245,8 +245,13 @@ class TicketPhase extends CommonDBTM
          TicketIntent::showForTicket($ticket);
       });
       if (ProjectPriority::canViewPriorityType('technical')) {
-         $technicalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'technical') ? 'accepted' : 'released';
-         self::showDocumentStep(__('Priorização técnica', 'projectplus'), 'ti ti-list-numbers', $technicalState, false, static function () use ($ticket): void {
+         $tipDetailGenerated = (string) ($intent['status'] ?? '') === 'generated';
+         $technicalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'technical') ? 'accepted' : ($tipDetailGenerated ? 'released' : 'disabled');
+         self::showDocumentStep(__('Priorização técnica', 'projectplus'), 'ti ti-list-numbers', $technicalState, false, static function () use ($ticket, $tipDetailGenerated): void {
+            if (!$tipDetailGenerated) {
+               echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Gere o TIP - Detalhamento Técnico para liberar esta etapa.', 'projectplus')) . '</div>';
+               return;
+            }
             TicketPriority::showForTicket($ticket, 'technical');
          });
       }

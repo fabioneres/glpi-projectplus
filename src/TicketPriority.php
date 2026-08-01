@@ -58,11 +58,21 @@ class TicketPriority
       return true;
    }
 
+   /** The technical assessment starts only after the technical-detail TIP is generated. */
+   public static function isTechnicalPriorityAvailable(Ticket $ticket): bool
+   {
+      $intent = TicketIntent::getForTicket((int) $ticket->getID(), 'tip');
+      return (string) ($intent['status'] ?? '') === 'generated';
+   }
+
    public static function saveForTicket(Ticket $ticket, array $input): void
    {
       $type = (string) ($input['priority_type'] ?? '');
       if (!in_array($type, ['technical', 'institutional'], true)) {
          throw new \RuntimeException(__('Tipo de priorização inválido.', 'projectplus'));
+      }
+      if ($type === 'technical' && !self::isTechnicalPriorityAvailable($ticket)) {
+         throw new \RuntimeException(__('A priorização técnica será liberada após a geração do TIP - Detalhamento Técnico.', 'projectplus'));
       }
       $editable = ProjectPriority::getEditableCriteria($type);
       if ($editable === [] || !Session::haveAccessToEntity((int) $ticket->getEntityID(), true)) {
@@ -130,6 +140,10 @@ class TicketPriority
    public static function showForTicket(Ticket $ticket, string $type = 'technical'): void
    {
       if (!in_array($type, ['technical', 'institutional'], true) || !ProjectPriority::canViewPriorityType($type)) {
+         return;
+      }
+      if ($type === 'technical' && !self::isTechnicalPriorityAvailable($ticket)) {
+         echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Gere o TIP - Detalhamento Técnico para liberar esta etapa.', 'projectplus')) . '</div>';
          return;
       }
       $data = self::getForTicket((int) $ticket->getID());
