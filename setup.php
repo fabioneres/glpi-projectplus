@@ -59,6 +59,7 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-documents-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-config-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-pagination.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-list-v1.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-import-v1.css';
    // Loaded after legacy layout assets so configuration labels keep their
    // intended width even in browser sessions with cached stylesheets.
