@@ -163,7 +163,7 @@ class DocumentAcceptance extends CommonDBTM
       global $DB; $now=date('Y-m-d H:i:s'); $current=self::getForItem($item,$type);
       $data=['documents_id'=>0,'status'=>'published','published_users_id'=>(int)Session::getLoginUserID(),'accepted_users_id'=>0,'rejected_users_id'=>0,'rejection_justification'=>null,'date_rejected'=>null,'date_published'=>$now,'date_accepted'=>null,'date_mod'=>$now];
       if($current)$DB->update(self::getTable(),$data,['id'=>(int)$current['id']]);else $DB->insert(self::getTable(),$data+['itemtype'=>$item::getType(),'items_id'=>(int)$item->getID(),'entities_id'=>(int)$item->getEntityID(),'document_type'=>$type]);
-      self::addFollowup($item, $type, __('Documento gerado enviado para aceite.', 'projectplus'));
+      self::addFollowup($item, $type, sprintf(__('%s gerado e enviado para aceite.', 'projectplus'), strtoupper($type)));
       if($item instanceof Ticket&&$type==='tap')TicketPhase::setPhase($item,'awaiting_tap_acceptance',__('TAP enviado para aceite.','projectplus'));
    }
 
