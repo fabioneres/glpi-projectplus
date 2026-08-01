@@ -116,6 +116,13 @@ class TicketPriority
          $values + ['tickets_id' => (int) $ticket->getID(), 'date_creation' => date('Y-m-d H:i:s')],
          ['tickets_id' => (int) $ticket->getID()]
       );
+      if ($type === 'institutional' && $complete) {
+         TicketPhase::setPhase(
+            $ticket,
+            'awaiting_authorization',
+            __('Priorização estratégica concluída. Aguardando autorização de abertura.', 'projectplus')
+         );
+      }
       if ($complete) {
          $ticket->update([
             'id' => (int) $ticket->getID(),
