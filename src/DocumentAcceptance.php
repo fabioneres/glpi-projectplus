@@ -331,7 +331,8 @@ class DocumentAcceptance extends CommonDBTM
        $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'pretip') : null;
        $preTipState = (string) ($preTip['status'] ?? '') === 'accepted' ? 'accepted' : ((string) ($preTip['status'] ?? '') === 'rejected' ? 'rejected' : ($preTip ? 'released' : 'disabled'));
        $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'tip') : null;
-      $tipState = (string) ($intent['status'] ?? '') === 'accepted' ? 'accepted' : ((string) ($intent['status'] ?? '') === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
+      $tipStatus = (string) ($intent['status'] ?? '');
+      $tipState = in_array($tipStatus, ['accepted', 'generated'], true) ? 'accepted' : ($tipStatus === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
       $tapState = $hasTicket ? self::getVisualState(self::getForItem($ticket, 'tap')) : 'disabled';
       $tepState = self::getVisualState(self::getForItem($project, 'tep'));
       if ($tepState === 'disabled') {
@@ -426,7 +427,7 @@ class DocumentAcceptance extends CommonDBTM
        $preTipState = $preTipStatus === 'accepted' ? 'accepted' : ($preTipStatus === 'rejected' ? 'rejected' : ($preTip ? 'released' : 'disabled'));
        $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'tip') : null;
       $tipStatus = (string) ($intent['status'] ?? '');
-      $tipState = $tipStatus === 'accepted' ? 'accepted' : ($tipStatus === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
+      $tipState = in_array($tipStatus, ['accepted', 'generated'], true) ? 'accepted' : ($tipStatus === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
       $tap = $hasTicket ? self::getForItem($ticket, 'tap') : null;
       $tep = self::getForItem($project, 'tep');
       $ta = self::getForItem($project, 'ta');
@@ -458,12 +459,14 @@ class DocumentAcceptance extends CommonDBTM
             echo "<div class='alert alert-info'>" . self::esc(__('TIP ainda nÃ£o disponibilizado.', 'projectplus')) . '</div>';
             return;
          }
-         if (in_array($tipStatus, ['submitted', 'accepted', 'rejected'], true)) {
+         if (in_array($tipStatus, ['submitted', 'generated', 'accepted', 'rejected'], true)) {
             global $CFG_GLPI;
             $src = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.pdf.php?tickets_id=' . (int) $ticket->getID();
             echo "<div class='projectplus-acceptance__document'><div><strong>TIP</strong><a target='_blank' rel='noopener' href='" . self::esc($src) . "'>" . self::esc(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='TIP' src='" . self::esc($src) . "'></iframe></div>";
          }
-         if ($tipStatus === 'accepted') {
+         if ($tipStatus === 'generated') {
+            echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::esc(__('TIP - Detalhamento Técnico gerado e disponível para consulta.', 'projectplus')) . '</div>';
+         } elseif ($tipStatus === 'accepted') {
             echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::esc(__('TIP aceito pelo gestor.', 'projectplus')) . '</div>';
          } elseif ($tipStatus === 'rejected') {
             echo "<div class='alert alert-danger'>" . self::esc(__('TIP recusado pelo gestor.', 'projectplus')) . '</div>';
