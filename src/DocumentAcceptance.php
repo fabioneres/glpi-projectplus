@@ -185,7 +185,8 @@ class DocumentAcceptance extends CommonDBTM
          $item->update($projectUpdate);
          ProjectInteraction::addSystemSolution(
             $item,
-            __('TA aceito. O projeto foi encerrado documentalmente.', 'projectplus')
+            __('TA aceito. O projeto foi encerrado documentalmente.', 'projectplus'),
+            (int) ($row['published_users_id'] ?? 0)
          );
       }
    }

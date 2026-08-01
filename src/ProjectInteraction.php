@@ -167,13 +167,13 @@ class ProjectInteraction extends CommonDBTM
       );
    }
 
-   private static function insertInteraction(Project $project, string $content, int $isInternal, int $notify, ?int $entityId = null): void
+   private static function insertInteraction(Project $project, string $content, int $isInternal, int $notify, ?int $entityId = null, ?int $authorId = null): void
    {
       global $DB;
       $DB->insert(self::getTable(), [
          'projects_id' => (int) $project->getID(),
          'entities_id' => $entityId ?? (int) $project->getEntityID(),
-         'users_id' => (int) Session::getLoginUserID(),
+         'users_id' => $authorId ?? (int) Session::getLoginUserID(),
          'content' => $content,
          'is_internal' => $isInternal,
          'notify_participants' => $notify,
@@ -182,9 +182,16 @@ class ProjectInteraction extends CommonDBTM
    }
 
    /** Records a workflow event using the same visual treatment as a solution. */
-   public static function addSystemSolution(Project $project, string $content): void
+   public static function addSystemSolution(Project $project, string $content, int $authorId): void
    {
-      self::insertInteraction($project, self::SYSTEM_SOLUTION_PREFIX . $content, 0, 1);
+      self::insertInteraction(
+         $project,
+         self::SYSTEM_SOLUTION_PREFIX . $content,
+         0,
+         1,
+         null,
+         $authorId > 0 ? $authorId : null
+      );
    }
 
    public static function show(Project $project): void
