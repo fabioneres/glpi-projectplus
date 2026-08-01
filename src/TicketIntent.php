@@ -73,6 +73,11 @@ class TicketIntent
 
    public static function canReviewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
+      // O TIP-DT é um documento técnico interno: depois de gerado, é apenas
+      // disponibilizado para consulta e não passa por aceite ou recusa.
+      if (self::documentType($documentType) === 'tip') {
+         return false;
+      }
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
       return $intent !== null && (string) $intent['status'] === 'submitted'
          && TicketConfig::isEnabledForTicket($ticket)
@@ -126,12 +131,18 @@ class TicketIntent
    }
 
    /** @param array<string,mixed> $input */
-   public static function saveForTicket(Ticket $ticket, array $input, string $documentType = 'tip'): void
+   public static function saveForTicket(Ticket $ticket, array $input, string $documentType = 'tip', bool $generate = false): void
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
+      if ($documentType === 'tip' && !$generate) {
+         throw new \RuntimeException(__('O TIP - Detalhamento Técnico deve ser gerado para ser disponibilizado.', 'projectplus'));
+      }
       if (!self::canSubmitForTicket($ticket, $documentType)) {
          throw new \RuntimeException(sprintf(__('Você não possui permissão para enviar este %s.', 'projectplus'), $name));
+      }
+      if ($documentType === 'tip' && !Session::haveRight(ProjectProfile::RIGHT_GENERATE_TIP, UPDATE)) {
+         throw new \RuntimeException(__('Você não possui permissão para gerar o TIP - Detalhamento Técnico.', 'projectplus'));
       }
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
       if ($intent === null) {
@@ -165,13 +176,14 @@ class TicketIntent
             'label' => (string) $answer['field']['label'], 'value' => $answer['value'], 'date_creation' => $now,
          ]);
       }
+      $status = $documentType === 'tip' && $generate ? 'generated' : 'submitted';
       $DB->update(self::getTable(), [
-         'status' => 'submitted', 'users_id' => $userId, 'submitter_name' => User::getFriendlyNameById($userId),
+         'status' => $status, 'users_id' => $userId, 'submitter_name' => User::getFriendlyNameById($userId),
          'submitter_email' => $email, 'date_submitted' => $now, 'date_mod' => $now,
       ], ['id' => (int) $intent['id']]);
       if ($documentType === 'tip') {
-         self::followup($ticket, __('TIP preenchido pelo Gestor de Portfólio e disponibilizado para consulta.', 'projectplus'), $userId);
-         TicketPhase::setPhase($ticket, self::phaseFor($documentType, 'submitted'), __('TIP preenchido pelo Gestor de Portfólio.', 'projectplus'));
+         self::followup($ticket, __('TIP - Detalhamento Técnico gerado pelo Gerente de Projetos e disponibilizado para consulta.', 'projectplus'), $userId);
+         TicketPhase::setPhase($ticket, self::phaseFor($documentType, 'generated'), __('TIP - Detalhamento Técnico gerado e disponibilizado para consulta.', 'projectplus'));
       } else {
          self::followup($ticket, sprintf(__('%s preenchido e enviado para análise.', 'projectplus'), $name), $userId);
          TicketPhase::setPhase($ticket, self::phaseFor($documentType, 'submitted'), sprintf(__('%s preenchido e enviado para validação do gestor.', 'projectplus'), $name));
@@ -182,6 +194,9 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
+      if ($documentType === 'tip') {
+         throw new \RuntimeException(__('O TIP - Detalhamento Técnico não exige aceite.', 'projectplus'));
+      }
       if (!self::canReviewForTicket($ticket, $documentType)) {
          throw new \RuntimeException(sprintf(__('Você não possui permissão para validar este %s.', 'projectplus'), $name));
       }
@@ -197,6 +212,9 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
+      if ($documentType === 'tip') {
+         throw new \RuntimeException(__('O TIP - Detalhamento Técnico não pode ser recusado.', 'projectplus'));
+      }
       if (!self::canReviewForTicket($ticket, $documentType)) {
          throw new \RuntimeException(sprintf(__('Você não possui permissão para validar este %s.', 'projectplus'), $name));
       }
@@ -216,7 +234,11 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
-      if ($intent !== null && (string) $intent['status'] === 'submitted') {
+      if ($intent !== null && (string) $intent['status'] === 'generated') {
+         if (self::canViewForTicket($ticket, $documentType)) {
+            self::showGeneratedReadOnly($ticket, $documentType);
+         }
+      } elseif ($intent !== null && (string) $intent['status'] === 'submitted') {
          if (self::canReviewForTicket($ticket, $documentType)) {
             self::showReviewForm($ticket, $documentType);
          } elseif (self::canViewForTicket($ticket, $documentType)) {
@@ -275,7 +297,11 @@ class TicketIntent
       foreach (TipField::getForEntity((int) $ticket->getEntityID()) as $field) {
          self::showField($field, (string) ($ticket->fields['name'] ?? ''));
       }
-      echo "</div></section><footer class='projectplus-tip__footer'><span><i class='ti ti-asterisk'></i> " . self::escape(__('Campos obrigatórios', 'projectplus')) . "</span><button class='btn btn-primary' type='submit' name='save_intent' value='1'><i class='ti ti-send'></i> " . self::escape(sprintf(__('Enviar %s para análise', 'projectplus'), $name)) . '</button></footer></form></div>';
+      $isTechnicalDetail = $documentType === 'tip';
+      $action = $isTechnicalDetail ? 'generate_intent' : 'save_intent';
+      $button = $isTechnicalDetail ? __('Gerar TIP - Detalhamento Técnico', 'projectplus') : sprintf(__('Enviar %s para análise', 'projectplus'), $name);
+      $icon = $isTechnicalDetail ? 'ti ti-file-export' : 'ti ti-send';
+      echo "</div></section><footer class='projectplus-tip__footer'><span><i class='ti ti-asterisk'></i> " . self::escape(__('Campos obrigatórios', 'projectplus')) . "</span><button class='btn btn-primary' type='submit' name='" . self::escape($action) . "' value='1'><i class='" . self::escape($icon) . "'></i> " . self::escape($button) . '</button></footer></form></div>';
    }
 
    private static function getRequesterId(Ticket $ticket): int
@@ -348,10 +374,23 @@ class TicketIntent
          . self::escape($pdfUrl) . "'></iframe></div></section>";
    }
 
+   private static function showGeneratedReadOnly(Ticket $ticket, string $documentType): void
+   {
+      global $CFG_GLPI;
+      $name = self::documentName($documentType);
+      $pdfUrl = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.pdf.php?tickets_id=' . (int) $ticket->getID() . '&document_type=' . rawurlencode($documentType);
+      echo "<section class='projectplus-tip__card projectplus-acceptance__card'><div class='alert alert-success'><i class='ti ti-circle-check'></i> "
+         . self::escape(sprintf(__('%s gerado e disponível para consulta pelos atores autorizados.', 'projectplus'), $name))
+         . "</div><div class='projectplus-acceptance__document'><div><strong>" . self::escape($name)
+         . "</strong><a target='_blank' rel='noopener' href='" . self::escape($pdfUrl) . "'>"
+         . self::escape(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='Documento gerado' src='"
+         . self::escape($pdfUrl) . "'></iframe></div></section>";
+   }
+
    private static function documentType(string $documentType): string { return $documentType === 'pretip' ? 'pretip' : 'tip'; }
    private static function documentName(string $documentType): string { return $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
    private static function documentLongName(string $documentType): string { return $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
-   private static function phaseFor(string $documentType, string $status): string { return $documentType === 'pretip' ? ($status === 'requested' ? 'awaiting_pretip' : 'awaiting_pretip_review') : ($status === 'requested' ? 'awaiting_tip' : 'awaiting_tip_review'); }
+   private static function phaseFor(string $documentType, string $status): string { return $documentType === 'pretip' ? ($status === 'requested' ? 'awaiting_pretip' : 'awaiting_pretip_review') : ($status === 'requested' ? 'awaiting_tip' : 'portfolio_analysis'); }
    private static function getActionUrl(): string { global $CFG_GLPI; return rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.form.php'; }
    private static function text($value): string { $value = trim((string) $value); if (strlen($value) > 65535) { throw new \RuntimeException(__('Um dos campos do documento excede o tamanho permitido.', 'projectplus')); } return $value; }
    private static function escape(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }

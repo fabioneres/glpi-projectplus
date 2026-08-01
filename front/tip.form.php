@@ -25,6 +25,9 @@ try {
    if (isset($_POST['request_intent']) || isset($_POST['request_tip'])) {
       TicketIntent::requestForTicket($ticket, $documentType);
       Session::addMessageAfterRedirect(sprintf(__('%s solicitado ao solicitante.', 'projectplus'), $documentName));
+   } elseif (isset($_POST['generate_intent'])) {
+      TicketIntent::saveForTicket($ticket, $_POST, $documentType, true);
+      Session::addMessageAfterRedirect(sprintf(__('%s gerado e disponibilizado para consulta.', 'projectplus'), $documentName));
    } elseif (isset($_POST['save_intent']) || isset($_POST['save_tip'])) {
       TicketIntent::saveForTicket($ticket, $_POST, $documentType);
       Session::addMessageAfterRedirect(sprintf(__('%s enviado para análise do gerente de projetos.', 'projectplus'), $documentName));

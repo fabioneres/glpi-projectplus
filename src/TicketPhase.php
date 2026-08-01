@@ -334,6 +334,7 @@ class TicketPhase extends CommonDBTM
       if ($status === 'accepted') { return 'accepted'; }
       if ($status === 'rejected') { return 'rejected'; }
       if (in_array($status, ['requested', 'submitted'], true)) { return 'released'; }
+      if ($status === 'generated') { return 'accepted'; }
       return 'disabled';
    }
 

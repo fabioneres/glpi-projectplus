@@ -566,7 +566,6 @@ class ProjectProfile extends GlpiProfile
                      'generate' => ['right' => self::RIGHT_GENERATE_TIP, 'level' => UPDATE],
                      'release' => ['right' => self::RIGHT_REQUEST_TIP, 'level' => UPDATE],
                      'fill' => ['right' => self::RIGHT_FILL_TIP, 'level' => UPDATE],
-                     'accept' => ['right' => self::RIGHT_VALIDATE_TIP, 'level' => UPDATE],
                   ],
                ],
                [

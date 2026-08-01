@@ -67,8 +67,8 @@ class TicketProject
          $missing[] = __('O TIP - Termo de Intenção de Projeto deve estar preenchido e aceito pelo gestor.', 'projectplus');
       }
       $tipDetail = TicketIntent::getForTicket((int) $ticket->getID(), 'tip');
-      if (!$tipDetail || !in_array((string) $tipDetail['status'], ['submitted', 'accepted'], true)) {
-         $missing[] = __('O TIP - Detalhamento Técnico deve estar preenchido pelo gestor responsável.', 'projectplus');
+      if (!$tipDetail || (string) $tipDetail['status'] !== 'generated') {
+         $missing[] = __('O TIP - Detalhamento Técnico deve estar gerado pelo gestor responsável.', 'projectplus');
       }
       if (!TicketPriority::isComplete((int) $ticket->getID())) {
          $missing[] = __('A priorização institucional deve estar concluída.', 'projectplus');
