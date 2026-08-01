@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.4-beta
+
+- Substitui a lista manual de categorias do fluxo pela pesquisa nativa do GLPI, com regras, grupos, ordenação, visões pessoal/global, paginação e seleção de registros.
+- Expõe as colunas ID, Categoria ITIL, Entidade, Grupo e Ativo para pesquisa e configuração de listas nativas.
+- Inclui ações em massa nativas para ativar ou desativar categorias no fluxo de solicitações de projeto.
+
 ## 0.9.1-beta
 
 - Reorganiza as permissões do Project+ em matrizes por domínio: Documentos, Priorização, Fluxo, Projetos, Interações e Configurar.

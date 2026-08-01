@@ -11,6 +11,7 @@ use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectInteraction;
 use GlpiPlugin\Projectplus\ProjectPriority;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
+use GlpiPlugin\Projectplus\TicketCategoryConfig;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -49,6 +50,7 @@ function plugin_init_projectplus(): void
    Plugin::registerClass(Menu::class);
    Plugin::registerClass(ProjectProfile::class, ['addtabon' => [\Profile::class]]);
    Plugin::registerClass(TicketPhase::class, ['addtabon' => [Ticket::class]]);
+   Plugin::registerClass(TicketCategoryConfig::class);
    // Project documents, interactions and prioritization are consolidated in
    // one native Project+ tab, preserving their own internal permissions.
    Plugin::registerClass(ProjectWorkspace::class, ['addtabon' => [Project::class]]);
@@ -59,7 +61,6 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-documents-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-config-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-pagination.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-list-v1.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-import-v1.css';
    // Loaded after legacy layout assets so configuration labels keep their
    // intended width even in browser sessions with cached stylesheets.
