@@ -23,7 +23,13 @@ $redirectUrl = $item instanceof Project
    : $itemtype::getFormURLWithID($itemsId);
 
 try {
-   if (isset($_POST['publish_document'])) {
+   if (isset($_POST['start_tap'])) {
+      if (!$item instanceof Ticket) {
+         throw new \RuntimeException(__('Ação disponível somente para o TAP do chamado.', 'projectplus'));
+      }
+      DocumentAcceptance::startTicketTap($item);
+      Session::addMessageAfterRedirect(__('TAP liberado para preenchimento e abertura autorizada.', 'projectplus'));
+   } elseif (isset($_POST['publish_document'])) {
       DocumentAcceptance::publish($item, (string) ($_POST['document_type'] ?? ''), (int) ($_POST['documents_id'] ?? 0));
       Session::addMessageAfterRedirect(__('Documento publicado para aceite.', 'projectplus'));
    } elseif (isset($_POST['publish_generated'])) {

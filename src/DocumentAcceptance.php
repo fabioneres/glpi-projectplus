@@ -271,12 +271,48 @@ class DocumentAcceptance extends CommonDBTM
    {
       $phase = TicketPhase::getForTicket((int) $ticket->getID());
       $row = self::getForItem($ticket, 'tap');
+      if (!$row && (string) ($phase['phase'] ?? '') === 'awaiting_authorization') {
+         self::showStartTapForm($ticket);
+         return;
+      }
       $allowedPhases = ['authorized_opening', 'awaiting_tap_acceptance', 'project_opened'];
       if (!$row && !in_array((string) ($phase['phase'] ?? ''), $allowedPhases, true)) {
          echo "<div class='alert alert-info'>" . self::esc(__('O TAP será liberado após a autorização de abertura do projeto.', 'projectplus')) . '</div>';
          return;
       }
       self::showDocument($ticket, 'tap', __('TAP - Termo de Abertura do Projeto', 'projectplus'));
+   }
+
+   /** Starts TAP completion and records the opening authorization in one controlled action. */
+   public static function startTicketTap(Ticket $ticket): void
+   {
+      $phase = TicketPhase::getForTicket((int) $ticket->getID());
+      if ((string) ($phase['phase'] ?? '') !== 'awaiting_authorization') {
+         throw new \RuntimeException(__('O TAP ainda não está disponível para preenchimento.', 'projectplus'));
+      }
+      if (!self::canManageDocument($ticket, 'tap', 'fill')) {
+         throw new \RuntimeException(__('Você não possui permissão para preencher o TAP.', 'projectplus'));
+      }
+      if (!Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
+         throw new \RuntimeException(__('Você não possui permissão para autorizar a abertura do projeto.', 'projectplus'));
+      }
+      TicketPhase::setPhase(
+         $ticket,
+         'authorized_opening',
+         __('Abertura autorizada para preenchimento do TAP.', 'projectplus')
+      );
+   }
+
+   private static function showStartTapForm(Ticket $ticket): void
+   {
+      if (!self::canManageDocument($ticket, 'tap', 'fill') || !Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
+         echo "<div class='alert alert-info'>" . self::esc(__('O TAP aguarda um usuário autorizado para a abertura do projeto.', 'projectplus')) . '</div>';
+         return;
+      }
+      global $CFG_GLPI;
+      $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/documentacceptance.form.php';
+      echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::esc(__('Aguardando autorização de abertura.', 'projectplus')) . '</strong><br>' . self::esc(__('Ao iniciar o preenchimento do TAP, a autorização de abertura será registrada.', 'projectplus')) . '</div>';
+      echo "<form method='post' action='" . self::esc($url) . "' class='center'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('itemtype', ['value' => Ticket::class]) . Html::hidden('items_id', ['value' => (int) $ticket->getID()]) . "<button class='btn btn-primary' type='submit' name='start_tap' value='1'><i class='ti ti-pencil'></i> " . self::esc(__('Preencher TAP', 'projectplus')) . '</button></form>';
    }
 
    /**
