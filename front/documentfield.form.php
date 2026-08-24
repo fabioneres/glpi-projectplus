@@ -1,4 +1,79 @@
 <?php
-if(!defined('GLPI_ROOT'))require_once dirname(__DIR__,3).'/inc/includes.php';require_once dirname(__DIR__).'/bootstrap.php';
-use GlpiPlugin\Projectplus\DocumentField;use GlpiPlugin\Projectplus\ConfigPage;
-Session::checkRight('config',UPDATE);$entity=(int)($_REQUEST['entities_id']??Session::getActiveEntity());$type=(string)($_REQUEST['document_type']??'');if(!in_array($type,['tap','tep','ta'],true))Html::displayErrorAndDie('Tipo inválido.');if(isset($_POST['save'])){DocumentField::save($entity,$type,$_POST);Html::redirect('documentfields.php?entities_id='.$entity.'&document_type='.$type);}$f=DocumentField::one((int)($_GET['id']??0),$entity,$type)??['id'=>0,'label'=>'','description'=>'','field_type'=>'text','values'=>'','is_required'=>0,'is_active'=>1,'sort_order'=>10];Html::header('Campo',$_SERVER['PHP_SELF'],'config','plugins');ConfigPage::begin($type.'model');echo "<section class='projectplus-config-card'><div class='projectplus-config-card__body'><form method='post'>".Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]).Html::hidden('entities_id',['value'=>$entity]).Html::hidden('document_type',['value'=>$type]).Html::hidden('id',['value'=>(int)$f['id']])."<table class='tab_cadre_fixe'><tr><td>Campo</td><td><input class='form-control' required name='label' value='".ConfigPage::escape($f['label'])."'></td></tr><tr><td>Tipo</td><td>";Dropdown::showFromArray('field_type',DocumentField::types(),['value'=>$f['field_type']]);echo "</td></tr><tr><td>Ordem</td><td><input class='form-control' type='number' name='sort_order' value='".(int)$f['sort_order']."'></td></tr><tr><td>Descrição</td><td><textarea class='form-control' name='description'>".ConfigPage::escape($f['description'])."</textarea></td></tr><tr><td>Obrigatório</td><td>";Dropdown::showYesNo('is_required',(int)$f['is_required']);echo "</td></tr><tr><td>Ativo</td><td>";Dropdown::showYesNo('is_active',(int)$f['is_active']);echo "</td></tr><tr><td colspan='2' class='center'><button class='btn btn-primary' name='save'>Salvar</button></td></tr></table></form></div></section>";ConfigPage::end();Html::footer();
+
+if (!defined('GLPI_ROOT')) {
+   require_once dirname(__DIR__, 3) . '/inc/includes.php';
+}
+require_once dirname(__DIR__) . '/bootstrap.php';
+
+use GlpiPlugin\Projectplus\ConfigPage;
+use GlpiPlugin\Projectplus\DocumentField;
+
+Session::checkRight('config', UPDATE);
+
+$entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
+$documentType = (string) ($_REQUEST['document_type'] ?? '');
+if (!in_array($documentType, ['tap', 'tep', 'ta'], true)) {
+   Html::displayErrorAndDie(__('Tipo de documento inválido.', 'projectplus'));
+}
+
+if (isset($_POST['save'])) {
+   if (DocumentField::save($entityId, $documentType, $_POST)) {
+      Session::addMessageAfterRedirect(__('Campo salvo com sucesso.', 'projectplus'));
+   } else {
+      Session::addMessageAfterRedirect(__('Não foi possível salvar o campo.', 'projectplus'), false, ERROR);
+   }
+   Html::redirect('documentfields.php?entities_id=' . $entityId . '&document_type=' . rawurlencode($documentType));
+}
+
+$field = DocumentField::one((int) ($_GET['id'] ?? 0), $entityId, $documentType) ?? [
+   'id'          => 0,
+   'label'       => '',
+   'description' => '',
+   'field_type'  => 'text',
+   'values'      => '',
+   'is_required' => 0,
+   'is_active'   => 1,
+   'sort_order'  => 10,
+];
+
+// Registros criados antes da versão atual podem conter NULL nestas colunas.
+$field['label'] = (string) ($field['label'] ?? '');
+$field['description'] = (string) ($field['description'] ?? '');
+$field['values'] = (string) ($field['values'] ?? '');
+$field['field_type'] = (string) ($field['field_type'] ?? 'text');
+
+Html::header(
+   (int) $field['id'] ? __('Editar campo do documento', 'projectplus') : __('Adicionar campo ao documento', 'projectplus'),
+   $_SERVER['PHP_SELF'],
+   'config',
+   'plugins'
+);
+ConfigPage::begin($documentType . 'model');
+
+echo "<section class='projectplus-config-card'><div class='projectplus-config-card__body'>";
+echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
+echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo Html::hidden('entities_id', ['value' => $entityId]);
+echo Html::hidden('document_type', ['value' => $documentType]);
+echo Html::hidden('id', ['value' => (int) $field['id']]);
+
+echo "<table class='tab_cadre_fixe'>";
+echo "<tr class='tab_bg_2'><th colspan='2'>" . ((int) $field['id'] ? __('Editar campo', 'projectplus') : __('Novo campo', 'projectplus')) . '</th></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Campo', 'projectplus') . "</td><td><input class='form-control' required name='label' value='" . ConfigPage::escape($field['label']) . "'></td></tr>";
+echo "<tr class='tab_bg_1'><td>" . __('Tipo', 'projectplus') . '</td><td>';
+Dropdown::showFromArray('field_type', DocumentField::types(), ['value' => $field['field_type']]);
+echo '</td></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Descrição/orientação', 'projectplus') . "</td><td><textarea class='form-control' name='description' rows='3'>" . ConfigPage::escape($field['description']) . "</textarea></td></tr>";
+echo "<tr class='tab_bg_1'><td>" . __('Opções da lista', 'projectplus') . "</td><td><textarea class='form-control' name='values' rows='4'>" . ConfigPage::escape($field['values']) . "</textarea><small>" . __('Uma opção por linha; utilizado somente para lista suspensa.', 'projectplus') . '</small></td></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Ordem', 'projectplus') . "</td><td><input class='form-control' min='0' type='number' name='sort_order' value='" . (int) $field['sort_order'] . "'></td></tr>";
+echo "<tr class='tab_bg_1'><td>" . __('Obrigatório', 'projectplus') . '</td><td>';
+Dropdown::showYesNo('is_required', (int) $field['is_required']);
+echo '</td></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Ativo', 'projectplus') . '</td><td>';
+Dropdown::showYesNo('is_active', (int) $field['is_active']);
+echo '</td></tr>';
+echo "<tr class='tab_bg_1'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='save' value='1'>" . __('Salvar') . '</button></td></tr>';
+echo '</table></form></div></section>';
+
+ConfigPage::end();
+Html::footer();

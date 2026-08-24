@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.5-beta
+
+- Corrige a edição dos campos configuráveis de TAP, TEP e TA quando registros antigos possuem descrição ou valores nulos.
+- Adiciona edição das opções de listas suspensas e passa a renderizá-las nos formulários documentais.
+- Exibe retorno explícito de sucesso ou falha ao salvar um campo documental.
+
 ## 0.9.4-beta
 
 - Substitui a lista manual de categorias do fluxo pela pesquisa nativa do GLPI, com regras, grupos, ordenação, visões pessoal/global, paginação e seleção de registros.
