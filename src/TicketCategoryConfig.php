@@ -4,8 +4,10 @@ namespace GlpiPlugin\Projectplus;
 
 use CommonDBTM;
 use DBmysql;
+use Dropdown;
 use Entity;
 use Group;
+use Html;
 use ITILCategory;
 use MassiveAction;
 use Session;
@@ -145,7 +147,19 @@ class TicketCategoryConfig extends CommonDBTM
          if (!$DB->fieldExists(self::getTable(), $field)) {
             continue;
          }
-         $options[] = ['id' => count($options) + 10, 'table' => User::getTable(), 'field' => 'name', 'name' => $name, 'datatype' => 'itemlink', 'itemtype' => User::class, 'joinparams' => ['jointype' => '', 'linkfield' => $field]];
+         // The link field belongs to the Project+ configuration row. Keeping
+         // it at the option level is required by native Search; placing it in
+         // joinparams makes GLPI fall back to users_id (the last editor),
+         // which incorrectly displays "glpi" for an empty responsibility.
+         $options[] = [
+            'id' => count($options) + 10,
+            'table' => User::getTable(),
+            'field' => 'name',
+            'linkfield' => $field,
+            'name' => $name,
+            'datatype' => 'dropdown',
+            'itemtype' => User::class,
+         ];
       }
       if ($DB->fieldExists(self::getTable(), 'is_recursive')) {
          $options[] = ['id' => 30, 'table' => self::getTable(), 'field' => 'is_recursive', 'name' => __('Recursivo', 'projectplus'), 'datatype' => 'bool'];
@@ -201,8 +215,70 @@ class TicketCategoryConfig extends CommonDBTM
          $prefix = self::class . MassiveAction::CLASS_ACTION_SEPARATOR;
          $actions[$prefix . 'activate'] = __('Ativar para solicitações de projeto', 'projectplus');
          $actions[$prefix . 'deactivate'] = __('Desativar para solicitações de projeto', 'projectplus');
+         $actions[$prefix . 'configure_responsibilities'] = __('Definir responsáveis, recursividade e ativação', 'projectplus');
       }
       return $actions;
+   }
+
+   /**
+    * Renders a native GLPI massive-action form. A value of -1 preserves the
+    * existing setting, while the empty user choice deliberately clears it.
+    */
+   public static function showMassiveActionsSubForm(MassiveAction $ma)
+   {
+      if ($ma->getAction() !== 'configure_responsibilities') {
+         return false;
+      }
+
+      $keep = __('Não alterar', 'projectplus');
+      echo "<div class='row g-3'>";
+      echo "<div class='col-md-6'><label class='form-label' for='dropdown_project_manager_users_id'>"
+         . __('Gerente de projetos', 'projectplus') . '</label>';
+      User::dropdown([
+         'name' => 'project_manager_users_id',
+         'value' => -1,
+         'toadd' => [-1 => $keep],
+         'emptylabel' => __('Em branco', 'projectplus'),
+         'right' => ProjectProfile::RIGHT_FILL_TIP,
+         'entity' => 0,
+         'entity_sons' => true,
+         'width' => '100%',
+      ]);
+      echo '</div>';
+
+      echo "<div class='col-md-6'><label class='form-label' for='dropdown_portfolio_manager_users_id'>"
+         . __('Gestor de portfólio', 'projectplus') . '</label>';
+      User::dropdown([
+         'name' => 'portfolio_manager_users_id',
+         'value' => -1,
+         'toadd' => [-1 => $keep],
+         'emptylabel' => __('Em branco', 'projectplus'),
+         'right' => ProjectProfile::RIGHT_PRIORITY_STRATEGIC,
+         'entity' => 0,
+         'entity_sons' => true,
+         'width' => '100%',
+      ]);
+      echo '</div>';
+
+      foreach ([
+         'is_recursive' => __('Recursivo', 'projectplus'),
+         'is_active' => __('Ativo', 'projectplus'),
+      ] as $field => $label) {
+         echo "<div class='col-md-6'><label class='form-label' for='dropdown_{$field}'>" . $label . '</label>';
+         Dropdown::showFromArray($field, [
+            -1 => $keep,
+            0 => __('Não'),
+            1 => __('Sim'),
+         ], ['value' => -1]);
+         echo '</div>';
+      }
+      echo '</div>';
+      echo Html::submit(_sx('button', 'Post'), [
+         'id' => 'projectplusmassiveconfig',
+         'class' => 'btn btn-primary mt-3',
+      ]);
+
+      return true;
    }
 
    public static function processMassiveActionsForOneItemtype(
@@ -211,8 +287,24 @@ class TicketCategoryConfig extends CommonDBTM
       array $ids
    ) {
       $action = $ma->getAction();
-      if (!in_array($action, ['activate', 'deactivate'], true)) {
+      if (!in_array($action, ['activate', 'deactivate', 'configure_responsibilities'], true)) {
          return;
+      }
+
+      $massiveValues = [
+         'project_manager_users_id' => (int) ($_POST['project_manager_users_id'] ?? -1),
+         'portfolio_manager_users_id' => (int) ($_POST['portfolio_manager_users_id'] ?? -1),
+         'is_recursive' => (int) ($_POST['is_recursive'] ?? -1),
+         'is_active' => (int) ($_POST['is_active'] ?? -1),
+      ];
+      $rights = [
+         'project_manager_users_id' => ProjectProfile::RIGHT_FILL_TIP,
+         'portfolio_manager_users_id' => ProjectProfile::RIGHT_PRIORITY_STRATEGIC,
+      ];
+      if ($action === 'configure_responsibilities' && !array_filter($massiveValues, static function (int $value): bool {
+         return $value >= 0;
+      })) {
+         Session::addMessageAfterRedirect(__('Selecione ao menos uma configuração para alterar.', 'projectplus'), false, ERROR);
       }
 
       foreach (array_keys($ids) as $id) {
@@ -223,11 +315,41 @@ class TicketCategoryConfig extends CommonDBTM
             continue;
          }
 
-         $updated = $item->update([
+         $input = [
             'id' => (int) $id,
-            'is_active' => $action === 'activate' ? 1 : 0,
             'users_id' => (int) Session::getLoginUserID(),
-         ]);
+         ];
+         if ($action === 'activate' || $action === 'deactivate') {
+            $input['is_active'] = $action === 'activate' ? 1 : 0;
+         } else {
+            $valid = true;
+            foreach ($massiveValues as $field => $value) {
+               if ($value < 0) {
+                  continue;
+               }
+               if (isset($rights[$field]) && $value > 0) {
+                  $user = new User();
+                  if (!$user->getFromDB($value) || !$user->hasRight($rights[$field], READ, (int) $item->fields['entities_id'])) {
+                     $valid = false;
+                     break;
+                  }
+               }
+               $input[$field] = $value;
+            }
+            if (!$valid) {
+               Session::addMessageAfterRedirect(
+                  __('O responsável selecionado não possui a permissão Project+ exigida em uma das entidades selecionadas.', 'projectplus'),
+                  false,
+                  ERROR
+               );
+            }
+            if (!$valid || count($input) === 2) {
+               $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+               continue;
+            }
+         }
+
+         $updated = $item->update($input);
          $ma->itemDone(
             $item->getType(),
             $id,

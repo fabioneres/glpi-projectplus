@@ -55,9 +55,13 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       table.querySelectorAll('tbody tr').forEach(function (row) {
          const cells = row.querySelectorAll('td');
-         const id = cells[idIndex] ? cells[idIndex].textContent.trim() : '';
+         const idText = cells[idIndex] ? cells[idIndex].textContent.trim() : '';
+         // Native GLPI themes can render the identifier as "1" or "ID: 1".
+         // Keep the numeric token so the edit link always receives its id.
+         const idMatch = idText.match(/(\d+)\s*$/);
+         const id = idMatch ? idMatch[1] : '';
          const actionCell = cells[actionIndex];
-         if (!actionCell || !/^\\d+$/.test(id)) {
+         if (!actionCell || id === '') {
             return;
          }
          const link = document.createElement('a');
