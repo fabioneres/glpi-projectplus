@@ -9,6 +9,7 @@ use Group;
 use ITILCategory;
 use MassiveAction;
 use Session;
+use User;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -42,6 +43,13 @@ class TicketCategoryConfig extends CommonDBTM
 
       return ($full ? rtrim((string) $CFG_GLPI['root_doc'], '/') : '')
          . '/plugins/projectplus/front/ticketconfig.php';
+   }
+   public static function getFormURL($full = true): string
+   {
+      global $CFG_GLPI;
+
+      return ($full ? rtrim((string) $CFG_GLPI['root_doc'], '/') : '')
+         . '/plugins/projectplus/front/ticketconfig.form.php';
    }
 
    /**
@@ -126,6 +134,21 @@ class TicketCategoryConfig extends CommonDBTM
          'field' => 'is_active',
          'name' => __('Ativo', 'projectplus'),
          'datatype' => 'bool',
+      ];
+      foreach (['project_manager_users_id' => __('Gerente de projetos', 'projectplus'), 'portfolio_manager_users_id' => __('Gestor de portfólio', 'projectplus')] as $field => $name) {
+         $options[] = ['id' => count($options) + 10, 'table' => User::getTable(), 'field' => 'name', 'name' => $name, 'datatype' => 'itemlink', 'itemtype' => User::class, 'joinparams' => ['jointype' => '', 'linkfield' => $field]];
+      }
+      $options[] = ['id' => 30, 'table' => self::getTable(), 'field' => 'is_recursive', 'name' => __('Recursivo', 'projectplus'), 'datatype' => 'bool'];
+      $options[] = [
+         // This is deliberately virtual: it is only a stable UI action and
+         // must never become a database field or a search criterion.
+         'id' => 31,
+         'table' => self::getTable(),
+         'field' => '_virtual_action',
+         'name' => __('Ação', 'projectplus'),
+         'datatype' => 'text',
+         'nosearch' => true,
+         'massiveaction' => false,
       ];
       $options[] = [
          'id' => 5,

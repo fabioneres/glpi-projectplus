@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.6-beta
+
+- Separa os modelos, campos e configurações do **TIP - Termo de Intenção de Projeto** e do **TIP - Detalhamento Técnico**.
+- Migra os campos existentes para o TIP e cria uma lista inicial independente para o TIP-DT, sem alterar respostas ou PDFs históricos.
+- Remove o preenchimento automático por correspondência de nome entre documentos; cada campo de TIP, TIP-DT, TAP, TEP e TA agora pode ter uma origem explícita configurada (um campo do chamado ou de um documento anterior do fluxo), sugerida ao abrir o formulário e sempre revisável antes de salvar.
+- Impede alterações diretas de TAP, TEP e TA depois de publicados ou aceitos; a revisão só é liberada após recusa formal.
+- Mantém novos modelos documentais sem campos predefinidos, preservando os campos já configurados em instalações existentes.
+- Inclui a visão central de solicitações de projeto ("Solicitações de projeto" na Central e em `front/requests.php`) e adequa sua apresentação ao padrão visual nativo do GLPI.
+- Restringe a atualização manual de fase ao cancelamento formal da solicitação; as demais fases passam a avançar automaticamente pelas próprias ações do fluxo (solicitar, preencher, gerar, enviar, aceitar/recusar).
+- Expande automaticamente, na jornada documental, a etapa correspondente à fase atual do chamado.
+- Adiciona ícones de ajuda contextual junto ao rótulo dos campos configuráveis, exibindo a descrição/orientação cadastrada.
+- Amplia a configuração do fluxo por entidade e categoria ITIL com campos para Gerente de Projetos, Gestor de Portfólio, recursividade e ativação, com edição por linha na própria lista. **Estes dois campos ainda são apenas informativos nesta versão**: a atribuição é salva e validada (usuário precisa ter a permissão Project+ correspondente), mas ainda não é consultada pelas regras de preenchimento/aceite de TAP, TEP e TA — isso fica para uma próxima versão.
+- Moderniza a tela de edição da configuração de categorias do fluxo com componentes e tema nativos do GLPI.
+
 ## 0.9.5-beta
 
 - Corrige a edição dos campos configuráveis de TAP, TEP e TA quando registros antigos possuem descrição ou valores nulos.

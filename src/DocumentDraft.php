@@ -34,4 +34,5 @@ class DocumentDraft extends CommonDBTM
       if (!$draft || (string)$draft['content'] === '') throw new \RuntimeException(__('Salve o rascunho antes de gerar o documento.', 'projectplus'));
       $DB->update(self::getTable(), ['status'=>'generated','generated_content'=>(string)$draft['content'],'version'=>(int)$draft['version']+1,'users_id'=>(int)Session::getLoginUserID(),'date_mod'=>date('Y-m-d H:i:s')], ['id'=>(int)$draft['id']]);
    }
+
 }

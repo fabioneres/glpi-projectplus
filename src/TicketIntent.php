@@ -43,7 +43,7 @@ class TicketIntent
    public static function canRequestForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
       return TicketConfig::isEnabledForTicket($ticket)
-         && TipConfig::isActiveForEntity((int) $ticket->getEntityID())
+         && TipConfig::isActiveForEntity((int) $ticket->getEntityID(), self::documentType($documentType))
          && Session::haveRight(ProjectProfile::getIntentRequestRight(self::documentType($documentType)), UPDATE);
    }
 
@@ -52,7 +52,7 @@ class TicketIntent
       $documentType = self::documentType($documentType);
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
       if (!$intent || !in_array((string) $intent['status'], ['requested', 'returned'], true)
-         || !TicketConfig::isEnabledForTicket($ticket) || !TipConfig::isActiveForEntity((int) $ticket->getEntityID())) {
+         || !TicketConfig::isEnabledForTicket($ticket) || !TipConfig::isActiveForEntity((int) $ticket->getEntityID(), $documentType)) {
          return false;
       }
 
@@ -112,7 +112,7 @@ class TicketIntent
       if (self::getForTicket((int) $ticket->getID(), $documentType) !== null) {
          throw new \RuntimeException(sprintf(__('Já existe um %s solicitado ou enviado para este chamado.', 'projectplus'), $name));
       }
-      TipField::ensureDefaults((int) $ticket->getEntityID());
+      TipField::ensureDefaults((int) $ticket->getEntityID(), $documentType);
       global $DB;
       $now = date('Y-m-d H:i:s');
       $DB->insert(self::getTable(), [
@@ -148,7 +148,7 @@ class TicketIntent
       if ($intent === null) {
          throw new \RuntimeException(sprintf(__('O %s precisa ser solicitado pela área responsável antes do preenchimento.', 'projectplus'), $name));
       }
-      $fields = TipField::getForEntity((int) $ticket->getEntityID());
+      $fields = TipField::getForEntity((int) $ticket->getEntityID(), $documentType);
       $answers = is_array($input['tip_fields'] ?? null) ? $input['tip_fields'] : [];
       $validated = [];
       foreach ($fields as $field) {
@@ -284,7 +284,7 @@ class TicketIntent
 
    private static function showForm(Ticket $ticket, string $documentType): void
    {
-      $config = TipConfig::getForEntity((int) $ticket->getEntityID());
+      $config = TipConfig::getForEntity((int) $ticket->getEntityID(), $documentType);
       $userId = (int) Session::getLoginUserID();
       $requesterId = self::getRequesterId($ticket);
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
@@ -295,13 +295,13 @@ class TicketIntent
          ? ($releasedBy > 0 ? $releasedBy : $userId)
          : ($requesterId > 0 ? $requesterId : $userId);
       $name = self::documentName($documentType);
-      $title = $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : (string) $config['title'];
+      $title = (string) $config['title'];
       echo "<div class='projectplus-tip'><form method='post' action='" . self::escape(self::getActionUrl()) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . Html::hidden('document_type', ['value' => $documentType]);
       echo "<header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-text'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::escape(__('Solicitação de projeto', 'projectplus')) . "</span><h2>" . self::escape($title) . '</h2><p>' . nl2br(self::escape((string) $config['introduction'])) . '</p></div></header>';
       echo "<section class='projectplus-tip__card'><div class='projectplus-tip__section-title'><i class='ti ti-info-circle'></i><div><h3>" . self::escape(__('Identificação do preenchimento', 'projectplus')) . '</h3><p>' . self::escape(__('Confira os dados antes de enviar o formulário.', 'projectplus')) . '</p></div></div><div class="projectplus-tip__summary"><div><span>' . self::escape(__('Ticket', 'projectplus')) . '</span><strong>#' . (int) $ticket->getID() . '</strong></div><div><span>' . self::escape(__('Nome de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(User::getFriendlyNameById($displayUserId)) . '</strong></div><div><span>' . self::escape(__('E-mail de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(UserEmail::getDefaultForUser($displayUserId)) . '</strong></div></div></section>';
       echo "<section class='projectplus-tip__card projectplus-tip__fields'><div class='projectplus-tip__grid'>";
-      foreach (TipField::getForEntity((int) $ticket->getEntityID()) as $field) {
-         self::showField($field, (string) ($ticket->fields['name'] ?? ''));
+      foreach (TipField::getForEntity((int) $ticket->getEntityID(), $documentType) as $field) {
+         self::showField($field, FieldSource::getValue($ticket, (string) ($field['source'] ?? '')));
       }
       $isTechnicalDetail = $documentType === 'tip';
       $action = $isTechnicalDetail ? 'generate_intent' : 'save_intent';
@@ -342,13 +342,14 @@ class TicketIntent
    }
 
    /** @param array<string,mixed> $field */
-   private static function showField(array $field, string $ticketName): void
+   private static function showField(array $field, string $value): void
    {
       $id = (int) $field['id']; $type = (string) $field['field_type'];
       if ($type === 'section') { echo "</div><div class='projectplus-tip__section-title projectplus-tip__section-title--divider'><i class='ti ti-list-details'></i><div><h3>" . self::escape((string) $field['label']) . '</h3></div></div><div class="projectplus-tip__grid">'; return; }
       $required = (int) $field['is_required'] === 1; $name = 'tip_fields[' . $id . ']';
-      $value = (string) $field['name'] === 'project_name' ? $ticketName : '';
-      echo "<div class='projectplus-tip__field" . ($type === 'textarea' ? ' projectplus-tip__field--wide' : '') . "'><label for='tip-field-" . $id . "'>" . self::escape((string) $field['label'] . ($required ? ' *' : '')) . '</label>' . ((string) $field['description'] !== '' ? '<small>' . self::escape((string) $field['description']) . '</small>' : '') . '<div>';
+      $help = (string) ($field['description'] ?? '');
+      $helpIcon = $help !== '' ? " <i class='ti ti-help-circle text-muted' title='" . self::escape($help) . "' aria-label='" . self::escape(__('Ajuda', 'projectplus')) . "'></i>" : '';
+      echo "<div class='projectplus-tip__field" . ($type === 'textarea' ? ' projectplus-tip__field--wide' : '') . "'><label for='tip-field-" . $id . "'>" . self::escape((string) $field['label'] . ($required ? ' *' : '')) . $helpIcon . '</label>' . ($help !== '' ? '<small>' . self::escape($help) . '</small>' : '') . '<div>';
       if ($type === 'textarea') { echo "<textarea id='tip-field-" . $id . "' class='form-control' name='" . self::escape($name) . "' rows='5'" . ($required ? ' required' : '') . '>' . self::escape($value) . '</textarea>'; }
       elseif ($type === 'select') { $values = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $field['values']))); Dropdown::showFromArray($name, array_combine($values, $values) ?: [], ['value' => $value, 'id' => 'tip-field-' . $id]); }
       else { $htmlType = in_array($type, ['number', 'date'], true) ? $type : 'text'; echo "<input id='tip-field-" . $id . "' class='form-control' type='" . $htmlType . "' name='" . self::escape($name) . "' value='" . self::escape($value) . "'" . ($required ? ' required' : '') . '>'; }

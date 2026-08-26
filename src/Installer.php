@@ -181,6 +181,9 @@ class Installer
             `name` varchar(255) NOT NULL DEFAULT '',
             `comment` text NULL,
             `is_active` tinyint NOT NULL DEFAULT 1,
+            `project_manager_users_id` int unsigned NOT NULL DEFAULT 0,
+            `portfolio_manager_users_id` int unsigned NOT NULL DEFAULT 0,
+            `is_recursive` tinyint NOT NULL DEFAULT 0,
             `date_mod` timestamp NULL DEFAULT NULL,
             `date_creation` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
@@ -188,6 +191,9 @@ class Installer
             KEY `is_active` (`is_active`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
       );
+      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+      foreach (['project_manager_users_id' => "int unsigned NOT NULL DEFAULT 0", 'portfolio_manager_users_id' => "int unsigned NOT NULL DEFAULT 0", 'is_recursive' => "tinyint NOT NULL DEFAULT 0"] as $field => $definition) if (!$DB->fieldExists($table, $field)) $migration->addField($table, $field, $definition, ['after' => 'is_active']);
+      $migration->executeMigration();
    }
 
    /** Adds the native ITIL-template fields while preserving existing models. */
@@ -400,13 +406,12 @@ class Installer
       global $DB;
 
       $table = TipConfig::getTable();
-      if ($DB->tableExists($table)) {
-         return;
-      }
-      $DB->doQuery(
-         "CREATE TABLE `{$table}` (
+      if (!$DB->tableExists($table)) {
+         $DB->doQuery(
+            "CREATE TABLE `{$table}` (
             `id` int unsigned NOT NULL AUTO_INCREMENT,
             `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `document_type` varchar(16) NOT NULL DEFAULT 'pretip',
             `is_active` tinyint NOT NULL DEFAULT 1,
             `title` varchar(255) NOT NULL DEFAULT '',
             `introduction` text NULL,
@@ -414,9 +419,16 @@ class Installer
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
-            UNIQUE KEY `entities_id` (`entities_id`)
+            UNIQUE KEY `entity_document_type` (`entities_id`, `document_type`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
-      );
+         );
+      }
+      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+      if (!$DB->fieldExists($table, 'document_type')) {
+         $migration->addField($table, 'document_type', "varchar(16) NOT NULL DEFAULT 'pretip'", ['after' => 'entities_id']);
+      }
+      $migration->executeMigration();
+      self::ensureTipDocumentTypeKey($table, 'entity_document_type', ['entities_id', 'document_type'], 'entities_id');
    }
 
    private static function ensureTipFieldTable(): void
@@ -425,27 +437,59 @@ class Installer
       global $DB;
 
       $table = TipField::getTable();
-      if ($DB->tableExists($table)) {
-         return;
-      }
-      $DB->doQuery(
-         "CREATE TABLE `{$table}` (
+      if (!$DB->tableExists($table)) {
+         $DB->doQuery(
+            "CREATE TABLE `{$table}` (
             `id` int unsigned NOT NULL AUTO_INCREMENT,
             `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `document_type` varchar(16) NOT NULL DEFAULT 'pretip',
             `name` varchar(64) NOT NULL DEFAULT '',
             `label` varchar(255) NOT NULL DEFAULT '',
             `description` text NULL,
             `field_type` varchar(32) NOT NULL DEFAULT 'textarea',
             `values` text NULL,
+            `source` varchar(128) NOT NULL DEFAULT '',
             `is_required` tinyint NOT NULL DEFAULT 0,
             `is_active` tinyint NOT NULL DEFAULT 1,
             `sort_order` int unsigned NOT NULL DEFAULT 0,
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
-            KEY `entity_order` (`entities_id`, `sort_order`)
+            KEY `entity_type_order` (`entities_id`, `document_type`, `sort_order`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
-      );
+         );
+      }
+      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+      if (!$DB->fieldExists($table, 'document_type')) {
+         // Existing shared fields remain assigned to the original TIP. The
+         // technical TIP starts with its own independent defaults on demand.
+         $migration->addField($table, 'document_type', "varchar(16) NOT NULL DEFAULT 'pretip'", ['after' => 'entities_id']);
+      }
+      if (!$DB->fieldExists($table, 'source')) {
+         $migration->addField($table, 'source', "varchar(128) NOT NULL DEFAULT ''", ['after' => 'values']);
+      }
+      $migration->executeMigration();
+      self::ensureTipDocumentTypeKey($table, 'entity_type_order', ['entities_id', 'document_type', 'sort_order']);
+   }
+
+   /** @param array<int,string> $fields */
+   private static function ensureTipDocumentTypeKey(string $table, string $name, array $fields, string $legacyUnique = ''): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $keys = [];
+      foreach ($DB->request("SHOW INDEX FROM `{$table}`") as $index) {
+         $keys[(string) ($index['Key_name'] ?? '')] = true;
+      }
+      if ($legacyUnique !== '' && isset($keys[$legacyUnique])) {
+         $DB->doQuery("ALTER TABLE `{$table}` DROP INDEX `{$legacyUnique}`");
+      }
+      if (!isset($keys[$name])) {
+         $columns = implode('`, `', $fields);
+         $unique = $legacyUnique !== '' ? 'UNIQUE ' : '';
+         $DB->doQuery("ALTER TABLE `{$table}` ADD {$unique}KEY `{$name}` (`{$columns}`)");
+      }
    }
 
    private static function ensureTipAnswerTable(): void
@@ -530,7 +574,10 @@ class Installer
    private static function ensureDocumentFieldTable(): void
    {
       global $DB; $t = DocumentField::getTable();
-      if (!$DB->tableExists($t)) $DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `entities_id` int unsigned NOT NULL DEFAULT 0, `document_type` varchar(8) NOT NULL, `label` varchar(255) NOT NULL, `description` text NULL, `field_type` varchar(32) NOT NULL DEFAULT 'text', `values` text NULL, `is_required` tinyint NOT NULL DEFAULT 0, `is_active` tinyint NOT NULL DEFAULT 1, `sort_order` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), KEY `entity_type_order` (`entities_id`,`document_type`,`sort_order`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+      if (!$DB->tableExists($t)) $DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `entities_id` int unsigned NOT NULL DEFAULT 0, `document_type` varchar(8) NOT NULL, `label` varchar(255) NOT NULL, `description` text NULL, `field_type` varchar(32) NOT NULL DEFAULT 'text', `values` text NULL, `source` varchar(128) NOT NULL DEFAULT '', `is_required` tinyint NOT NULL DEFAULT 0, `is_active` tinyint NOT NULL DEFAULT 1, `sort_order` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), KEY `entity_type_order` (`entities_id`,`document_type`,`sort_order`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+      if (!$DB->fieldExists($t, 'source')) $migration->addField($t, 'source', "varchar(128) NOT NULL DEFAULT ''", ['after' => 'values']);
+      $migration->executeMigration();
    }
 
    private static function ensureDocumentDraftTable(): void

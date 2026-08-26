@@ -12,6 +12,7 @@ use GlpiPlugin\Projectplus\ProjectInteraction;
 use GlpiPlugin\Projectplus\ProjectPriority;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
 use GlpiPlugin\Projectplus\TicketCategoryConfig;
+use GlpiPlugin\Projectplus\CentralRequests;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -55,6 +56,7 @@ function plugin_init_projectplus(): void
    // one native Project+ tab, preserving their own internal permissions.
    Plugin::registerClass(ProjectWorkspace::class, ['addtabon' => [Project::class]]);
    $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
+   $PLUGIN_HOOKS[Hooks::DISPLAY_CENTRAL]['projectplus'] = [CentralRequests::class, 'display'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus.css';
    // Dedicated versioned asset to refresh the unified document-journey UI.

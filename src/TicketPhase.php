@@ -52,13 +52,9 @@ class TicketPhase extends CommonDBTM
    private static function getManualPhases(): array
    {
       $phases = self::getPhases();
-      return array_intersect_key($phases, array_flip([
-         'classification',
-         'portfolio_analysis',
-         'awaiting_authorization',
-         'authorized_opening',
-         'rejected_cancelled',
-      ]));
+      // Normal phases advance only through their workflow actions. Manual
+      // intervention is reserved for the auditable exception of cancellation.
+      return ['rejected_cancelled' => $phases['rejected_cancelled']];
    }
 
    public static function postTicketAdd(Ticket $ticket): void
@@ -141,7 +137,7 @@ class TicketPhase extends CommonDBTM
       if (!array_key_exists($phase, self::getManualPhases())) {
          return false;
       }
-      if ($phase === 'rejected_cancelled' && $justification === '') {
+      if ($phase !== 'rejected_cancelled' || $justification === '') {
          return false;
       }
       if ($phase === 'authorized_opening' && !TicketPriority::isComplete((int) $ticket->getID())) {
@@ -235,19 +231,21 @@ class TicketPhase extends CommonDBTM
       $intent = TicketIntent::getForTicket((int) $ticket->getID(), 'tip');
       $tipState = self::getIntentVisualState($intent);
       $tapState = DocumentAcceptance::getVisualState(DocumentAcceptance::getForItem($ticket, 'tap'));
-      if ($tapState === 'disabled' && (string) $phase['phase'] === 'authorized_opening') {
+      $currentPhase = (string) $phase['phase'];
+      $technicalPriorityComplete = TicketPriority::isStrategicPriorityAvailable($ticket);
+      if ($tapState === 'disabled' && $currentPhase === 'authorized_opening') {
          $tapState = 'released';
       }
-      self::showDocumentStep('TIP - Termo de Intenção de Projeto', 'ti ti-file-search', $preTipState, false, static function () use ($ticket): void {
+      self::showDocumentStep('TIP - Termo de Intenção de Projeto', 'ti ti-file-search', $preTipState, in_array($currentPhase, ['awaiting_pretip', 'awaiting_pretip_review'], true), static function () use ($ticket): void {
          TicketIntent::showForTicket($ticket, 'pretip');
       });
-      self::showDocumentStep('TIP - Detalhamento Técnico', 'ti ti-file-text', $tipState, false, static function () use ($ticket): void {
+      self::showDocumentStep('TIP - Detalhamento Técnico', 'ti ti-file-text', $tipState, $currentPhase === 'awaiting_tip', static function () use ($ticket): void {
          TicketIntent::showForTicket($ticket);
       });
       if (ProjectPriority::canViewPriorityType('technical')) {
          $tipDetailGenerated = (string) ($intent['status'] ?? '') === 'generated';
          $technicalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'technical') ? 'accepted' : ($tipDetailGenerated ? 'released' : 'disabled');
-         self::showDocumentStep(__('Priorização técnica', 'projectplus'), 'ti ti-list-numbers', $technicalState, false, static function () use ($ticket, $tipDetailGenerated): void {
+         self::showDocumentStep(__('Priorização técnica', 'projectplus'), 'ti ti-list-numbers', $technicalState, $currentPhase === 'portfolio_analysis' && !$technicalPriorityComplete, static function () use ($ticket, $tipDetailGenerated): void {
             if (!$tipDetailGenerated) {
                echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Gere o TIP - Detalhamento Técnico para liberar esta etapa.', 'projectplus')) . '</div>';
                return;
@@ -256,9 +254,8 @@ class TicketPhase extends CommonDBTM
          });
       }
       if (ProjectPriority::canViewPriorityType('institutional')) {
-         $technicalPriorityComplete = TicketPriority::isStrategicPriorityAvailable($ticket);
          $institutionalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'institutional') ? 'accepted' : ($technicalPriorityComplete ? 'released' : 'disabled');
-         self::showDocumentStep(__('Priorização estratégica', 'projectplus'), 'ti ti-list-numbers', $institutionalState, false, static function () use ($ticket, $technicalPriorityComplete): void {
+         self::showDocumentStep(__('Priorização estratégica', 'projectplus'), 'ti ti-list-numbers', $institutionalState, $currentPhase === 'portfolio_analysis' && $technicalPriorityComplete, static function () use ($ticket, $technicalPriorityComplete): void {
             if (!$technicalPriorityComplete) {
                echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização estratégica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Conclua a priorização técnica para liberar esta etapa.', 'projectplus')) . '</div>';
                return;
@@ -266,7 +263,7 @@ class TicketPhase extends CommonDBTM
             TicketPriority::showForTicket($ticket, 'institutional');
          });
       }
-      self::showDocumentStep('TAP - Termo de Abertura do Projeto', 'ti ti-file-description', $tapState, false, static function () use ($ticket): void {
+      self::showDocumentStep('TAP - Termo de Abertura do Projeto', 'ti ti-file-description', $tapState, in_array($currentPhase, ['awaiting_authorization', 'authorized_opening', 'awaiting_tap_acceptance'], true), static function () use ($ticket): void {
          DocumentAcceptance::showTicketDocument($ticket);
       });
       echo '</div>';
@@ -274,7 +271,7 @@ class TicketPhase extends CommonDBTM
 
       TicketProject::showForTicket($ticket);
 
-      if (Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE)) {
+      if (Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE) && $currentPhase !== 'rejected_cancelled') {
          self::showUpdateForm($ticket, $phase);
       }
       if (Session::haveRight(ProjectProfile::RIGHT_REQUEST_DOCUMENTS, READ)) {
@@ -287,16 +284,13 @@ class TicketPhase extends CommonDBTM
    /** @param array<string, mixed> $phase */
    private static function showUpdateForm(Ticket $ticket, array $phase): void
    {
-      echo "<section class='projectplus-phase-card projectplus-phase-form'><div class='projectplus-phase-card__heading'><i class='ti ti-pencil'></i><div><h3>" . self::escape(__('Atualizar fase', 'projectplus')) . '</h3><p>' . self::escape(__('Registre a próxima etapa ou uma decisão do fluxo.', 'projectplus')) . "</p></div></div><form method='post' action='" . self::escape(self::getActionUrl()) . "'>";
+      echo "<section class='projectplus-phase-card projectplus-phase-form'><div class='projectplus-phase-card__heading'><i class='ti ti-alert-triangle'></i><div><h3>" . self::escape(__('Cancelar solicitação', 'projectplus')) . '</h3><p>' . self::escape(__('Use somente em situação excepcional. As demais fases são atualizadas automaticamente pelas ações do fluxo.', 'projectplus')) . "</p></div></div><form method='post' action='" . self::escape(self::getActionUrl()) . "'>";
       echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
       echo Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]);
-      echo "<div class='projectplus-phase-form__grid'><div class='projectplus-phase-form__field'><label>" . self::escape(__('Nova fase', 'projectplus')) . "</label><div class='projectplus-phase-select'>";
-      Dropdown::showFromArray('phase', self::getManualPhases(), ['value' => (string) $phase['phase']]);
-      echo '</div>';
-      self::showPhaseSelectScript();
-      echo "</div><div class='projectplus-phase-form__field projectplus-phase-form__field--wide'><label>" . self::escape(__('Justificativa', 'projectplus')) . '</label>';
-      echo "<textarea class='form-control' name='justification' rows='4'></textarea><small><i class='ti ti-info-circle'></i>" . self::escape(self::label('Obrigat&oacute;ria em caso de recusa ou cancelamento.')) . '</small></div></div>';
-      echo "<footer class='projectplus-phase-form__footer'><span>" . self::escape(__('A alteração ficará registrada no histórico do fluxo.', 'projectplus')) . "</span><button class='btn btn-primary' type='submit' name='update_phase' value='1'><i class='ti ti-device-floppy'></i> " . self::escape(__('Salvar', 'projectplus')) . '</button></footer></form></section>';
+      echo Html::hidden('phase', ['value' => 'rejected_cancelled']);
+      echo "<div class='projectplus-phase-form__field projectplus-phase-form__field--wide'><label>" . self::escape(__('Justificativa', 'projectplus')) . '</label>';
+      echo "<textarea class='form-control' name='justification' rows='4' required></textarea><small><i class='ti ti-info-circle'></i>" . self::escape(__('Obrigatória para registrar o cancelamento.', 'projectplus')) . '</small></div>';
+      echo "<footer class='projectplus-phase-form__footer'><span>" . self::escape(__('A alteração ficará registrada no histórico do fluxo.', 'projectplus')) . "</span><button class='btn btn-danger' type='submit' name='update_phase' value='1'><i class='ti ti-ban'></i> " . self::escape(__('Cancelar solicitação', 'projectplus')) . '</button></footer></form></section>';
    }
 
    private static function showHistory(int $ticketId): void

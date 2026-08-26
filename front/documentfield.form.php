@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\DocumentField;
+use GlpiPlugin\Projectplus\FieldSource;
 
 Session::checkRight('config', UPDATE);
 
@@ -31,6 +32,7 @@ $field = DocumentField::one((int) ($_GET['id'] ?? 0), $entityId, $documentType) 
    'description' => '',
    'field_type'  => 'text',
    'values'      => '',
+   'source'      => '',
    'is_required' => 0,
    'is_active'   => 1,
    'sort_order'  => 10,
@@ -41,6 +43,7 @@ $field['label'] = (string) ($field['label'] ?? '');
 $field['description'] = (string) ($field['description'] ?? '');
 $field['values'] = (string) ($field['values'] ?? '');
 $field['field_type'] = (string) ($field['field_type'] ?? 'text');
+$field['source'] = (string) ($field['source'] ?? '');
 
 Html::header(
    (int) $field['id'] ? __('Editar campo do documento', 'projectplus') : __('Adicionar campo ao documento', 'projectplus'),
@@ -65,6 +68,9 @@ Dropdown::showFromArray('field_type', DocumentField::types(), ['value' => $field
 echo '</td></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Descrição/orientação', 'projectplus') . "</td><td><textarea class='form-control' name='description' rows='3'>" . ConfigPage::escape($field['description']) . "</textarea></td></tr>";
 echo "<tr class='tab_bg_1'><td>" . __('Opções da lista', 'projectplus') . "</td><td><textarea class='form-control' name='values' rows='4'>" . ConfigPage::escape($field['values']) . "</textarea><small>" . __('Uma opção por linha; utilizado somente para lista suspensa.', 'projectplus') . '</small></td></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Preencher com origem', 'projectplus') . '</td><td>';
+Dropdown::showFromArray('source', FieldSource::getOptions($entityId, $documentType), ['value' => $field['source']]);
+echo '<small>' . __('Sugere o valor ao criar o documento; o responsável ainda pode alterá-lo.', 'projectplus') . '</small></td></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Ordem', 'projectplus') . "</td><td><input class='form-control' min='0' type='number' name='sort_order' value='" . (int) $field['sort_order'] . "'></td></tr>";
 echo "<tr class='tab_bg_1'><td>" . __('Obrigatório', 'projectplus') . '</td><td>';
 Dropdown::showYesNo('is_required', (int) $field['is_required']);

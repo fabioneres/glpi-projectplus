@@ -24,8 +24,8 @@ $item = new $itemtype();
 if (!$item->getFromDB($id) || !Session::haveAccessToEntity((int) $item->getEntityID())) {
    Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
 }
-if (!DocumentAcceptance::canManageDocument($item, $type)) {
-   Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
+if (!DocumentAcceptance::canEditDraft($item, $type)) {
+   Html::displayErrorAndDie(__('Este documento não pode ser alterado depois de publicado ou aceito. Aguarde uma recusa formal para revisá-lo.', 'projectplus'));
 }
 if (isset($_POST['generate_document']) && !DocumentAcceptance::canManageDocument($item, $type, 'generate')) {
    Html::displayErrorAndDie(__('Sem permissão para gerar este documento.', 'projectplus'));
