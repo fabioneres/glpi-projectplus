@@ -14,6 +14,7 @@ if ($id <= 0 || !$config->getFromDB($id)) {
 }
 
 $entityId = (int) $config->fields['entities_id'];
+$configId = (int) $config->getID();
 if (!Session::haveAccessToEntity($entityId, true)) {
    Html::displayRightError();
 }
@@ -35,14 +36,15 @@ $validateActor = static function (int $userId, string $right, string $label) use
    }
 };
 
-if (isset($_POST['save'])) {
-   Session::checkCSRF($_POST);
-
+// This endpoint has a single write operation.  Some GLPI theme/browser
+// combinations submit the form without serializing the submit button name,
+// therefore the request method is the reliable indicator of a save.
+// GLPI validates the CSRF token during includes.php bootstrap.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
    $projectManagerId = (int) ($_POST['project_manager_users_id'] ?? 0);
    $portfolioManagerId = (int) ($_POST['portfolio_manager_users_id'] ?? 0);
    $validateActor($projectManagerId, ProjectProfile::RIGHT_FILL_TIP, __('Gerente de projetos', 'projectplus'));
    $validateActor($portfolioManagerId, ProjectProfile::RIGHT_PRIORITY_STRATEGIC, __('Gestor de portfólio', 'projectplus'));
-
    $config->update([
       'id' => $id,
       'project_manager_users_id' => $projectManagerId,
@@ -60,7 +62,10 @@ $entityName = htmlspecialchars((string) Dropdown::getDropdownName(Entity::getTab
 $categoryName = htmlspecialchars((string) Dropdown::getDropdownName(ITILCategory::getTable(), (int) $config->fields['itilcategories_id']), ENT_QUOTES, 'UTF-8');
 
 echo "<form method='post' action='" . TicketCategoryConfig::getFormURL() . "' class='mb-0'>";
-echo Html::hidden('id', ['value' => $id]);
+// Keep these values explicit: the form URL is intentionally clean and GLPI
+// must receive the loaded configuration id again on POST.  Html::hidden()
+// also keeps this form aligned with GLPI's CSRF field rendering.
+echo Html::hidden('id', ['value' => $configId]);
 echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo "<section class='card'>";
 echo "<header class='card-header'><h3 class='card-title mb-0'><i class='ti ti-settings me-2'></i>"
@@ -109,7 +114,7 @@ echo '</div>';
 echo '</div></div>';
 echo "<footer class='card-footer d-flex justify-content-end gap-2'>"
    . Html::link(__('Cancelar'), TicketCategoryConfig::getSearchURL(), ['class' => 'btn btn-outline-secondary'])
-   . "<button type='submit' class='btn btn-primary' name='save'><i class='ti ti-device-floppy me-1'></i>"
+   . "<button type='submit' class='btn btn-primary' name='save' value='1'><i class='ti ti-device-floppy me-1'></i>"
    . __('Salvar') . '</button></footer>';
 echo '</section></form>';
 
