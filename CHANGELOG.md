@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.8-beta
+
+- Corrige a edição manual da configuração de entidade e categoria do fluxo Project+: o formulário volta a salvar Gerente de Projetos, Gestor de Portfólio, recursividade e ativação.
+- Evita a dupla validação de CSRF no formulário e usa token exclusivo para impedir que componentes assíncronos da mesma página invalidem o salvamento.
+- Valida os responsáveis selecionados diretamente pelas associações de perfil, direito Project+ e escopo/recursividade de entidade do GLPI.
+
 ## 0.9.7-beta
 
 - Corrige a migração da configuração de categorias do fluxo: instalações atualizadas agora recebem as colunas **Gerente de projetos**, **Gestor de portfólio** e **Recursivo** na tabela correta (`ticketconfigs`), preservando os registros já existentes.
