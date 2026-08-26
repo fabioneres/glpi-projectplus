@@ -89,6 +89,9 @@ class TicketCategoryConfig extends CommonDBTM
 
    public function rawSearchOptions()
    {
+      /** @var DBmysql $DB */
+      global $DB;
+
       $options = [];
       $options[] = [
          'id' => 'common',
@@ -135,10 +138,18 @@ class TicketCategoryConfig extends CommonDBTM
          'name' => __('Ativo', 'projectplus'),
          'datatype' => 'bool',
       ];
+      // Guarded by fieldExists(): a plugin upgrade that has not finished its
+      // migration yet (or a downgrade) must not turn this list into a fatal
+      // SQL error just because these columns are momentarily absent.
       foreach (['project_manager_users_id' => __('Gerente de projetos', 'projectplus'), 'portfolio_manager_users_id' => __('Gestor de portfólio', 'projectplus')] as $field => $name) {
+         if (!$DB->fieldExists(self::getTable(), $field)) {
+            continue;
+         }
          $options[] = ['id' => count($options) + 10, 'table' => User::getTable(), 'field' => 'name', 'name' => $name, 'datatype' => 'itemlink', 'itemtype' => User::class, 'joinparams' => ['jointype' => '', 'linkfield' => $field]];
       }
-      $options[] = ['id' => 30, 'table' => self::getTable(), 'field' => 'is_recursive', 'name' => __('Recursivo', 'projectplus'), 'datatype' => 'bool'];
+      if ($DB->fieldExists(self::getTable(), 'is_recursive')) {
+         $options[] = ['id' => 30, 'table' => self::getTable(), 'field' => 'is_recursive', 'name' => __('Recursivo', 'projectplus'), 'datatype' => 'bool'];
+      }
       $options[] = [
          // This is deliberately virtual: it is only a stable UI action and
          // must never become a database field or a search criterion.

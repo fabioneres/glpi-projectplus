@@ -13,6 +13,7 @@
 - Adiciona ícones de ajuda contextual junto ao rótulo dos campos configuráveis, exibindo a descrição/orientação cadastrada.
 - Amplia a configuração do fluxo por entidade e categoria ITIL com campos para Gerente de Projetos, Gestor de Portfólio, recursividade e ativação, com edição por linha na própria lista. **Estes dois campos ainda são apenas informativos nesta versão**: a atribuição é salva e validada (usuário precisa ter a permissão Project+ correspondente), mas ainda não é consultada pelas regras de preenchimento/aceite de TAP, TEP e TA — isso fica para uma próxima versão.
 - Moderniza a tela de edição da configuração de categorias do fluxo com componentes e tema nativos do GLPI.
+- Corrige erro "Unknown column ... is_recursive ... in order clause" na lista de fluxo de solicitação de projeto quando as colunas de Gerente de Projetos/Gestor de Portfólio/Recursivo ainda não existem na base (upgrade que atualizou o código antes de rodar a migração do plugin).
 
 ## 0.9.5-beta
 
