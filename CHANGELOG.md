@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.7-beta
+
+- Corrige a migração da configuração de categorias do fluxo: instalações atualizadas agora recebem as colunas **Gerente de projetos**, **Gestor de portfólio** e **Recursivo** na tabela correta (`ticketconfigs`), preservando os registros já existentes.
+- Corrige a instalação limpa, que agora cria essas três colunas diretamente na tabela de configuração do fluxo e não mais em tabelas auxiliares de listas suspensas.
+
 ## 0.9.6-beta
 
 - Separa os modelos, campos e configurações do **TIP - Termo de Intenção de Projeto** e do **TIP - Detalhamento Técnico**.

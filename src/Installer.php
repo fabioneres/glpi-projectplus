@@ -181,9 +181,6 @@ class Installer
             `name` varchar(255) NOT NULL DEFAULT '',
             `comment` text NULL,
             `is_active` tinyint NOT NULL DEFAULT 1,
-            `project_manager_users_id` int unsigned NOT NULL DEFAULT 0,
-            `portfolio_manager_users_id` int unsigned NOT NULL DEFAULT 0,
-            `is_recursive` tinyint NOT NULL DEFAULT 0,
             `date_mod` timestamp NULL DEFAULT NULL,
             `date_creation` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
@@ -191,9 +188,6 @@ class Installer
             KEY `is_active` (`is_active`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
       );
-      $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
-      foreach (['project_manager_users_id' => "int unsigned NOT NULL DEFAULT 0", 'portfolio_manager_users_id' => "int unsigned NOT NULL DEFAULT 0", 'is_recursive' => "tinyint NOT NULL DEFAULT 0"] as $field => $definition) if (!$DB->fieldExists($table, $field)) $migration->addField($table, $field, $definition, ['after' => 'is_active']);
-      $migration->executeMigration();
    }
 
    /** Adds the native ITIL-template fields while preserving existing models. */
@@ -228,6 +222,22 @@ class Installer
 
       $table = TicketConfig::getTable();
       if ($DB->tableExists($table)) {
+         // These fields were introduced after the first Project+ releases.
+         // Apply their migration to the ticket-category configuration table
+         // itself, so upgrades preserve the existing rows and immediately
+         // expose the responsible users and recursive scope in native Search.
+         $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+         foreach ([
+            'project_manager_users_id' => 'int unsigned NOT NULL DEFAULT 0',
+            'portfolio_manager_users_id' => 'int unsigned NOT NULL DEFAULT 0',
+            'is_recursive' => 'tinyint NOT NULL DEFAULT 0',
+         ] as $field => $definition) {
+            if (!$DB->fieldExists($table, $field)) {
+               $migration->addField($table, $field, $definition, ['after' => 'is_active']);
+            }
+         }
+         $migration->executeMigration();
+
          $legacyKeyExists = false;
          $entityCategoryKeyExists = false;
          $entityActiveKeyExists = false;
@@ -255,6 +265,9 @@ class Installer
             `entities_id` int unsigned NOT NULL DEFAULT 0,
             `itilcategories_id` int unsigned NOT NULL DEFAULT 0,
             `is_active` tinyint NOT NULL DEFAULT 1,
+            `project_manager_users_id` int unsigned NOT NULL DEFAULT 0,
+            `portfolio_manager_users_id` int unsigned NOT NULL DEFAULT 0,
+            `is_recursive` tinyint NOT NULL DEFAULT 0,
             `users_id` int unsigned NOT NULL DEFAULT 0,
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
