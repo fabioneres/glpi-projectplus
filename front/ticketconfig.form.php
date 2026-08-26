@@ -21,12 +21,45 @@ if (!Session::haveAccessToEntity($entityId, true)) {
 
 /** Validate the submitted actor against the same right used by the GLPI dropdown. */
 $validateActor = static function (int $userId, string $right, string $label) use ($entityId): void {
+   global $DB;
+
    if ($userId <= 0) {
       return;
    }
 
    $user = new User();
-   if (!$user->getFromDB($userId) || !$user->hasRight($right, READ, $entityId)) {
+   $allowed = false;
+   if ($user->getFromDB($userId)) {
+      $targetAncestors = array_flip(array_map('intval', getAncestorsOf(Entity::getTable(), $entityId)));
+      $targetAncestors[$entityId] = true;
+      $iterator = $DB->request([
+         'SELECT' => ['glpi_profiles_users.entities_id', 'glpi_profiles_users.is_recursive'],
+         'FROM'   => 'glpi_profiles_users',
+         'INNER JOIN' => [
+            'glpi_profilerights' => [
+               'ON' => [
+                  'glpi_profiles_users' => 'profiles_id',
+                  'glpi_profilerights' => 'profiles_id',
+               ],
+            ],
+         ],
+         'WHERE' => [
+            'glpi_profiles_users.users_id' => $userId,
+            'glpi_profilerights.name'      => $right,
+            ['glpi_profilerights.rights' => ['>=', READ]],
+         ],
+      ]);
+      foreach ($iterator as $profile) {
+         $profileEntity = (int) $profile['entities_id'];
+         if ($profileEntity === $entityId
+            || ((int) $profile['is_recursive'] === 1 && isset($targetAncestors[$profileEntity]))) {
+            $allowed = true;
+            break;
+         }
+      }
+   }
+
+   if (!$allowed) {
       Session::addMessageAfterRedirect(
          sprintf(__('O usuário selecionado não possui a permissão Project+ necessária para atuar como %s.', 'projectplus'), $label),
          false,
@@ -66,7 +99,10 @@ echo "<form method='post' action='" . TicketCategoryConfig::getFormURL() . "' cl
 // must receive the loaded configuration id again on POST.  Html::hidden()
 // also keeps this form aligned with GLPI's CSRF field rendering.
 echo Html::hidden('id', ['value' => $configId]);
-echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+// A standalone token prevents unrelated POST/AJAX components rendered on the
+// same GLPI page from consuming this form token before the administrator
+// submits the configuration.
+echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken(true)]);
 echo "<section class='card'>";
 echo "<header class='card-header'><h3 class='card-title mb-0'><i class='ti ti-settings me-2'></i>"
    . __('Configuração da categoria do fluxo', 'projectplus') . '</h3></header>';
