@@ -60,6 +60,9 @@ class TicketPhase extends CommonDBTM
    public static function postTicketAdd(Ticket $ticket): void
    {
       self::ensureForTicket($ticket);
+      // A request created in a child entity is immediately placed with the
+      // configured project manager, when the configuration is complete.
+      TicketRouting::routeInitial($ticket);
    }
 
    public static function preTicketUpdate(Ticket $ticket): void
@@ -166,6 +169,13 @@ class TicketPhase extends CommonDBTM
       $current = self::getForTicket((int) $ticket->getID());
       if ($current === null || $phase === (string) $current['phase']) {
          return $current !== null;
+      }
+      // Resolve the configured manager before committing the phase. This keeps
+      // the ticket in the entity that owns the next Project+ responsibility.
+      TicketRouting::routeForPhase($ticket, $phase);
+      $current = self::getForTicket((int) $ticket->getID());
+      if ($current === null) {
+         return false;
       }
       $now = date('Y-m-d H:i:s');
       $userId = (int) Session::getLoginUserID();

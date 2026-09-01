@@ -105,6 +105,11 @@ class TicketIntent
    public static function requestForTicket(Ticket $ticket, string $documentType = 'tip'): void
    {
       $documentType = self::documentType($documentType);
+      TicketRouting::assertActor(
+         $ticket,
+         'project',
+         $documentType === 'pretip' ? ProjectProfile::RIGHT_REQUEST_PRETIP : ProjectProfile::RIGHT_REQUEST_TIP
+      );
       $name = self::documentName($documentType);
       if (!self::canRequestForTicket($ticket, $documentType)) {
          throw new \RuntimeException(sprintf(__('Você não possui permissão para solicitar este %s.', 'projectplus'), $name));
@@ -135,6 +140,11 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
+      if ($documentType === 'tip') {
+         TicketRouting::assertActor($ticket, 'project', ProjectProfile::RIGHT_FILL_TIP);
+         // Validate the portfolio route before persisting the generated TIP-DT.
+         TicketRouting::assertPhaseCanBeRouted($ticket, 'portfolio_analysis');
+      }
       if ($documentType === 'tip' && !$generate) {
          throw new \RuntimeException(__('O TIP - Detalhamento Técnico deve ser gerado para ser disponibilizado.', 'projectplus'));
       }
@@ -197,6 +207,7 @@ class TicketIntent
       if ($documentType === 'tip') {
          throw new \RuntimeException(__('O TIP - Detalhamento Técnico não exige aceite.', 'projectplus'));
       }
+      TicketRouting::assertActor($ticket, 'project', ProjectProfile::RIGHT_VALIDATE_PRETIP);
       if (!self::canReviewForTicket($ticket, $documentType)) {
          throw new \RuntimeException(sprintf(__('Você não possui permissão para validar este %s.', 'projectplus'), $name));
       }

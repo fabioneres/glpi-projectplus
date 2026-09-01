@@ -55,6 +55,7 @@ class Installer
       self::ensureDocumentTemplateTable();
       self::ensureDocumentFieldTable();
       self::ensureDocumentDraftTable();
+      self::ensureProjectFieldConfigTable();
       self::ensureTicketProjectTable();
       self::ensureProjectInteractionTable();
       self::ensureProjectPriorityTable();
@@ -115,6 +116,24 @@ class Installer
          $migration->addKey($table, $field, $field . '_index');
       }
       $migration->executeMigration();
+   }
+
+   private static function ensureProjectFieldConfigTable(): void
+   {
+      global $DB;
+      $table = ProjectFieldConfig::getTable();
+      if (!$DB->tableExists($table)) {
+         $DB->doQuery("CREATE TABLE `{$table}` (
+            `id` int unsigned NOT NULL AUTO_INCREMENT,
+            `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `project_field` varchar(100) NOT NULL DEFAULT '',
+            `source` varchar(128) NOT NULL DEFAULT '',
+            `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `entity_field` (`entities_id`, `project_field`),
+            KEY `entities_id` (`entities_id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
+      }
    }
 
    private static function ensureTicketProjectTable(): void
@@ -286,6 +305,11 @@ class Installer
 
       $table = TicketPhase::getTable();
       if ($DB->tableExists($table)) {
+         if (!$DB->fieldExists($table, 'project_manager_entities_id')) {
+            $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+            $migration->addField($table, 'project_manager_entities_id', 'int unsigned NOT NULL DEFAULT 0', ['after' => 'entities_id']);
+            $migration->executeMigration();
+         }
          return;
       }
 
@@ -295,6 +319,7 @@ class Installer
             `tickets_id` int unsigned NOT NULL DEFAULT 0,
             `document_type` varchar(16) NOT NULL DEFAULT 'tip',
             `entities_id` int unsigned NOT NULL DEFAULT 0,
+            `project_manager_entities_id` int unsigned NOT NULL DEFAULT 0,
             `phase` varchar(64) NOT NULL DEFAULT 'classification',
             `users_id` int unsigned NOT NULL DEFAULT 0,
             `justification` text NULL,

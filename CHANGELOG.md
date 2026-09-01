@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.10-beta
+- Adiciona configuração por entidade da origem dos campos da tela nativa de Projetos.
+- Permite sugerir valores do chamado, TIP, TIP - DT e TAP para todos os campos disponíveis no formulário de Projeto; quando não houver configuração ou conversão possível, mantém o comportamento padrão do GLPI.
+
+## 0.9.9-beta
+- Adiciona roteamento automático de solicitações entre entidades conforme o Gerente de Projetos ou Gestor de Portfólio configurado na categoria ativa do Project+.
+- A busca sobe pela árvore somente em configurações recursivas, preserva uma categoria ativa no destino e retorna à entidade do Gerente de Projetos que já atuou na solicitação.
+- Valida o responsável configurado e a permissão mandatória nas ações de TIP, TIP-DT, TAP e priorizações.
+
 ## 0.9.8-beta
 
 - Corrige a edição manual da configuração de entidade e categoria do fluxo Project+: o formulário volta a salvar Gerente de Projetos, Gestor de Portfólio, recursividade e ativação.

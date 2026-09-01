@@ -15,7 +15,7 @@ if (!defined('GLPI_ROOT')) { die("Sorry. You can't access directly to this file"
 /** Explicit, administrator-configured source for document field suggestions. */
 class FieldSource
 {
-   private const ORDER = ['pretip', 'tip', 'tap', 'tep', 'ta'];
+   private const ORDER = ['pretip', 'tip', 'tap', 'tep', 'ta', 'project'];
 
    /** @return array<string,string> */
    public static function getOptions(int $entityId, string $targetType): array
@@ -29,7 +29,10 @@ class FieldSource
       if ($targetPosition === false) {
          return $options;
       }
-      foreach (array_slice(self::ORDER, 0, $targetPosition) as $sourceType) {
+      $sourceTypes = $targetType === 'project'
+         ? ['pretip', 'tip', 'tap']
+         : array_slice(self::ORDER, 0, $targetPosition);
+      foreach ($sourceTypes as $sourceType) {
          $fields = in_array($sourceType, ['pretip', 'tip'], true)
             ? TipField::getForEntity($entityId, $sourceType)
             : DocumentField::get($entityId, $sourceType, true);

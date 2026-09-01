@@ -24,6 +24,14 @@ if (Session::haveRight('config', UPDATE)) {
 }
 echo '</div></article>';
 
+echo "<article class='projectplus-config-option'><div class='projectplus-config-option__icon'><i class='ti ti-arrows-exchange'></i></div><div>";
+echo '<h3>' . ConfigPage::escape(__('Campos do Projeto', 'projectplus')) . '</h3>';
+echo '<p>' . ConfigPage::escape(__('Escolha, por entidade, a origem dos valores sugeridos para os campos do formulário nativo de Projeto.', 'projectplus')) . '</p>';
+if (Session::haveRight('config', UPDATE)) {
+   echo "<a class='btn btn-primary' href='projectfieldconfig.php'>" . ConfigPage::escape(__('Configurar campos', 'projectplus')) . '</a>';
+}
+echo '</div></article>';
+
 echo "<article class='projectplus-config-option'><div class='projectplus-config-option__icon'><i class='ti ti-file-import'></i></div><div>";
 echo '<h3>' . ConfigPage::escape(__('Importação de projetos existentes', 'projectplus')) . '</h3>';
 echo '<p>' . ConfigPage::escape(__('Importe uma planilha CSV, valide os dados e preencha os projetos existentes no GLPI.', 'projectplus')) . '</p>';

@@ -84,6 +84,11 @@ class TicketPriority
       if ($type === 'institutional' && !self::isStrategicPriorityAvailable($ticket)) {
          throw new \RuntimeException(__('A priorização estratégica será liberada após a conclusão da priorização técnica.', 'projectplus'));
       }
+      TicketRouting::assertActor(
+         $ticket,
+         $type === 'institutional' ? 'portfolio' : 'project',
+         $type === 'institutional' ? ProjectProfile::RIGHT_PRIORITY_STRATEGIC : ProjectProfile::RIGHT_PRIORITY_TECHNICAL
+      );
       $editable = ProjectPriority::getEditableCriteria($type);
       if ($editable === [] || !Session::haveAccessToEntity((int) $ticket->getEntityID(), true)) {
          throw new \RuntimeException(__('Sem permissão para priorizar esta solicitação.', 'projectplus'));

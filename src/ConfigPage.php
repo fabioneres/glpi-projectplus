@@ -21,6 +21,7 @@ class ConfigPage
       self::navLink('tapmodel', 'documentfields.php?document_type=tap', 'ti ti-file-description', __('Modelo TAP', 'projectplus'), $active);
       self::navLink('tepmodel', 'documentfields.php?document_type=tep', 'ti ti-file-description', __('Modelo TEP', 'projectplus'), $active);
       self::navLink('tamodel', 'documentfields.php?document_type=ta', 'ti ti-file-description', __('Modelo TA', 'projectplus'), $active);
+      self::navLink('projectfields', 'projectfieldconfig.php', 'ti ti-arrows-exchange', __('Campos do Projeto', 'projectplus'), $active);
       self::navLink('about', 'about.php', 'ti ti-info-circle', __('Sobre', 'projectplus'), $active);
       echo '</aside><main class="projectplus-config-content">';
    }

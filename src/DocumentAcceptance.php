@@ -308,6 +308,7 @@ class DocumentAcceptance extends CommonDBTM
       if (!self::canManageDocument($ticket, 'tap', 'fill')) {
          throw new \RuntimeException(__('Você não possui permissão para preencher o TAP.', 'projectplus'));
       }
+      TicketRouting::assertActor($ticket, 'portfolio', ProjectProfile::RIGHT_FILL_TAP);
       if (!Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
          throw new \RuntimeException(__('Você não possui permissão para autorizar a abertura do projeto.', 'projectplus'));
       }

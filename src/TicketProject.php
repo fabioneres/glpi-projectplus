@@ -87,6 +87,7 @@ class TicketProject
    /** Opens a project, creates the native GLPI relation, then solves the ticket. */
    public static function createFromTicket(Ticket $ticket, string $solutionContent): int
    {
+      TicketRouting::assertPhaseCanBeRouted($ticket, 'project_opened');
       $missing = self::getMissingOpeningRequirements($ticket);
       if ($missing !== []) {
          throw new \RuntimeException(__('Não é possível abrir o projeto:', 'projectplus') . ' ' . implode(' ', $missing));
@@ -108,8 +109,7 @@ class TicketProject
          $name = $answers['nome do projeto'] ?? trim((string) $ticket->fields['name']);
          $content = $answers['descrição do projeto'] ?? $answers['descricao do projeto'] ?? (string) $ticket->fields['content'];
 
-         $project = new Project();
-         $projectId = (int) $project->add([
+         $projectInput = [
             'name' => mb_substr($name !== '' ? $name : __('Projeto originado do chamado', 'projectplus') . ' #' . $ticket->getID(), 0, 255),
             'content' => $content,
             'entities_id' => (int) $ticket->getEntityID(),
@@ -119,7 +119,12 @@ class TicketProject
             'requester_area' => $answers['área solicitante'] ?? $answers['area solicitante'] ?? '',
             'objective' => $answers['objetivo específico'] ?? $answers['objetivo especifico'] ?? '',
             'expected_result' => $answers['métricas'] ?? $answers['metricas'] ?? '',
-         ]);
+         ];
+         // Explicit field mappings override only the configured destinations;
+         // absent or unresolvable sources keep the standard GLPI/default flow.
+         $projectInput = array_replace($projectInput, ProjectFieldConfig::getPrefill($ticket));
+         $project = new Project();
+         $projectId = (int) $project->add($projectInput);
          if ($projectId <= 0 || !$project->getFromDB($projectId)) {
             throw new \RuntimeException(__('Não foi possível criar o projeto.', 'projectplus'));
          }
