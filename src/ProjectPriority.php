@@ -193,7 +193,10 @@ class ProjectPriority extends CommonDBTM
          'table'          => self::getTable(),
          'field'          => 'ranking',
          'name'           => __('Ranking', 'projectplus'),
-         'datatype'       => 'integer',
+         // A string input keeps the search value directly editable.  The
+         // Project+ addWhere hook validates it as a ranking integer and
+         // applies the requested numeric operator safely.
+         'datatype'       => 'string',
          'searchtype'     => ['equals', 'notequals', 'lessthan', 'morethan'],
          'forcegroupby'   => true,
          'massiveaction'  => false,

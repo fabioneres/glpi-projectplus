@@ -144,6 +144,13 @@ class DocumentAcceptance extends CommonDBTM
 
    public static function publish(CommonDBTM $item, string $type, int $templateId): void
    {
+      if ($item instanceof Ticket && $type === 'tap') {
+         TicketPhase::assertCurrentPhase(
+            $item,
+            'authorized_opening',
+            __('O TAP só pode ser enviado para aceite depois de sua autorização de abertura.', 'projectplus')
+         );
+      }
       if (!self::canManageDocument($item, $type, 'send')) { throw new \RuntimeException(__('Sem permissão para publicar este documento.', 'projectplus')); }
       if ($item instanceof Project && $type === 'ta') {
          $tep = self::getForItem($item, 'tep');
@@ -167,13 +174,22 @@ class DocumentAcceptance extends CommonDBTM
 
    public static function publishGenerated(CommonDBTM $item, string $type): void
    {
+      if ($item instanceof Ticket && $type === 'tap') {
+         TicketPhase::assertCurrentPhase(
+            $item,
+            'authorized_opening',
+            __('O TAP só pode ser enviado para aceite depois de sua autorização de abertura.', 'projectplus')
+         );
+      }
       if (!self::canManageDocument($item, $type, 'send')) throw new \RuntimeException(__('Sem permissão para enviar este documento.', 'projectplus'));
       $draft = DocumentDraft::get($item::getType(), (int)$item->getID(), $type);
       if (!$draft || (string)$draft['status'] !== 'generated') throw new \RuntimeException(__('Gere o documento antes de enviá-lo para aceite.', 'projectplus'));
       global $DB; $now=date('Y-m-d H:i:s'); $current=self::getForItem($item,$type);
       $data=['documents_id'=>0,'status'=>'published','published_users_id'=>(int)Session::getLoginUserID(),'accepted_users_id'=>0,'rejected_users_id'=>0,'rejection_justification'=>null,'date_rejected'=>null,'date_published'=>$now,'date_accepted'=>null,'date_mod'=>$now];
       if($current)$DB->update(self::getTable(),$data,['id'=>(int)$current['id']]);else $DB->insert(self::getTable(),$data+['itemtype'=>$item::getType(),'items_id'=>(int)$item->getID(),'entities_id'=>(int)$item->getEntityID(),'document_type'=>$type]);
-      self::addFollowup($item, $type, sprintf(__('%s gerado e enviado para aceite.', 'projectplus'), strtoupper($type)));
+      if (!$item instanceof Ticket || $type !== 'tap') {
+         self::addFollowup($item, $type, sprintf(__('%s gerado e enviado para aceite.', 'projectplus'), strtoupper($type)));
+      }
       if($item instanceof Ticket&&$type==='tap')TicketPhase::setPhase($item,'awaiting_tap_acceptance',__('TAP enviado para aceite.','projectplus'));
    }
 
@@ -182,9 +198,18 @@ class DocumentAcceptance extends CommonDBTM
       /** @var DBmysql $DB */ global $DB;
       $row = $DB->request(['FROM'=>self::getTable(),'WHERE'=>['id'=>$acceptanceId,'itemtype'=>$item::getType(),'items_id'=>(int)$item->getID(),'status'=>'published'],'LIMIT'=>1])->current();
       if (!$row || !self::canAccept($item, (string) $row['document_type'])) { throw new \RuntimeException(__('Você não possui permissão para aceitar este documento.', 'projectplus')); }
+      if ($item instanceof Ticket && (string) $row['document_type'] === 'tap') {
+         TicketPhase::assertCurrentPhase(
+            $item,
+            'awaiting_tap_acceptance',
+            __('O TAP ainda não foi enviado para aceite.', 'projectplus')
+         );
+      }
       $now = date('Y-m-d H:i:s');
       $DB->update(self::getTable(),['status'=>'accepted','accepted_users_id'=>(int)Session::getLoginUserID(),'date_accepted'=>$now,'date_mod'=>$now],['id'=>(int)$row['id']]);
-      self::addFollowup($item, (string)$row['document_type'], __('Aceite do documento registrado.', 'projectplus'));
+      if (!$item instanceof Ticket || (string) $row['document_type'] !== 'tap') {
+         self::addFollowup($item, (string)$row['document_type'], __('Aceite do documento registrado.', 'projectplus'));
+      }
       if ($item instanceof Ticket && (string)$row['document_type'] === 'tap') { TicketPhase::setPhase($item, 'authorized_opening', __('TAP aceito pelo cliente.', 'projectplus')); }
       if ($item instanceof Project && (string) $row['document_type'] === 'ta') {
          $projectUpdate = ['id' => (int) $item->getID(), 'percent_done' => 100, 'real_end_date' => $now];
@@ -286,48 +311,40 @@ class DocumentAcceptance extends CommonDBTM
    {
       $phase = TicketPhase::getForTicket((int) $ticket->getID());
       $row = self::getForItem($ticket, 'tap');
-      if (!$row && (string) ($phase['phase'] ?? '') === 'awaiting_authorization') {
-         self::showStartTapForm($ticket);
-         return;
-      }
       $allowedPhases = ['authorized_opening', 'awaiting_tap_acceptance', 'project_opened'];
       if (!$row && !in_array((string) ($phase['phase'] ?? ''), $allowedPhases, true)) {
-         echo "<div class='alert alert-info'>" . self::esc(__('O TAP será liberado após a autorização de abertura do projeto.', 'projectplus')) . '</div>';
+         echo "<div class='alert alert-info'>" . self::esc(FlowStageDescription::get('tap', 'pending')) . '</div>';
          return;
+      }
+      $description = FlowStageDescription::get('tap');
+      if ($description !== '') {
+         echo "<div class='alert alert-info'>" . self::esc($description) . '</div>';
       }
       self::showDocument($ticket, 'tap', __('TAP - Termo de Abertura do Projeto', 'projectplus'));
    }
 
-   /** Starts TAP completion and records the opening authorization in one controlled action. */
+   /** Starts TAP completion only after the separate opening authorization. */
    public static function startTicketTap(Ticket $ticket): void
    {
       $phase = TicketPhase::getForTicket((int) $ticket->getID());
-      if ((string) ($phase['phase'] ?? '') !== 'awaiting_authorization') {
+      if ((string) ($phase['phase'] ?? '') !== 'authorized_opening') {
          throw new \RuntimeException(__('O TAP ainda não está disponível para preenchimento.', 'projectplus'));
       }
       if (!self::canManageDocument($ticket, 'tap', 'fill')) {
          throw new \RuntimeException(__('Você não possui permissão para preencher o TAP.', 'projectplus'));
       }
-      TicketRouting::assertActor($ticket, 'portfolio', ProjectProfile::RIGHT_FILL_TAP);
-      if (!Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
-         throw new \RuntimeException(__('Você não possui permissão para autorizar a abertura do projeto.', 'projectplus'));
-      }
-      TicketPhase::setPhase(
-         $ticket,
-         'authorized_opening',
-         __('Abertura autorizada para preenchimento do TAP.', 'projectplus')
-      );
+      TicketRouting::assertActor($ticket, 'project', ProjectProfile::RIGHT_FILL_TAP);
    }
 
    private static function showStartTapForm(Ticket $ticket): void
    {
-      if (!self::canManageDocument($ticket, 'tap', 'fill') || !Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
-         echo "<div class='alert alert-info'>" . self::esc(__('O TAP aguarda um usuário autorizado para a abertura do projeto.', 'projectplus')) . '</div>';
+      if (!self::canManageDocument($ticket, 'tap', 'fill')) {
+         echo "<div class='alert alert-info'>" . self::esc(__('O TAP aguarda o Gerente de Projetos responsável.', 'projectplus')) . '</div>';
          return;
       }
       global $CFG_GLPI;
       $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/documentacceptance.form.php';
-      echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::esc(__('Aguardando autorização de abertura.', 'projectplus')) . '</strong><br>' . self::esc(__('Ao iniciar o preenchimento do TAP, a autorização de abertura será registrada.', 'projectplus')) . '</div>';
+      echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::esc(__('Abertura autorizada.', 'projectplus')) . '</strong><br>' . self::esc(FlowStageDescription::get('tap')) . '</div>';
       echo "<form method='post' action='" . self::esc($url) . "' class='center'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('itemtype', ['value' => Ticket::class]) . Html::hidden('items_id', ['value' => (int) $ticket->getID()]) . "<button class='btn btn-primary' type='submit' name='start_tap' value='1'><i class='ti ti-pencil'></i> " . self::esc(__('Preencher TAP', 'projectplus')) . '</button></form>';
    }
 
@@ -344,9 +361,9 @@ class DocumentAcceptance extends CommonDBTM
 
       $ticket = new Ticket();
       $hasTicket = $ticketId > 0 && $ticket->getFromDB($ticketId);
-       $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'pretip') : null;
+       $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::TIP) : null;
        $preTipState = (string) ($preTip['status'] ?? '') === 'accepted' ? 'accepted' : ((string) ($preTip['status'] ?? '') === 'rejected' ? 'rejected' : ($preTip ? 'released' : 'disabled'));
-       $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'tip') : null;
+       $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::DETAIL) : null;
       $tipStatus = (string) ($intent['status'] ?? '');
       $tipState = in_array($tipStatus, ['accepted', 'generated'], true) ? 'accepted' : ($tipStatus === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
       $tapState = $hasTicket ? self::getVisualState(self::getForItem($ticket, 'tap')) : 'disabled';
@@ -359,11 +376,11 @@ class DocumentAcceptance extends CommonDBTM
          $taState = 'released';
       }
        self::showJourneyStep(__('TIP - Termo de Intenção de Projeto', 'projectplus'), 'ti ti-file-search', $preTipState, false, static function () use ($hasTicket, $ticket): void {
-          if ($hasTicket) { TicketIntent::showForTicket($ticket, 'pretip'); }
+          if ($hasTicket) { TicketIntent::showForTicket($ticket, TipDocumentType::TIP); }
           else { echo "<div class='alert alert-info'>" . self::esc(__('Não há chamado de origem vinculado a este projeto.', 'projectplus')) . '</div>'; }
        });
        self::showJourneyStep(__('TIP - Detalhamento Técnico', 'projectplus'), 'ti ti-file-text', $tipState, false, static function () use ($hasTicket, $ticket): void {
-         if ($hasTicket) { TicketIntent::showForTicket($ticket); }
+         if ($hasTicket) { TicketIntent::showForTicket($ticket, TipDocumentType::DETAIL); }
          else { echo "<div class='alert alert-info'>" . self::esc(__('Não há chamado de origem vinculado a este projeto.', 'projectplus')) . '</div>'; }
       });
       self::showJourneyStep(__('TAP - Termo de Abertura do Projeto', 'projectplus'), 'ti ti-file-description', $tapState, false, static function () use ($hasTicket, $ticket): void {
@@ -438,10 +455,10 @@ class DocumentAcceptance extends CommonDBTM
       $ticketId = TicketProject::getTicketIdForProject((int) $project->getID());
       $ticket = new Ticket();
       $hasTicket = $ticketId > 0 && $ticket->getFromDB($ticketId);
-       $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'pretip') : null;
+       $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::TIP) : null;
        $preTipStatus = (string) ($preTip['status'] ?? '');
        $preTipState = $preTipStatus === 'accepted' ? 'accepted' : ($preTipStatus === 'rejected' ? 'rejected' : ($preTip ? 'released' : 'disabled'));
-       $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), 'tip') : null;
+       $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::DETAIL) : null;
       $tipStatus = (string) ($intent['status'] ?? '');
       $tipState = in_array($tipStatus, ['accepted', 'generated'], true) ? 'accepted' : ($tipStatus === 'rejected' ? 'rejected' : ($intent ? 'released' : 'disabled'));
       $tap = $hasTicket ? self::getForItem($ticket, 'tap') : null;
@@ -459,7 +476,7 @@ class DocumentAcceptance extends CommonDBTM
           }
           if (in_array($preTipStatus, ['submitted', 'accepted', 'rejected'], true)) {
              global $CFG_GLPI;
-             $src = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.pdf.php?tickets_id=' . (int) $ticket->getID() . '&document_type=pretip';
+             $src = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.pdf.php?tickets_id=' . (int) $ticket->getID() . '&document_type=tip';
              echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc(__('TIP - Termo de Intenção de Projeto', 'projectplus')) . "</strong><a target='_blank' rel='noopener' href='" . self::esc($src) . "'>" . self::esc(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='" . self::esc(__('TIP - Termo de Intenção de Projeto', 'projectplus')) . "' src='" . self::esc($src) . "'></iframe></div>";
           }
           if ($preTipStatus === 'accepted') {
@@ -555,7 +572,23 @@ class DocumentAcceptance extends CommonDBTM
       }
       $url = rtrim((string)$CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/documentdraft.form.php';
       echo "<form method='post' action='" . self::esc($url) . "' class='projectplus-tip__grid'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]);
-      foreach ($fields as $field) { if ($field['field_type'] === 'section') { echo "<div class='projectplus-tip__section-title projectplus-tip__section-title--divider'><h3>" . self::esc((string)$field['label']) . '</h3></div>'; continue; } $value = (string)($answers[(int)$field['id']]['value'] ?? ''); $help = (string)($field['description'] ?? ''); $helpIcon = $help === '' ? '' : " <i class='ti ti-help-circle text-muted' title='" . self::esc($help) . "' aria-label='" . self::esc(__('Ajuda', 'projectplus')) . "'></i>"; echo "<div class='projectplus-tip__field'><label>" . self::esc((string)$field['label']) . ((int)$field['is_required']?' *':'') . $helpIcon . '</label><small>' . self::esc($help) . '</small>'; if ($field['field_type']==='textarea') echo "<textarea class='form-control' name='document_fields[".(int)$field['id']."]'".((int)$field['is_required']?' required':'').">".self::esc($value).'</textarea>'; elseif ($field['field_type']==='select') { $values = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string)($field['values'] ?? ''))))); Dropdown::showFromArray('document_fields['.(int)$field['id'].']', array_combine($values, $values) ?: [], ['value'=>$value, 'display_emptychoice'=>true]); } else echo "<input class='form-control' type='".($field['field_type']==='number'?'number':($field['field_type']==='date'?'date':'text'))."' name='document_fields[".(int)$field['id']."]' value='".self::esc($value)."'".((int)$field['is_required']?' required':'').">"; echo '</div>'; }
+      foreach ($fields as $field) {
+         $fieldType = (string) $field['field_type'];
+         if ($fieldType === 'section') {
+            echo "<div class='projectplus-tip__section-title projectplus-tip__section-title--divider'><h3>" . self::esc((string) $field['label']) . '</h3></div>';
+            continue;
+         }
+         $value = (string) ($answers[(int) $field['id']]['value'] ?? '');
+         if ($fieldType === 'info') {
+            echo "<div class='projectplus-tip__field projectplus-tip__field--wide'>" . FieldValue::render('document_fields', $field, '') . '</div>';
+            continue;
+         }
+         $help = (string) ($field['description'] ?? '');
+         $helpIcon = $help === '' ? '' : " <i class='ti ti-help-circle text-muted' title='" . self::esc($help) . "' aria-label='" . self::esc(__('Ajuda', 'projectplus')) . "'></i>";
+         echo "<div class='projectplus-tip__field'><label>" . self::esc((string) $field['label']) . ((int) $field['is_required'] ? ' *' : '') . $helpIcon . '</label>';
+         if ($help !== '') echo '<small>' . self::esc($help) . '</small>';
+         echo FieldValue::render('document_fields', $field, $value) . '</div>';
+      }
       $generated = $draft && (string)$draft['status'] === 'generated';
       echo "<div class='projectplus-tip__footer'><span>" . self::esc($generated ? __('Versão gerada. Edite e gere novamente caso necessário.', 'projectplus') : __('Salve o rascunho antes de gerar o documento.', 'projectplus')) . "</span><button class='btn btn-secondary' type='submit'>" . self::esc(__('Salvar rascunho', 'projectplus')) . "</button><button class='btn btn-primary' type='submit' name='generate_document' value='1'>" . self::esc(__('Gerar ', 'projectplus') . strtoupper($type)) . '</button></div></form>';
       if ($generated) echo "<form method='post' action='" . self::esc(self::url()) . "' class='projectplus-tip__footer'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]) . "<a target='_blank' href='" . self::esc(rtrim((string)$CFG_GLPI['root_doc'],'/') . '/plugins/projectplus/front/documentdraft.pdf.php?itemtype=' . rawurlencode($item::getType()) . '&items_id=' . (int)$item->getID() . '&document_type=' . $type) . "'>" . self::esc(__('Visualizar PDF gerado','projectplus')) . "</a><button class='btn btn-primary' name='publish_generated' value='1'>" . self::esc(__('Enviar para aceite','projectplus')) . '</button></form>';

@@ -46,11 +46,13 @@ class Installer
       self::ensureITILTemplateFields(SolutionTemplate::getTable(), false);
       self::ensureTicketConfigTable();
       self::ensureTicketPhaseTable();
+      TicketRouting::syncAllResponsibilities();
       self::ensureTicketPhaseHistoryTable();
       self::ensureTicketIntentTable();
       self::ensureTipConfigTable();
       self::ensureTipFieldTable();
       self::ensureTipAnswerTable();
+      TipDocumentType::migrateLegacyValues();
       self::ensureDocumentAcceptanceTable();
       self::ensureDocumentTemplateTable();
       self::ensureDocumentFieldTable();
@@ -128,6 +130,10 @@ class Installer
             `entities_id` int unsigned NOT NULL DEFAULT 0,
             `project_field` varchar(100) NOT NULL DEFAULT '',
             `source` varchar(128) NOT NULL DEFAULT '',
+            `display_rule` varchar(16) NOT NULL DEFAULT 'always',
+            `condition_field_id` int unsigned NOT NULL DEFAULT 0,
+            `condition_operator` varchar(16) NOT NULL DEFAULT 'equals',
+            `condition_value` text NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `entity_field` (`entities_id`, `project_field`),
@@ -246,25 +252,35 @@ class Installer
          // itself, so upgrades preserve the existing rows and immediately
          // expose the responsible users and recursive scope in native Search.
          $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+         $participantFieldAdded = false;
          foreach ([
             'project_manager_users_id' => 'int unsigned NOT NULL DEFAULT 0',
             'portfolio_manager_users_id' => 'int unsigned NOT NULL DEFAULT 0',
             'is_recursive' => 'tinyint NOT NULL DEFAULT 0',
+            'is_participant' => 'tinyint NOT NULL DEFAULT 0',
          ] as $field => $definition) {
             if (!$DB->fieldExists($table, $field)) {
                $migration->addField($table, $field, $definition, ['after' => 'is_active']);
+               $participantFieldAdded = $participantFieldAdded || $field === 'is_participant';
             }
          }
          $migration->executeMigration();
+         if ($participantFieldAdded) {
+            // Preserve current production behavior: every category that was
+            // already active represented an entity participating in the flow.
+            $DB->doQuery("UPDATE `{$table}` SET `is_participant` = 1 WHERE `is_active` = 1");
+         }
 
          $legacyKeyExists = false;
          $entityCategoryKeyExists = false;
          $entityActiveKeyExists = false;
+         $entityParticipantKeyExists = false;
          foreach ($DB->request("SHOW INDEX FROM `{$table}`") as $index) {
             $key = (string) ($index['Key_name'] ?? '');
             $legacyKeyExists = $legacyKeyExists || $key === 'entities_id';
             $entityCategoryKeyExists = $entityCategoryKeyExists || $key === 'entity_category';
             $entityActiveKeyExists = $entityActiveKeyExists || $key === 'entity_active';
+            $entityParticipantKeyExists = $entityParticipantKeyExists || $key === 'entity_participant';
          }
          if ($legacyKeyExists) {
             $DB->doQuery("ALTER TABLE `{$table}` DROP INDEX `entities_id`");
@@ -275,6 +291,9 @@ class Installer
          if (!$entityActiveKeyExists) {
             $DB->doQuery("ALTER TABLE `{$table}` ADD KEY `entity_active` (`entities_id`, `is_active`)");
          }
+         if (!$entityParticipantKeyExists) {
+            $DB->doQuery("ALTER TABLE `{$table}` ADD KEY `entity_participant` (`entities_id`, `is_participant`)");
+         }
          return;
       }
 
@@ -284,6 +303,7 @@ class Installer
             `entities_id` int unsigned NOT NULL DEFAULT 0,
             `itilcategories_id` int unsigned NOT NULL DEFAULT 0,
             `is_active` tinyint NOT NULL DEFAULT 1,
+            `is_participant` tinyint NOT NULL DEFAULT 0,
             `project_manager_users_id` int unsigned NOT NULL DEFAULT 0,
             `portfolio_manager_users_id` int unsigned NOT NULL DEFAULT 0,
             `is_recursive` tinyint NOT NULL DEFAULT 0,
@@ -293,6 +313,7 @@ class Installer
             PRIMARY KEY (`id`),
             UNIQUE KEY `entity_category` (`entities_id`, `itilcategories_id`),
             KEY `entity_active` (`entities_id`, `is_active`),
+            KEY `entity_participant` (`entities_id`, `is_participant`),
             KEY `itilcategories_id` (`itilcategories_id`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
       );
@@ -310,6 +331,14 @@ class Installer
             $migration->addField($table, 'project_manager_entities_id', 'int unsigned NOT NULL DEFAULT 0', ['after' => 'entities_id']);
             $migration->executeMigration();
          }
+         $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
+         foreach (['project_manager_users_id', 'portfolio_manager_users_id', 'portfolio_observer_ticketusers_id'] as $field) {
+            if (!$DB->fieldExists($table, $field)) {
+               $migration->addField($table, $field, 'int unsigned NOT NULL DEFAULT 0', ['after' => 'project_manager_entities_id']);
+               $migration->addKey($table, $field, $field);
+            }
+         }
+         $migration->executeMigration();
          return;
       }
 
@@ -320,6 +349,9 @@ class Installer
             `document_type` varchar(16) NOT NULL DEFAULT 'tip',
             `entities_id` int unsigned NOT NULL DEFAULT 0,
             `project_manager_entities_id` int unsigned NOT NULL DEFAULT 0,
+            `project_manager_users_id` int unsigned NOT NULL DEFAULT 0,
+            `portfolio_manager_users_id` int unsigned NOT NULL DEFAULT 0,
+            `portfolio_observer_ticketusers_id` int unsigned NOT NULL DEFAULT 0,
             `phase` varchar(64) NOT NULL DEFAULT 'classification',
             `users_id` int unsigned NOT NULL DEFAULT 0,
             `justification` text NULL,
@@ -327,7 +359,10 @@ class Installer
             `date_mod` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `ticket_document` (`tickets_id`, `document_type`),
-            KEY `entities_phase` (`entities_id`, `phase`)
+            KEY `entities_phase` (`entities_id`, `phase`),
+            KEY `project_manager_users_id` (`project_manager_users_id`),
+            KEY `portfolio_manager_users_id` (`portfolio_manager_users_id`),
+            KEY `portfolio_observer_ticketusers_id` (`portfolio_observer_ticketusers_id`)
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC"
       );
    }
@@ -449,7 +484,7 @@ class Installer
             "CREATE TABLE `{$table}` (
             `id` int unsigned NOT NULL AUTO_INCREMENT,
             `entities_id` int unsigned NOT NULL DEFAULT 0,
-            `document_type` varchar(16) NOT NULL DEFAULT 'pretip',
+            `document_type` varchar(16) NOT NULL DEFAULT 'tip',
             `is_active` tinyint NOT NULL DEFAULT 1,
             `title` varchar(255) NOT NULL DEFAULT '',
             `introduction` text NULL,
@@ -463,7 +498,7 @@ class Installer
       }
       $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
       if (!$DB->fieldExists($table, 'document_type')) {
-         $migration->addField($table, 'document_type', "varchar(16) NOT NULL DEFAULT 'pretip'", ['after' => 'entities_id']);
+         $migration->addField($table, 'document_type', "varchar(16) NOT NULL DEFAULT 'tip'", ['after' => 'entities_id']);
       }
       $migration->executeMigration();
       self::ensureTipDocumentTypeKey($table, 'entity_document_type', ['entities_id', 'document_type'], 'entities_id');
@@ -480,7 +515,7 @@ class Installer
             "CREATE TABLE `{$table}` (
             `id` int unsigned NOT NULL AUTO_INCREMENT,
             `entities_id` int unsigned NOT NULL DEFAULT 0,
-            `document_type` varchar(16) NOT NULL DEFAULT 'pretip',
+            `document_type` varchar(16) NOT NULL DEFAULT 'tip',
             `name` varchar(64) NOT NULL DEFAULT '',
             `label` varchar(255) NOT NULL DEFAULT '',
             `description` text NULL,
@@ -489,6 +524,8 @@ class Installer
             `source` varchar(128) NOT NULL DEFAULT '',
             `is_required` tinyint NOT NULL DEFAULT 0,
             `is_active` tinyint NOT NULL DEFAULT 1,
+            `is_recursive` tinyint NOT NULL DEFAULT 0,
+            `is_deleted` tinyint NOT NULL DEFAULT 0,
             `sort_order` int unsigned NOT NULL DEFAULT 0,
             `date_creation` timestamp NULL DEFAULT NULL,
             `date_mod` timestamp NULL DEFAULT NULL,
@@ -501,11 +538,21 @@ class Installer
       if (!$DB->fieldExists($table, 'document_type')) {
          // Existing shared fields remain assigned to the original TIP. The
          // technical TIP starts with its own independent defaults on demand.
-         $migration->addField($table, 'document_type', "varchar(16) NOT NULL DEFAULT 'pretip'", ['after' => 'entities_id']);
+         $migration->addField($table, 'document_type', "varchar(16) NOT NULL DEFAULT 'tip'", ['after' => 'entities_id']);
       }
       if (!$DB->fieldExists($table, 'source')) {
          $migration->addField($table, 'source', "varchar(128) NOT NULL DEFAULT ''", ['after' => 'values']);
       }
+      if (!$DB->fieldExists($table, 'is_deleted')) {
+         $migration->addField($table, 'is_deleted', 'tinyint NOT NULL DEFAULT 0', ['after' => 'is_active']);
+      }
+      if (!$DB->fieldExists($table, 'is_recursive')) {
+         $migration->addField($table, 'is_recursive', 'tinyint NOT NULL DEFAULT 0', ['after' => 'is_active']);
+      }
+      if (!$DB->fieldExists($table, 'display_rule')) $migration->addField($table, 'display_rule', "varchar(16) NOT NULL DEFAULT 'always'", ['after' => 'source']);
+      if (!$DB->fieldExists($table, 'condition_field_id')) $migration->addField($table, 'condition_field_id', 'int unsigned NOT NULL DEFAULT 0', ['after' => 'display_rule']);
+      if (!$DB->fieldExists($table, 'condition_operator')) $migration->addField($table, 'condition_operator', "varchar(16) NOT NULL DEFAULT 'equals'", ['after' => 'condition_field_id']);
+      if (!$DB->fieldExists($table, 'condition_value')) $migration->addField($table, 'condition_value', 'text NULL', ['after' => 'condition_operator']);
       $migration->executeMigration();
       self::ensureTipDocumentTypeKey($table, 'entity_type_order', ['entities_id', 'document_type', 'sort_order']);
    }
@@ -612,9 +659,15 @@ class Installer
    private static function ensureDocumentFieldTable(): void
    {
       global $DB; $t = DocumentField::getTable();
-      if (!$DB->tableExists($t)) $DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `entities_id` int unsigned NOT NULL DEFAULT 0, `document_type` varchar(8) NOT NULL, `label` varchar(255) NOT NULL, `description` text NULL, `field_type` varchar(32) NOT NULL DEFAULT 'text', `values` text NULL, `source` varchar(128) NOT NULL DEFAULT '', `is_required` tinyint NOT NULL DEFAULT 0, `is_active` tinyint NOT NULL DEFAULT 1, `sort_order` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), KEY `entity_type_order` (`entities_id`,`document_type`,`sort_order`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+      if (!$DB->tableExists($t)) $DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `entities_id` int unsigned NOT NULL DEFAULT 0, `document_type` varchar(8) NOT NULL, `label` varchar(255) NOT NULL, `description` text NULL, `field_type` varchar(32) NOT NULL DEFAULT 'text', `values` text NULL, `source` varchar(128) NOT NULL DEFAULT '', `display_rule` varchar(16) NOT NULL DEFAULT 'always', `condition_field_id` int unsigned NOT NULL DEFAULT 0, `condition_operator` varchar(16) NOT NULL DEFAULT 'equals', `condition_value` text NULL, `is_required` tinyint NOT NULL DEFAULT 0, `is_active` tinyint NOT NULL DEFAULT 1, `is_recursive` tinyint NOT NULL DEFAULT 0, `is_deleted` tinyint NOT NULL DEFAULT 0, `sort_order` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), KEY `entity_type_order` (`entities_id`,`document_type`,`sort_order`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
       $migration = new Migration(PLUGIN_PROJECTPLUS_VERSION);
       if (!$DB->fieldExists($t, 'source')) $migration->addField($t, 'source', "varchar(128) NOT NULL DEFAULT ''", ['after' => 'values']);
+      if (!$DB->fieldExists($t, 'is_deleted')) $migration->addField($t, 'is_deleted', 'tinyint NOT NULL DEFAULT 0', ['after' => 'is_active']);
+      if (!$DB->fieldExists($t, 'is_recursive')) $migration->addField($t, 'is_recursive', 'tinyint NOT NULL DEFAULT 0', ['after' => 'is_active']);
+      if (!$DB->fieldExists($t, 'display_rule')) $migration->addField($t, 'display_rule', "varchar(16) NOT NULL DEFAULT 'always'", ['after' => 'source']);
+      if (!$DB->fieldExists($t, 'condition_field_id')) $migration->addField($t, 'condition_field_id', 'int unsigned NOT NULL DEFAULT 0', ['after' => 'display_rule']);
+      if (!$DB->fieldExists($t, 'condition_operator')) $migration->addField($t, 'condition_operator', "varchar(16) NOT NULL DEFAULT 'equals'", ['after' => 'condition_field_id']);
+      if (!$DB->fieldExists($t, 'condition_value')) $migration->addField($t, 'condition_value', 'text NULL', ['after' => 'condition_operator']);
       $migration->executeMigration();
    }
 

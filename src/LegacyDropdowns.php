@@ -4,6 +4,7 @@ use GlpiPlugin\Projectplus\PdticAction;
 use GlpiPlugin\Projectplus\PortfolioBasket;
 use GlpiPlugin\Projectplus\FollowupTemplate;
 use GlpiPlugin\Projectplus\SolutionTemplate;
+use GlpiPlugin\Projectplus\TicketPhase;
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
@@ -29,5 +30,13 @@ class PluginProjectplusFollowupTemplate extends FollowupTemplate
 }
 
 class PluginProjectplusSolutionTemplate extends SolutionTemplate
+{
+}
+
+/**
+ * GLPI 10 derives this legacy itemtype from the ticket phases table when it
+ * asks the plugin to render a custom native-search value selector.
+ */
+class PluginProjectplusTicketPhase extends TicketPhase
 {
 }

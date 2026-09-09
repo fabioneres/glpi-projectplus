@@ -82,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       'id' => $id,
       'project_manager_users_id' => $projectManagerId,
       'portfolio_manager_users_id' => $portfolioManagerId,
+      'is_participant' => (int) ($_POST['is_participant'] ?? 0),
       'is_recursive' => (int) ($_POST['is_recursive'] ?? 0),
       'is_active' => (int) ($_POST['is_active'] ?? 0),
       'users_id' => (int) Session::getLoginUserID(),
@@ -91,8 +92,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 Html::header(__('Configuração do fluxo de projeto', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
 
-$entityName = htmlspecialchars((string) Dropdown::getDropdownName(Entity::getTable(), $entityId), ENT_QUOTES, 'UTF-8');
-$categoryName = htmlspecialchars((string) Dropdown::getDropdownName(ITILCategory::getTable(), (int) $config->fields['itilcategories_id']), ENT_QUOTES, 'UTF-8');
+$escapeDropdownName = static function (string $value): string {
+   // GLPI returns hierarchical dropdown names with the separator already
+   // encoded (for example &#62;). Decode once and escape once for HTML so the
+   // hierarchy is displayed instead of exposing the entity reference.
+   return htmlspecialchars(
+      html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+      ENT_QUOTES,
+      'UTF-8'
+   );
+};
+$entityName = $escapeDropdownName((string) Dropdown::getDropdownName(Entity::getTable(), $entityId));
+$categoryName = $escapeDropdownName((string) Dropdown::getDropdownName(ITILCategory::getTable(), (int) $config->fields['itilcategories_id']));
 
 echo "<form method='post' action='" . TicketCategoryConfig::getFormURL() . "' class='mb-0'>";
 // Keep these values explicit: the form URL is intentionally clean and GLPI
@@ -141,12 +152,15 @@ User::dropdown([
 ]);
 echo '</div>';
 
-echo "<div class='col-md-6'><label class='form-label' for='dropdown_is_recursive'>" . __('Recursivo', 'projectplus') . '</label>';
+echo "<div class='col-md-4'><label class='form-label' for='dropdown_is_participant'>" . __('Entidade participante', 'projectplus') . '</label>';
+Dropdown::showYesNo('is_participant', (int) ($config->fields['is_participant'] ?? 0));
+echo "<small class='form-hint'>" . __('Permite que os responsáveis desta entidade atuem no fluxo.', 'projectplus') . '</small></div>';
+echo "<div class='col-md-4'><label class='form-label' for='dropdown_is_recursive'>" . __('Recursivo', 'projectplus') . '</label>';
 Dropdown::showYesNo('is_recursive', (int) ($config->fields['is_recursive'] ?? 0));
-echo '</div>';
-echo "<div class='col-md-6'><label class='form-label' for='dropdown_is_active'>" . __('Ativo', 'projectplus') . '</label>';
+echo "<small class='form-hint'>" . __('Estende a participação e os responsáveis às entidades filhas.', 'projectplus') . '</small></div>';
+echo "<div class='col-md-4'><label class='form-label' for='dropdown_is_active'>" . __('Ativo', 'projectplus') . '</label>';
 Dropdown::showYesNo('is_active', (int) ($config->fields['is_active'] ?? 0));
-echo '</div>';
+echo "<small class='form-hint'>" . __('Faz esta categoria iniciar uma solicitação Project+.', 'projectplus') . '</small></div>';
 echo '</div></div>';
 echo "<footer class='card-footer d-flex justify-content-end gap-2'>"
    . Html::link(__('Cancelar'), TicketCategoryConfig::getSearchURL(), ['class' => 'btn btn-outline-secondary'])

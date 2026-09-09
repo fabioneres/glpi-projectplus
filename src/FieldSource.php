@@ -15,7 +15,7 @@ if (!defined('GLPI_ROOT')) { die("Sorry. You can't access directly to this file"
 /** Explicit, administrator-configured source for document field suggestions. */
 class FieldSource
 {
-   private const ORDER = ['pretip', 'tip', 'tap', 'tep', 'ta', 'project'];
+   private const ORDER = ['tip', 'tip_dt', 'tap', 'tep', 'ta', 'project'];
 
    /** @return array<string,string> */
    public static function getOptions(int $entityId, string $targetType): array
@@ -30,10 +30,10 @@ class FieldSource
          return $options;
       }
       $sourceTypes = $targetType === 'project'
-         ? ['pretip', 'tip', 'tap']
+         ? ['tip', 'tip_dt', 'tap']
          : array_slice(self::ORDER, 0, $targetPosition);
       foreach ($sourceTypes as $sourceType) {
-         $fields = in_array($sourceType, ['pretip', 'tip'], true)
+         $fields = in_array($sourceType, ['tip', 'tip_dt'], true)
             ? TipField::getForEntity($entityId, $sourceType)
             : DocumentField::get($entityId, $sourceType, true);
          $sourceLabel = self::documentLabel($sourceType);
@@ -45,6 +45,35 @@ class FieldSource
          }
       }
       return $options;
+   }
+
+   /** @return array<string,string> Document fields available to populate a Project. */
+   public static function getProjectDocumentOptions(int $entityId): array
+   {
+      $options = ['' => __('Preenchimento manual', 'projectplus')];
+      foreach (self::getOptions($entityId, 'project') as $key => $label) {
+         if (strpos((string) $key, 'document:') === 0) {
+            $options[(string) $key] = $label;
+         }
+      }
+      return $options;
+   }
+
+   /** Resets mappings that point to a field removed from a document model. */
+   public static function clearFieldReferences(string $documentType, int $fieldId): void
+   {
+      global $DB;
+      if ($fieldId <= 0 || !in_array($documentType, ['tip', 'tip_dt', 'tap', 'tep', 'ta'], true)) {
+         return;
+      }
+      $source = 'document:' . $documentType . ':' . $fieldId;
+      foreach ([TipField::getTable(), DocumentField::getTable(), ProjectFieldConfig::getTable()] as $table) {
+         if ($DB->tableExists($table) && $DB->fieldExists($table, 'source')) {
+            if (!$DB->update($table, ['source' => ''], ['source' => $source])) {
+               throw new \RuntimeException(__('Não foi possível limpar as referências do campo.', 'projectplus'));
+            }
+         }
+      }
    }
 
    /** @param array<int,array<string,mixed>> $fields @return array<int,array{label:string,value:string}> */
@@ -76,12 +105,12 @@ class FieldSource
       if (strpos($source, 'ticket:') === 0) {
          return self::getTicketValue($ticket, substr($source, 7));
       }
-      if (!preg_match('/^document:(pretip|tip|tap|tep):([1-9][0-9]*)$/', $source, $matches)) {
+      if (!preg_match('/^document:(tip|tip_dt|tap|tep):([1-9][0-9]*)$/', $source, $matches)) {
          return '';
       }
       $type = $matches[1];
       $fieldId = (int) $matches[2];
-      if (in_array($type, ['pretip', 'tip'], true)) {
+      if (in_array($type, ['tip', 'tip_dt'], true)) {
          $intent = TicketIntent::getForTicket((int) $ticket->getID(), $type);
          if (!$intent) {
             return '';
@@ -147,6 +176,6 @@ class FieldSource
 
    private static function documentLabel(string $type): string
    {
-      return ['pretip' => 'TIP', 'tip' => 'TIP - DT', 'tap' => 'TAP', 'tep' => 'TEP', 'ta' => 'TA'][$type] ?? strtoupper($type);
+      return ['tip' => 'TIP', 'tip_dt' => 'TIP - DT', 'tap' => 'TAP', 'tep' => 'TEP', 'ta' => 'TA'][$type] ?? strtoupper($type);
    }
 }

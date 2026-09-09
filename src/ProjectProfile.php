@@ -755,12 +755,12 @@ class ProjectProfile extends GlpiProfile
 
    public static function getIntentRequestRight(string $documentType): string
    {
-      return $documentType === 'pretip' ? self::RIGHT_REQUEST_PRETIP : self::RIGHT_REQUEST_TIP;
+      return $documentType === TipDocumentType::TIP ? self::RIGHT_REQUEST_PRETIP : self::RIGHT_REQUEST_TIP;
    }
 
    public static function getIntentValidationRight(string $documentType): string
    {
-      return $documentType === 'pretip' ? self::RIGHT_VALIDATE_PRETIP : self::RIGHT_VALIDATE_TIP;
+      return $documentType === TipDocumentType::TIP ? self::RIGHT_VALIDATE_PRETIP : self::RIGHT_VALIDATE_TIP;
    }
 
    public static function getDocumentManagementRight(string $documentType): string

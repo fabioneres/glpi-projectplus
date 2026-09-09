@@ -1,0 +1,36 @@
+.projectplus-project-fields-table {
+   table-layout: fixed;
+   border-collapse: separate;
+   border-spacing: 0;
+}
+.projectplus-project-fields-table__name { width: 46%; }
+.projectplus-project-fields-table__source { width: 54%; }
+.projectplus-project-fields-table th,
+.projectplus-project-fields-table td {
+   height: 48px !important;
+   padding: 7px 14px !important;
+   vertical-align: middle !important;
+   border-bottom: 1px solid #edf0f4;
+}
+.projectplus-project-fields-table td:first-child {
+   width: auto !important;
+   font-weight: 500 !important;
+}
+.projectplus-project-fields-table .select2-container {
+   display: block;
+   width: min(100%, 520px) !important;
+}
+.projectplus-project-fields-table .select2-selection {
+   min-height: 34px !important;
+   display: flex !important;
+   align-items: center;
+}
+.projectplus-project-fields-table__fixed {
+   display: inline-flex;
+   min-height: 34px;
+   max-width: 520px;
+   align-items: center;
+   padding: 6px 10px;
+   white-space: normal;
+}
+.projectplus-project-fields-table tr:last-child td { border-bottom: 0; }

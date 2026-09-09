@@ -93,6 +93,80 @@
 
 .projectplus-config-card__header i { margin-right: 8px; }
 .projectplus-config-card__body { padding: 20px 18px; }
+
+/* Compact editor inspired by GLPI's native modal forms. */
+.projectplus-question-editor,
+.projectplus-config-card:has(.projectplus-question-editor) {
+   max-width: 980px;
+   margin: 22px auto;
+}
+.projectplus-question-editor .tab_cadre_fixe,
+.projectplus-config-card__body > form > .tab_cadre_fixe {
+   overflow: hidden;
+   border: 1px solid #d8dee8;
+   border-radius: 9px;
+   background: #fff;
+   box-shadow: 0 8px 24px rgba(33, 48, 73, .08);
+}
+.projectplus-question-editor .tab_cadre_fixe th,
+.projectplus-config-card__body > form > .tab_cadre_fixe th {
+   padding: 14px 18px;
+   color: #26384f;
+   text-align: left;
+   background: #f4f6fa;
+}
+.projectplus-question-editor .tab_cadre_fixe td,
+.projectplus-config-card__body > form > .tab_cadre_fixe td {
+   padding: 10px 16px;
+   vertical-align: middle;
+}
+.projectplus-question-editor .tab_cadre_fixe td:first-child,
+.projectplus-config-card__body > form > .tab_cadre_fixe td:first-child {
+   width: 230px;
+   color: #34445a;
+   font-weight: 600;
+}
+.projectplus-question-editor .form-control,
+.projectplus-question-editor .select2-container,
+.projectplus-config-card__body > form .form-control,
+.projectplus-config-card__body > form .select2-container { width: 100% !important; }
+
+.projectplus-project-fields-table {
+   table-layout: fixed;
+   border-collapse: separate;
+   border-spacing: 0;
+}
+.projectplus-project-fields-table__name { width: 46%; }
+.projectplus-project-fields-table__source { width: 54%; }
+.projectplus-project-fields-table th,
+.projectplus-project-fields-table td {
+   height: 48px;
+   padding: 7px 14px !important;
+   vertical-align: middle !important;
+   border-bottom: 1px solid #edf0f4;
+}
+.projectplus-project-fields-table td:first-child {
+   width: auto !important;
+   font-weight: 500 !important;
+}
+.projectplus-project-fields-table .select2-container {
+   display: block;
+   width: min(100%, 520px) !important;
+}
+.projectplus-project-fields-table .select2-selection {
+   min-height: 34px;
+   display: flex;
+   align-items: center;
+}
+.projectplus-project-fields-table__fixed {
+   display: inline-flex;
+   min-height: 34px;
+   max-width: 520px;
+   align-items: center;
+   padding: 6px 10px;
+   white-space: normal;
+}
+.projectplus-project-fields-table tr:last-child td { border-bottom: 0; }
 .projectplus-config-form { margin: 0 0 22px; }
 .projectplus-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; }
 .projectplus-config-field { display: grid; gap: 7px; }

@@ -143,7 +143,10 @@ class TicketCategoryConfig extends CommonDBTM
       // Guarded by fieldExists(): a plugin upgrade that has not finished its
       // migration yet (or a downgrade) must not turn this list into a fatal
       // SQL error just because these columns are momentarily absent.
-      foreach (['project_manager_users_id' => __('Gerente de projetos', 'projectplus'), 'portfolio_manager_users_id' => __('Gestor de portfólio', 'projectplus')] as $field => $name) {
+      foreach ([
+         'project_manager_users_id' => [15, __('Gerente de projetos', 'projectplus')],
+         'portfolio_manager_users_id' => [16, __('Gestor de portfólio', 'projectplus')],
+      ] as $field => $definition) {
          if (!$DB->fieldExists(self::getTable(), $field)) {
             continue;
          }
@@ -152,13 +155,22 @@ class TicketCategoryConfig extends CommonDBTM
          // joinparams makes GLPI fall back to users_id (the last editor),
          // which incorrectly displays "glpi" for an empty responsibility.
          $options[] = [
-            'id' => count($options) + 10,
+            'id' => $definition[0],
             'table' => User::getTable(),
             'field' => 'name',
             'linkfield' => $field,
-            'name' => $name,
+            'name' => $definition[1],
             'datatype' => 'dropdown',
             'itemtype' => User::class,
+         ];
+      }
+      if ($DB->fieldExists(self::getTable(), 'is_participant')) {
+         $options[] = [
+            'id' => 29,
+            'table' => self::getTable(),
+            'field' => 'is_participant',
+            'name' => __('Entidade participante', 'projectplus'),
+            'datatype' => 'bool',
          ];
       }
       if ($DB->fieldExists(self::getTable(), 'is_recursive')) {
@@ -215,7 +227,7 @@ class TicketCategoryConfig extends CommonDBTM
          $prefix = self::class . MassiveAction::CLASS_ACTION_SEPARATOR;
          $actions[$prefix . 'activate'] = __('Ativar para solicitações de projeto', 'projectplus');
          $actions[$prefix . 'deactivate'] = __('Desativar para solicitações de projeto', 'projectplus');
-         $actions[$prefix . 'configure_responsibilities'] = __('Definir responsáveis, recursividade e ativação', 'projectplus');
+         $actions[$prefix . 'configure_responsibilities'] = __('Definir participação, responsáveis, recursividade e ativação', 'projectplus');
       }
       return $actions;
    }
@@ -261,6 +273,7 @@ class TicketCategoryConfig extends CommonDBTM
       echo '</div>';
 
       foreach ([
+         'is_participant' => __('Entidade participante', 'projectplus'),
          'is_recursive' => __('Recursivo', 'projectplus'),
          'is_active' => __('Ativo', 'projectplus'),
       ] as $field => $label) {
@@ -294,6 +307,7 @@ class TicketCategoryConfig extends CommonDBTM
       $massiveValues = [
          'project_manager_users_id' => (int) ($_POST['project_manager_users_id'] ?? -1),
          'portfolio_manager_users_id' => (int) ($_POST['portfolio_manager_users_id'] ?? -1),
+         'is_participant' => (int) ($_POST['is_participant'] ?? -1),
          'is_recursive' => (int) ($_POST['is_recursive'] ?? -1),
          'is_active' => (int) ($_POST['is_active'] ?? -1),
       ];

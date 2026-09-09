@@ -6,6 +6,7 @@ if (!defined('GLPI_ROOT')) {
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\TicketPriority;
+use GlpiPlugin\Projectplus\RoutingNotice;
 
 Session::checkLoginUser();
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
@@ -20,4 +21,4 @@ try {
 } catch (\Throwable $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
-Html::redirect(Ticket::getFormURLWithID($ticketId));
+Html::redirect(RoutingNotice::getRedirectUrl($ticket));

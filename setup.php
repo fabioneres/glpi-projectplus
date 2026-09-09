@@ -63,6 +63,8 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-documents-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-config-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-pagination.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-project-fields-v1.css';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-project-fields-v2.css';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-import-v1.css';
    // Loaded after legacy layout assets so configuration labels keep their
    // intended width even in browser sessions with cached stylesheets.
@@ -91,6 +93,7 @@ function plugin_init_projectplus(): void
    // Arquivo separado para que a correção visual seja carregada mesmo em
    // sessões que ainda mantenham em cache a folha principal do plugin.
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/document-acceptance.css';
+   $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['projectplus'][] = 'js/projectplus-ranking-search-v2.js';
    $PLUGIN_HOOKS[Hooks::POST_ITEM_FORM]['projectplus'] = [ProjectForm::class, 'postItemForm'];
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Project::class] = [ProjectData::class, 'postProjectAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectUpdate'];

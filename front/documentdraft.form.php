@@ -9,6 +9,8 @@ use GlpiPlugin\Projectplus\DocumentDraft;
 use GlpiPlugin\Projectplus\DocumentField;
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
+use GlpiPlugin\Projectplus\FieldValue;
+use GlpiPlugin\Projectplus\RoutingNotice;
 
 Session::checkLoginUser();
 
@@ -37,10 +39,15 @@ $redirectUrl = $item instanceof Project
 $answers = is_array($_POST['document_fields'] ?? null) ? $_POST['document_fields'] : [];
 $saved = [];
 foreach (DocumentField::get((int) $item->getEntityID(), $type, true) as $field) {
-   if ($field['field_type'] === 'section') {
+   if (FieldValue::isDisplayOnly((string) $field['field_type'])) {
       continue;
    }
-   $value = trim((string) ($answers[(int) $field['id']] ?? ''));
+   try {
+      $value = FieldValue::normalize($field, $answers[(int) $field['id']] ?? '');
+   } catch (\RuntimeException $exception) {
+      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Html::redirect($redirectUrl);
+   }
    if ((int) $field['is_required'] && $value === '') {
       Session::addMessageAfterRedirect(__('Preencha os campos obrigatórios.', 'projectplus'), false, ERROR);
       Html::redirect($redirectUrl);
@@ -56,4 +63,4 @@ if (isset($_POST['generate_document'])) {
    DocumentDraft::save($itemtype, $id, (int) $item->getEntityID(), $type, $saved);
    Session::addMessageAfterRedirect(__('Rascunho salvo.', 'projectplus'), true, INFO);
 }
-Html::redirect($redirectUrl);
+Html::redirect($item instanceof Ticket ? RoutingNotice::getRedirectUrl($item) : $redirectUrl);

@@ -24,11 +24,11 @@ if (Session::haveRight('config', UPDATE)) {
 }
 echo '</div></article>';
 
-echo "<article class='projectplus-config-option'><div class='projectplus-config-option__icon'><i class='ti ti-arrows-exchange'></i></div><div>";
-echo '<h3>' . ConfigPage::escape(__('Campos do Projeto', 'projectplus')) . '</h3>';
-echo '<p>' . ConfigPage::escape(__('Escolha, por entidade, a origem dos valores sugeridos para os campos do formulário nativo de Projeto.', 'projectplus')) . '</p>';
+echo "<article class='projectplus-config-option'><div class='projectplus-config-option__icon'><i class='ti ti-message-2'></i></div><div>";
+echo '<h3>' . ConfigPage::escape(__('Etapas do fluxo', 'projectplus')) . '</h3>';
+echo '<p>' . ConfigPage::escape(__('Personalize os nomes, gatilhos e textos de orientação de cada etapa do fluxo.', 'projectplus')) . '</p>';
 if (Session::haveRight('config', UPDATE)) {
-   echo "<a class='btn btn-primary' href='projectfieldconfig.php'>" . ConfigPage::escape(__('Configurar campos', 'projectplus')) . '</a>';
+   echo "<a class='btn btn-primary' href='flowdescriptions.php'>" . ConfigPage::escape(__('Configurar etapas', 'projectplus')) . '</a>';
 }
 echo '</div></article>';
 

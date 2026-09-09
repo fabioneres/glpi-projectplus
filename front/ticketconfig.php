@@ -30,9 +30,9 @@ echo "<p class='projectplus-config-help'>"
 // a user preference cannot hide the edit control required to manage a row.
 $params = Search::manageParams(TicketCategoryConfig::class, $_GET);
 $params['display_type'] = Search::HTML_OUTPUT;
-echo "<div class='search_page row'><div class='col search-container'>";
+echo "<div class='search_page row'><div class='col search-container disable-overflow-y'>";
 Search::showGenericSearch(TicketCategoryConfig::class, $params);
-Search::showList(TicketCategoryConfig::class, $params, [1, 80, 2, 15, 16, 30, 4, 31]);
+Search::showList(TicketCategoryConfig::class, $params, [1, 80, 2, 15, 16, 29, 30, 4, 31]);
 echo '</div></div>';
 
 // GLPI does not select a value for virtual search columns. Use the column
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
 HTML;
 
 echo "<p class='projectplus-config-help'>"
-   . ConfigPage::escape(__('O fluxo será iniciado somente para tickets cuja categoria esteja ativa nesta lista. O status nativo do ticket não será alterado.', 'projectplus'))
+   . ConfigPage::escape(__('Ativo define se a categoria inicia o Project+. Entidade participante define se seus responsáveis podem atuar no fluxo; Recursivo estende essa atuação às entidades filhas.', 'projectplus'))
    . '</p></div></section>';
 
 ConfigPage::end();

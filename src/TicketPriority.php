@@ -61,7 +61,7 @@ class TicketPriority
    /** The technical assessment starts only after the technical-detail TIP is generated. */
    public static function isTechnicalPriorityAvailable(Ticket $ticket): bool
    {
-      $intent = TicketIntent::getForTicket((int) $ticket->getID(), 'tip');
+      $intent = TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::DETAIL);
       return (string) ($intent['status'] ?? '') === 'generated';
    }
 
@@ -84,6 +84,11 @@ class TicketPriority
       if ($type === 'institutional' && !self::isStrategicPriorityAvailable($ticket)) {
          throw new \RuntimeException(__('A priorização estratégica será liberada após a conclusão da priorização técnica.', 'projectplus'));
       }
+      TicketPhase::assertCurrentPhase(
+         $ticket,
+         'portfolio_analysis',
+         __('A priorização só pode ser preenchida após a geração do TIP - Detalhamento Técnico e na etapa de análise do portfólio.', 'projectplus')
+      );
       TicketRouting::assertActor(
          $ticket,
          $type === 'institutional' ? 'portfolio' : 'project',
@@ -108,6 +113,19 @@ class TicketPriority
          $values[$field] = $value;
          $complete = $complete && $value > 0;
       }
+      $typeComplete = true;
+      foreach (ProjectPriority::getCriteriaForPriorityType($type) as $field => $label) {
+         $typeComplete = $typeComplete && (int) ($values[$field] ?? 0) > 0;
+      }
+      if ($type === 'technical' && $typeComplete) {
+         // Validate the next owner before committing the final technical
+         // values, avoiding a completed block with no valid route forward.
+         TicketRouting::assertRoleCanBeRouted(
+            $ticket,
+            'portfolio',
+            ProjectProfile::RIGHT_PRIORITY_STRATEGIC
+         );
+      }
       // Keep the accumulated score visible after each block. The native GLPI
       // priority remains unchanged until all technical and strategic criteria
       // have been completed.
@@ -121,6 +139,16 @@ class TicketPriority
          $values + ['tickets_id' => (int) $ticket->getID(), 'date_creation' => date('Y-m-d H:i:s')],
          ['tickets_id' => (int) $ticket->getID()]
       );
+      if ($type === 'technical' && $typeComplete) {
+         // The technical block belongs to the previously recorded Project
+         // Manager. Once complete, the request moves to the closest eligible
+         // Portfolio Manager in the ancestor chain for strategic priority.
+         TicketRouting::routeToRole(
+            $ticket,
+            'portfolio',
+            ProjectProfile::RIGHT_PRIORITY_STRATEGIC
+         );
+      }
       if ($type === 'institutional' && $complete) {
          TicketPhase::setPhase(
             $ticket,
@@ -168,11 +196,11 @@ class TicketPriority
          return;
       }
       if ($type === 'technical' && !self::isTechnicalPriorityAvailable($ticket)) {
-         echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Gere o TIP - Detalhamento Técnico para liberar esta etapa.', 'projectplus')) . '</div>';
+         echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(FlowStageDescription::get('technical_priority', 'pending')) . '</div>';
          return;
       }
       if ($type === 'institutional' && !self::isStrategicPriorityAvailable($ticket)) {
-         echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização estratégica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Conclua a priorização técnica para liberar esta etapa.', 'projectplus')) . '</div>';
+         echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização estratégica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(FlowStageDescription::get('strategic_priority', 'pending')) . '</div>';
          return;
       }
       $data = self::getForTicket((int) $ticket->getID());
@@ -189,7 +217,8 @@ class TicketPriority
       $style = ProjectPriority::getPriorityStyle($nativePriority);
 
       $title = $type === 'technical' ? __('Priorização técnica', 'projectplus') : __('Priorização estratégica', 'projectplus');
-      echo "<section class='projectplus-priority projectplus-priority--{$nativePriority}' {$style}><header class='projectplus-priority__header projectplus-priority__header--{$nativePriority}'><div><h3>" . self::escape($title) . '</h3><p>' . self::escape(__('Preencha os critérios para subsidiar a decisão de transformar esta solicitação em projeto.', 'projectplus')) . "</p></div><div class='projectplus-priority__score projectplus-priority__score--{$nativePriority}'><span>" . self::escape(__('Ranking', 'projectplus')) . '</span><strong>' . ($ranking ?: '—') . "</strong><em class='projectplus-priority__native projectplus-priority__native--{$nativePriority}'>" . self::escape($priorityLabel) . '</em></div></header>';
+      $description = FlowStageDescription::get($type === 'technical' ? 'technical_priority' : 'strategic_priority');
+      echo "<section class='projectplus-priority projectplus-priority--{$nativePriority}' {$style}><header class='projectplus-priority__header projectplus-priority__header--{$nativePriority}'><div><h3>" . self::escape($title) . '</h3><p>' . self::escape($description) . "</p></div><div class='projectplus-priority__score projectplus-priority__score--{$nativePriority}'><span>" . self::escape(__('Ranking', 'projectplus')) . '</span><strong>' . ($ranking ?: '—') . "</strong><em class='projectplus-priority__native projectplus-priority__native--{$nativePriority}'>" . self::escape($priorityLabel) . '</em></div></header>';
       if ($canEdit) {
          echo "<form method='post' action='" . self::escape($url) . "' data-track-changes='true'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . Html::hidden('priority_type', ['value' => $type]);
       }

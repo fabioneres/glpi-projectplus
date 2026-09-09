@@ -4,6 +4,7 @@ namespace GlpiPlugin\Projectplus;
 
 use CommonITILActor;
 use DBmysql;
+use Glpi\RichText\RichText;
 use Group;
 use Session;
 use Ticket;
@@ -19,7 +20,8 @@ class ProjectFieldConfig
    public static function getTargets(): array
    {
       return [
-         'date' => __('Data de criação', 'projectplus'), 'name' => __('Nome', 'projectplus'),
+         'date' => __('Data de criação', 'projectplus'), '_date_mod' => __('Última atualização', 'projectplus'),
+         'name' => __('Nome', 'projectplus'),
          'code' => __('Código', 'projectplus'), 'priority' => __('Prioridade', 'projectplus'),
          'projectstates_id' => __('Status', 'projectplus'), 'projecttypes_id' => __('Tipo', 'projectplus'),
          'plugin_projectplus_portfoliobaskets_id' => __('Cesta Portfólio', 'projectplus'),
@@ -35,6 +37,27 @@ class ProjectFieldConfig
          'objective' => __('Objetivo', 'projectplus'), 'comment' => __('Comentários', 'projectplus'),
          'expected_result' => __('Produto/Resultado esperado', 'projectplus'),
       ];
+   }
+
+   /** @return array<string,string> Project fields whose origins are defined by the workflow. */
+   public static function getFixedTargets(): array
+   {
+      return [
+         'date' => __('Data de criação do chamado', 'projectplus'),
+         '_date_mod' => __('Data de criação do projeto', 'projectplus'),
+         'priority' => __('Prioridade do chamado de origem', 'projectplus'),
+         'projectstates_id' => __('Não Iniciado', 'projectplus'),
+         'percent_done' => __('0% (controle nativo do GLPI)', 'projectplus'),
+         'users_id' => __('Gerente de Projetos da entidade', 'projectplus'),
+         'requester_users_id' => __('Requerente do chamado', 'projectplus'),
+         'requester_email' => __('E-mail do requerente', 'projectplus'),
+      ];
+   }
+
+   /** @return array<string,string> */
+   public static function getConfigurableTargets(): array
+   {
+      return array_diff_key(self::getTargets(), self::getFixedTargets());
    }
 
    public static function getTable($classname = null): string { return 'glpi_plugin_projectplus_projectfieldconfigs'; }
@@ -54,8 +77,8 @@ class ProjectFieldConfig
    {
       global $DB;
       if (!Session::haveAccessToEntity($entityId, true)) { return false; }
-      $allowed = FieldSource::getOptions($entityId, 'project');
-      foreach (self::getTargets() as $field => $label) {
+      $allowed = FieldSource::getProjectDocumentOptions($entityId);
+      foreach (self::getConfigurableTargets() as $field => $label) {
          $source = trim((string) (($input['sources'][$field] ?? '')));
          if (!isset($allowed[$source])) { $source = ''; }
          $DB->updateOrInsert(self::getTable(), [
@@ -69,8 +92,9 @@ class ProjectFieldConfig
    /** @return array<string,mixed> Values compatible with Project::add(). */
    public static function getPrefill(Ticket $ticket): array
    {
-      $entityId = (int) $ticket->getEntityID(); $config = self::getForEntity($entityId); $input = [];
-      foreach (self::getTargets() as $field => $label) {
+      $entityId = (int) $ticket->getEntityID(); $config = self::getForEntity($entityId);
+      $input = self::getFixedPrefill($ticket);
+      foreach (self::getConfigurableTargets() as $field => $label) {
          $source = (string) ($config[$field] ?? '');
          if ($source === '') { continue; }
          $value = FieldSource::getValue($ticket, $source);
@@ -79,6 +103,51 @@ class ProjectFieldConfig
          if ($converted !== null && $converted !== '') { $input[$field] = $converted; }
       }
       return $input;
+   }
+
+   /** @return array<string,mixed> */
+   private static function getFixedPrefill(Ticket $ticket): array
+   {
+      global $DB;
+      $input = [
+         'date' => (string) ($ticket->fields['date'] ?? ''),
+         'priority' => (int) ($ticket->fields['priority'] ?? 0),
+         'percent_done' => 0,
+      ];
+
+      $requester = $DB->request([
+         'SELECT' => ['users_id'],
+         'FROM' => Ticket_User::getTable(),
+         'WHERE' => [
+            'tickets_id' => (int) $ticket->getID(),
+            'type' => CommonITILActor::REQUESTER,
+         ],
+         'ORDER' => ['id ASC'],
+         'LIMIT' => 1,
+      ])->current();
+      $requesterId = (int) ($requester['users_id'] ?? 0);
+      if ($requesterId > 0) {
+         $input['requester_users_id'] = $requesterId;
+         $input['requester_email'] = \UserEmail::getDefaultForUser($requesterId);
+      }
+
+      $manager = TicketRouting::resolve($ticket, 'project');
+      $managerId = (int) ($manager['project_manager_users_id'] ?? 0);
+      if ($managerId > 0) {
+         $input['users_id'] = $managerId;
+      }
+
+      $state = $DB->request([
+         'SELECT' => ['id'],
+         'FROM' => 'glpi_projectstates',
+         'WHERE' => ['name' => ['Não Iniciado', 'Nao Iniciado', 'Não iniciado', 'Nao iniciado']],
+         'ORDER' => ['id ASC'],
+         'LIMIT' => 1,
+      ])->current();
+      if ($state) {
+         $input['projectstates_id'] = (int) $state['id'];
+      }
+      return array_filter($input, static function ($value): bool { return $value !== ''; });
    }
 
    /** @return int|string|null */
@@ -92,6 +161,12 @@ class ProjectFieldConfig
       if ($field === 'percent_done') { return is_numeric(str_replace(',', '.', $value)) ? max(0, min(100, (float) str_replace(',', '.', $value))) : null; }
       if (in_array($field, ['plan_duration', 'real_duration'], true)) { return is_numeric($value) ? max(0, (int) $value) : null; }
       if (in_array($field, ['date', 'plan_start_date', 'plan_end_date', 'real_start_date', 'real_end_date'], true)) { return preg_match('/^\\d{4}-\\d{2}-\\d{2}(?:[ T]\\d{2}:\\d{2}(?::\\d{2})?)?$/', $value) ? $value : null; }
+      if (in_array($field, ['content', 'objective', 'comment', 'expected_result'], true)) {
+         return RichText::getTextFromHtml($value, false, false, false, false, true);
+      }
+      if (in_array($field, ['name', 'code', 'requester_area', 'requester_email', 'focal_point_email'], true)) {
+         return RichText::getTextFromHtml($value, false, false, false);
+      }
       return $value;
    }
 

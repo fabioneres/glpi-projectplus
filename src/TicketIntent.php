@@ -6,7 +6,6 @@ use CommonITILActor;
 use DBmysql;
 use Dropdown;
 use Html;
-use ITILFollowup;
 use Session;
 use Ticket;
 use Ticket_User;
@@ -42,9 +41,22 @@ class TicketIntent
 
    public static function canRequestForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
-      return TicketConfig::isEnabledForTicket($ticket)
-         && TipConfig::isActiveForEntity((int) $ticket->getEntityID(), self::documentType($documentType))
-         && Session::haveRight(ProjectProfile::getIntentRequestRight(self::documentType($documentType)), UPDATE);
+      $documentType = self::documentType($documentType);
+      if (!TicketConfig::isEnabledForTicket($ticket)
+         || !TipConfig::isActiveForEntity((int) $ticket->getEntityID(), $documentType)
+         || !Session::haveRight(ProjectProfile::getIntentRequestRight($documentType), UPDATE)) {
+         return false;
+      }
+
+      $phase = TicketPhase::getForTicket((int) $ticket->getID());
+      if ((string) ($phase['phase'] ?? '') !== 'classification') {
+         return false;
+      }
+      if ($documentType === TipDocumentType::DETAIL) {
+         $tip = self::getForTicket((int) $ticket->getID(), TipDocumentType::TIP);
+         return $tip !== null && (string) $tip['status'] === 'accepted';
+      }
+      return true;
    }
 
    public static function canSubmitForTicket(Ticket $ticket, string $documentType = 'tip'): bool
@@ -56,7 +68,7 @@ class TicketIntent
          return false;
       }
 
-      $right = $documentType === 'pretip'
+      $right = $documentType === TipDocumentType::TIP
          ? ProjectProfile::RIGHT_FILL_PRETIP
          : ProjectProfile::RIGHT_FILL_TIP;
       if (!Session::haveRight($right, UPDATE)) {
@@ -65,7 +77,7 @@ class TicketIntent
 
       // TIP is completed by the requester. TIP-DT is an internal technical
       // detail completed by a manager who can update the native ticket.
-      if ($documentType === 'pretip') {
+      if ($documentType === TipDocumentType::TIP) {
          return self::isRequester($ticket, (int) Session::getLoginUserID());
       }
       return true;
@@ -75,7 +87,7 @@ class TicketIntent
    {
       // O TIP-DT é um documento técnico interno: depois de gerado, é apenas
       // disponibilizado para consulta e não passa por aceite ou recusa.
-      if (self::documentType($documentType) === 'tip') {
+      if (self::documentType($documentType) === TipDocumentType::DETAIL) {
          return false;
       }
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
@@ -105,10 +117,21 @@ class TicketIntent
    public static function requestForTicket(Ticket $ticket, string $documentType = 'tip'): void
    {
       $documentType = self::documentType($documentType);
+      TicketPhase::assertCurrentPhase(
+         $ticket,
+         'classification',
+         __('Conclua a etapa atual antes de solicitar o próximo documento.', 'projectplus')
+      );
+      if ($documentType === TipDocumentType::DETAIL) {
+         $tip = self::getForTicket((int) $ticket->getID(), TipDocumentType::TIP);
+         if (!$tip || (string) $tip['status'] !== 'accepted') {
+            throw new \RuntimeException(__('O TIP deve ser preenchido e aceito antes de liberar o TIP - Detalhamento Técnico.', 'projectplus'));
+         }
+      }
       TicketRouting::assertActor(
          $ticket,
          'project',
-         $documentType === 'pretip' ? ProjectProfile::RIGHT_REQUEST_PRETIP : ProjectProfile::RIGHT_REQUEST_TIP
+         $documentType === TipDocumentType::TIP ? ProjectProfile::RIGHT_REQUEST_PRETIP : ProjectProfile::RIGHT_REQUEST_TIP
       );
       $name = self::documentName($documentType);
       if (!self::canRequestForTicket($ticket, $documentType)) {
@@ -126,11 +149,9 @@ class TicketIntent
          'requested_users_id' => (int) Session::getLoginUserID(),
          'date_requested' => $now, 'date_creation' => $now, 'date_mod' => $now,
       ]);
-      if ($documentType === 'tip') {
-         self::followup($ticket, __('O preenchimento do TIP foi liberado para o Gestor de Portfólio.', 'projectplus'));
+      if ($documentType === TipDocumentType::DETAIL) {
          TicketPhase::setPhase($ticket, self::phaseFor($documentType, 'requested'), __('TIP liberado para preenchimento pelo Gestor de Portfólio.', 'projectplus'));
       } else {
-         self::followup($ticket, sprintf(__('O preenchimento do %s foi solicitado. Acesse a aba Project+ para preencher as informações.', 'projectplus'), self::documentLongName($documentType)));
          TicketPhase::setPhase($ticket, self::phaseFor($documentType, 'requested'), sprintf(__('%s solicitado ao solicitante.', 'projectplus'), $name));
       }
    }
@@ -140,18 +161,21 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
-      if ($documentType === 'tip') {
+      TicketPhase::assertCurrentPhase(
+         $ticket,
+         $documentType === TipDocumentType::TIP ? 'awaiting_pretip' : 'awaiting_tip',
+         __('Este documento ainda não está liberado para preenchimento nesta etapa do fluxo.', 'projectplus')
+      );
+      if ($documentType === TipDocumentType::DETAIL) {
          TicketRouting::assertActor($ticket, 'project', ProjectProfile::RIGHT_FILL_TIP);
-         // Validate the portfolio route before persisting the generated TIP-DT.
-         TicketRouting::assertPhaseCanBeRouted($ticket, 'portfolio_analysis');
       }
-      if ($documentType === 'tip' && !$generate) {
+      if ($documentType === TipDocumentType::DETAIL && !$generate) {
          throw new \RuntimeException(__('O TIP - Detalhamento Técnico deve ser gerado para ser disponibilizado.', 'projectplus'));
       }
       if (!self::canSubmitForTicket($ticket, $documentType)) {
          throw new \RuntimeException(sprintf(__('Você não possui permissão para enviar este %s.', 'projectplus'), $name));
       }
-      if ($documentType === 'tip' && !Session::haveRight(ProjectProfile::RIGHT_GENERATE_TIP, UPDATE)) {
+      if ($documentType === TipDocumentType::DETAIL && !Session::haveRight(ProjectProfile::RIGHT_GENERATE_TIP, UPDATE)) {
          throw new \RuntimeException(__('Você não possui permissão para gerar o TIP - Detalhamento Técnico.', 'projectplus'));
       }
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
@@ -162,10 +186,10 @@ class TicketIntent
       $answers = is_array($input['tip_fields'] ?? null) ? $input['tip_fields'] : [];
       $validated = [];
       foreach ($fields as $field) {
-         if ((string) $field['field_type'] === 'section') {
+         if (FieldValue::isDisplayOnly((string) $field['field_type'])) {
             continue;
          }
-         $value = self::text($answers[(int) $field['id']] ?? '');
+         $value = FieldValue::normalize($field, $answers[(int) $field['id']] ?? '');
          if ((int) $field['is_required'] === 1 && $value === '') {
             throw new \RuntimeException(sprintf(__('Preencha todos os campos obrigatórios do %s.', 'projectplus'), $name));
          }
@@ -186,16 +210,14 @@ class TicketIntent
             'label' => (string) $answer['field']['label'], 'value' => $answer['value'], 'date_creation' => $now,
          ]);
       }
-      $status = $documentType === 'tip' && $generate ? 'generated' : 'submitted';
+      $status = $documentType === TipDocumentType::DETAIL && $generate ? 'generated' : 'submitted';
       $DB->update(self::getTable(), [
          'status' => $status, 'users_id' => $userId, 'submitter_name' => User::getFriendlyNameById($userId),
          'submitter_email' => $email, 'date_submitted' => $now, 'date_mod' => $now,
       ], ['id' => (int) $intent['id']]);
-      if ($documentType === 'tip') {
-         self::followup($ticket, __('TIP - Detalhamento Técnico gerado pelo Gerente de Projetos e disponibilizado para consulta.', 'projectplus'), $userId);
+      if ($documentType === TipDocumentType::DETAIL) {
          TicketPhase::setPhase($ticket, self::phaseFor($documentType, 'generated'), __('TIP - Detalhamento Técnico gerado e disponibilizado para consulta.', 'projectplus'));
       } else {
-         self::followup($ticket, sprintf(__('%s preenchido e enviado para análise.', 'projectplus'), $name), $userId);
          TicketPhase::setPhase($ticket, self::phaseFor($documentType, 'submitted'), sprintf(__('%s preenchido e enviado para validação do gestor.', 'projectplus'), $name));
       }
    }
@@ -204,7 +226,12 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
-      if ($documentType === 'tip') {
+      TicketPhase::assertCurrentPhase(
+         $ticket,
+         'awaiting_pretip_review',
+         __('O TIP ainda não está disponível para validação.', 'projectplus')
+      );
+      if ($documentType === TipDocumentType::DETAIL) {
          throw new \RuntimeException(__('O TIP - Detalhamento Técnico não exige aceite.', 'projectplus'));
       }
       TicketRouting::assertActor($ticket, 'project', ProjectProfile::RIGHT_VALIDATE_PRETIP);
@@ -215,7 +242,6 @@ class TicketIntent
       $now = date('Y-m-d H:i:s');
       global $DB;
       $DB->update(self::getTable(), ['status' => 'accepted', 'review_users_id' => (int) Session::getLoginUserID(), 'review_justification' => '', 'date_reviewed' => $now, 'date_mod' => $now], ['id' => (int) $intent['id']]);
-      self::followup($ticket, sprintf(__('%s aceito pelo gestor e encaminhado para classificação da necessidade.', 'projectplus'), $name));
       TicketPhase::setPhase($ticket, 'classification', sprintf(__('%s aceito pelo gestor.', 'projectplus'), $name));
    }
 
@@ -223,7 +249,12 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
-      if ($documentType === 'tip') {
+      TicketPhase::assertCurrentPhase(
+         $ticket,
+         'awaiting_pretip_review',
+         __('O TIP ainda não está disponível para validação.', 'projectplus')
+      );
+      if ($documentType === TipDocumentType::DETAIL) {
          throw new \RuntimeException(__('O TIP - Detalhamento Técnico não pode ser recusado.', 'projectplus'));
       }
       if (!self::canReviewForTicket($ticket, $documentType)) {
@@ -245,6 +276,17 @@ class TicketIntent
    {
       $documentType = self::documentType($documentType);
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
+      if ($documentType === TipDocumentType::DETAIL) {
+         $tip = self::getForTicket((int) $ticket->getID(), TipDocumentType::TIP);
+         if ($tip === null || (string) $tip['status'] !== 'accepted') {
+            echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>"
+               . self::escape(__('TIP - Detalhamento Técnico ainda não liberado.', 'projectplus'))
+               . '</strong><br>'
+               . self::escape(FlowStageDescription::get('tip_dt', 'pending'))
+               . '</div>';
+            return;
+         }
+      }
       if ($intent !== null && (string) $intent['status'] === 'generated') {
          if (self::canViewForTicket($ticket, $documentType)) {
             self::showGeneratedReadOnly($ticket, $documentType);
@@ -270,25 +312,23 @@ class TicketIntent
       } elseif ($intent !== null && self::canSubmitForTicket($ticket, $documentType)) {
          self::showForm($ticket, $documentType);
       } elseif ($intent !== null) {
-         $message = $documentType === 'tip'
+         $message = $documentType === TipDocumentType::DETAIL
             ? __('O TIP foi liberado e aguarda o preenchimento pelo Gestor de Portfólio.', 'projectplus')
             : sprintf(__('O %s foi solicitado e aguarda o preenchimento pelo solicitante.', 'projectplus'), self::documentName($documentType));
          echo "<div class='alert alert-info'>" . self::escape($message) . '</div>';
       } elseif (self::canRequestForTicket($ticket, $documentType)) {
          self::showRequestButton($ticket, $documentType);
       } else {
-         echo "<div class='alert alert-info'>" . self::escape(sprintf(__('Aguardando a solicitação de preenchimento do %s pela área responsável.', 'projectplus'), self::documentName($documentType))) . '</div>';
+         echo "<div class='alert alert-info'>" . self::escape(FlowStageDescription::get($documentType === TipDocumentType::DETAIL ? 'tip_dt' : 'tip', 'pending')) . '</div>';
       }
    }
 
    private static function showRequestButton(Ticket $ticket, string $documentType): void
    {
       $name = self::documentName($documentType);
-      $isTip = $documentType === 'tip';
-      $message = $isTip
-         ? __('Ao liberar, o Gestor de Portfólio poderá preencher o TIP. O solicitante terá acesso somente para consulta após o preenchimento.', 'projectplus')
-         : sprintf(__('Após solicitar, o solicitante receberá acesso ao formulário %s neste chamado.', 'projectplus'), $name);
-      $button = $isTip ? __('Liberar preenchimento do TIP', 'projectplus') : sprintf(__('Solicitar preenchimento do %s', 'projectplus'), $name);
+      $isTip = $documentType === TipDocumentType::DETAIL;
+      $message = FlowStageDescription::get($isTip ? 'tip_dt' : 'tip');
+      $button = $isTip ? __('Preencher Detalhamento Técnico', 'projectplus') : sprintf(__('Solicitar preenchimento do %s', 'projectplus'), $name);
       echo "<div class='center'><form method='post' action='" . self::escape(self::getActionUrl()) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . Html::hidden('document_type', ['value' => $documentType]);
       echo "<div class='alert alert-info'>" . self::escape($message) . "</div><button class='btn btn-primary' type='submit' name='request_intent' value='1'>" . self::escape($button) . '</button></form></div>';
    }
@@ -302,7 +342,7 @@ class TicketIntent
       // For TIP-DT, the identification must reflect the manager who released
       // the document for completion, rather than the requester of the ticket.
       $releasedBy = (int) ($intent['requested_users_id'] ?? 0);
-      $displayUserId = $documentType === 'tip'
+      $displayUserId = $documentType === TipDocumentType::DETAIL
          ? ($releasedBy > 0 ? $releasedBy : $userId)
          : ($requesterId > 0 ? $requesterId : $userId);
       $name = self::documentName($documentType);
@@ -314,7 +354,7 @@ class TicketIntent
       foreach (TipField::getForEntity((int) $ticket->getEntityID(), $documentType) as $field) {
          self::showField($field, FieldSource::getValue($ticket, (string) ($field['source'] ?? '')));
       }
-      $isTechnicalDetail = $documentType === 'tip';
+      $isTechnicalDetail = $documentType === TipDocumentType::DETAIL;
       $action = $isTechnicalDetail ? 'generate_intent' : 'save_intent';
       $button = $isTechnicalDetail ? __('Gerar TIP - Detalhamento Técnico', 'projectplus') : sprintf(__('Enviar %s para análise', 'projectplus'), $name);
       $icon = $isTechnicalDetail ? 'ti ti-file-export' : 'ti ti-send';
@@ -357,13 +397,12 @@ class TicketIntent
    {
       $id = (int) $field['id']; $type = (string) $field['field_type'];
       if ($type === 'section') { echo "</div><div class='projectplus-tip__section-title projectplus-tip__section-title--divider'><i class='ti ti-list-details'></i><div><h3>" . self::escape((string) $field['label']) . '</h3></div></div><div class="projectplus-tip__grid">'; return; }
+      if ($type === 'info') { echo "<div class='projectplus-tip__field projectplus-tip__field--wide'>" . FieldValue::render('tip_fields', $field, '') . '</div>'; return; }
       $required = (int) $field['is_required'] === 1; $name = 'tip_fields[' . $id . ']';
       $help = (string) ($field['description'] ?? '');
       $helpIcon = $help !== '' ? " <i class='ti ti-help-circle text-muted' title='" . self::escape($help) . "' aria-label='" . self::escape(__('Ajuda', 'projectplus')) . "'></i>" : '';
       echo "<div class='projectplus-tip__field" . ($type === 'textarea' ? ' projectplus-tip__field--wide' : '') . "'><label for='tip-field-" . $id . "'>" . self::escape((string) $field['label'] . ($required ? ' *' : '')) . $helpIcon . '</label>' . ($help !== '' ? '<small>' . self::escape($help) . '</small>' : '') . '<div>';
-      if ($type === 'textarea') { echo "<textarea id='tip-field-" . $id . "' class='form-control' name='" . self::escape($name) . "' rows='5'" . ($required ? ' required' : '') . '>' . self::escape($value) . '</textarea>'; }
-      elseif ($type === 'select') { $values = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $field['values']))); Dropdown::showFromArray($name, array_combine($values, $values) ?: [], ['value' => $value, 'id' => 'tip-field-' . $id]); }
-      else { $htmlType = in_array($type, ['number', 'date'], true) ? $type : 'text'; echo "<input id='tip-field-" . $id . "' class='form-control' type='" . $htmlType . "' name='" . self::escape($name) . "' value='" . self::escape($value) . "'" . ($required ? ' required' : '') . '>'; }
+      echo FieldValue::render('tip_fields', $field, $value);
       echo '</div></div>';
    }
 
@@ -405,12 +444,11 @@ class TicketIntent
          . self::escape($pdfUrl) . "'></iframe></div></section>";
    }
 
-   private static function documentType(string $documentType): string { return $documentType === 'pretip' ? 'pretip' : 'tip'; }
-   private static function documentName(string $documentType): string { return $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
-   private static function documentLongName(string $documentType): string { return $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
-   private static function phaseFor(string $documentType, string $status): string { return $documentType === 'pretip' ? ($status === 'requested' ? 'awaiting_pretip' : 'awaiting_pretip_review') : ($status === 'requested' ? 'awaiting_tip' : 'portfolio_analysis'); }
+   private static function documentType(string $documentType): string { return $documentType === TipDocumentType::DETAIL ? TipDocumentType::DETAIL : TipDocumentType::TIP; }
+   private static function documentName(string $documentType): string { return $documentType === TipDocumentType::TIP ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
+   private static function documentLongName(string $documentType): string { return $documentType === TipDocumentType::TIP ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
+   private static function phaseFor(string $documentType, string $status): string { return $documentType === TipDocumentType::TIP ? ($status === 'requested' ? 'awaiting_pretip' : 'awaiting_pretip_review') : ($status === 'requested' ? 'awaiting_tip' : 'portfolio_analysis'); }
    private static function getActionUrl(): string { global $CFG_GLPI; return rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.form.php'; }
    private static function text($value): string { $value = trim((string) $value); if (strlen($value) > 65535) { throw new \RuntimeException(__('Um dos campos do documento excede o tamanho permitido.', 'projectplus')); } return $value; }
    private static function escape(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
-   private static function followup(Ticket $ticket, string $content, ?int $userId = null): void { $followup = new ITILFollowup(); $followup->add(['itemtype' => Ticket::class, 'items_id' => (int) $ticket->getID(), 'users_id' => $userId ?? (int) Session::getLoginUserID(), 'content' => $content, 'is_private' => 0]); }
 }

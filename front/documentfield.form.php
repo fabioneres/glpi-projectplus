@@ -35,6 +35,7 @@ $field = DocumentField::one((int) ($_GET['id'] ?? 0), $entityId, $documentType) 
    'source'      => '',
    'is_required' => 0,
    'is_active'   => 1,
+   'is_recursive' => 0,
    'sort_order'  => 10,
 ];
 
@@ -67,7 +68,7 @@ echo "<tr class='tab_bg_1'><td>" . __('Tipo', 'projectplus') . '</td><td>';
 Dropdown::showFromArray('field_type', DocumentField::types(), ['value' => $field['field_type']]);
 echo '</td></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Descrição/orientação', 'projectplus') . "</td><td><textarea class='form-control' name='description' rows='3'>" . ConfigPage::escape($field['description']) . "</textarea></td></tr>";
-echo "<tr class='tab_bg_1'><td>" . __('Opções da lista', 'projectplus') . "</td><td><textarea class='form-control' name='values' rows='4'>" . ConfigPage::escape($field['values']) . "</textarea><small>" . __('Uma opção por linha; utilizado somente para lista suspensa.', 'projectplus') . '</small></td></tr>';
+echo "<tr class='tab_bg_1' id='projectplus-choice-options-row'><td>" . __('Opções de escolha', 'projectplus') . "</td><td><textarea class='form-control' name='values' rows='4'>" . ConfigPage::escape($field['values']) . "</textarea><small>" . __('Uma opção por linha; utilizado em listas, seleção única e seleção múltipla.', 'projectplus') . '</small></td></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Preencher com origem', 'projectplus') . '</td><td>';
 Dropdown::showFromArray('source', FieldSource::getOptions($entityId, $documentType), ['value' => $field['source']]);
 echo '<small>' . __('Sugere o valor ao criar o documento; o responsável ainda pode alterá-lo.', 'projectplus') . '</small></td></tr>';
@@ -78,8 +79,12 @@ echo '</td></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Ativo', 'projectplus') . '</td><td>';
 Dropdown::showYesNo('is_active', (int) $field['is_active']);
 echo '</td></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Entidades filhas', 'projectplus') . '</td><td>';
+Dropdown::showYesNo('is_recursive', (int) ($field['is_recursive'] ?? 0));
+echo '<small>' . __('Disponibiliza somente este campo nas entidades descendentes.', 'projectplus') . '</small></td></tr>';
 echo "<tr class='tab_bg_1'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='save' value='1'>" . __('Salvar') . '</button></td></tr>';
 echo '</table></form></div></section>';
+echo "<script>(function(){const type=document.querySelector('select[name=\"field_type\"]');const row=document.getElementById('projectplus-choice-options-row');if(!type||!row)return;const choices=['select','radio','checkboxes','multiselect'];const toggle=()=>{row.style.display=choices.includes(type.value)?'table-row':'none';};type.addEventListener('change',toggle);if(window.jQuery)jQuery(type).on('select2:select select2:clear',toggle);toggle();})();</script>";
 
 ConfigPage::end();
 Html::footer();

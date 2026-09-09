@@ -7,6 +7,7 @@ use CommonGLPI;
 use DBmysql;
 use Dropdown;
 use Html;
+use ITILFollowup;
 use Session;
 use Ticket;
 use User;
@@ -44,8 +45,101 @@ class TicketPhase extends CommonDBTM
 
    public static function getPhaseLabel(string $phase): string
    {
+      return FlowStageDescription::getNameForTrigger($phase, self::getPhaseLabelRaw($phase));
+   }
+
+   public static function getPhaseLabelRaw(string $phase): string
+   {
       $phases = self::getPhases();
       return $phases[$phase] ?? $phase;
+   }
+
+   /** @return array<string, string> Configured phase names keyed by workflow trigger. */
+   public static function getSearchablePhases(): array
+   {
+      $phases = [];
+      foreach (array_keys(self::getPhases()) as $phase) {
+         $phases[$phase] = self::getPhaseLabel($phase);
+      }
+      return $phases;
+   }
+
+   public static function getSpecificValueToSelect($field, $name = '', $values = '', array $options = [])
+   {
+      if ($field !== 'phase') {
+         return parent::getSpecificValueToSelect($field, $name, $values, $options);
+      }
+
+      $value = is_array($values) ? (string) ($values[$field] ?? '') : (string) $values;
+      return Dropdown::showFromArray($name, self::getSearchablePhases(), [
+         'value' => $value,
+         'width' => $options['width'] ?? '100%',
+         'display' => false,
+      ]);
+   }
+
+   public static function getSpecificValueToDisplay($field, $values, array $options = [])
+   {
+      if ($field !== 'phase') {
+         return parent::getSpecificValueToDisplay($field, $values, $options);
+      }
+
+      $value = is_array($values) ? (string) ($values[$field] ?? '') : (string) $values;
+      return self::getPhaseLabel($value);
+   }
+
+   /** Native Ticket search filters using the same user selector as Technician. */
+   public static function getSearchOptionsForTicket(): array
+   {
+      $options = [['id' => 'projectplus', 'name' => __('Project+', 'projectplus')]];
+
+      $options[] = [
+         'id' => 9523,
+         'table' => self::getTable(),
+         'field' => 'phase',
+         'datatype' => 'specific',
+         'searchtype' => ['equals', 'notequals'],
+         'name' => __('Fase atual', 'projectplus'),
+         'forcegroupby' => true,
+         'massiveaction' => false,
+         'joinparams' => ['jointype' => 'child'],
+      ];
+
+      $options[] = [
+         'id' => 9524,
+         'table' => TicketPriority::getTable(),
+         'field' => 'ranking',
+         'datatype' => 'string',
+         'searchtype' => ['equals', 'notequals', 'lessthan', 'morethan'],
+         'name' => __('Ranking', 'projectplus'),
+         'forcegroupby' => true,
+         'massiveaction' => false,
+         'joinparams' => ['jointype' => 'child'],
+      ];
+
+      foreach ([
+         9521 => ['project_manager_users_id', __('Gerente de Projetos', 'projectplus')],
+         9522 => ['portfolio_manager_users_id', __('Gestor de Portfólio', 'projectplus')],
+      ] as $id => $definition) {
+         $options[] = [
+            'id' => $id,
+            'table' => User::getTable(),
+            'field' => 'name',
+            'linkfield' => $definition[0],
+            'datatype' => 'dropdown',
+            'name' => $definition[1],
+            'forcegroupby' => true,
+            'massiveaction' => false,
+            'use_subquery' => true,
+            'joinparams' => [
+               'beforejoin' => [
+                  'table' => self::getTable(),
+                  'joinparams' => ['jointype' => 'child'],
+               ],
+            ],
+         ];
+      }
+      return $options;
    }
 
    /** @return array<string, string> Phases that may be changed manually in Project+. */
@@ -55,6 +149,53 @@ class TicketPhase extends CommonDBTM
       // Normal phases advance only through their workflow actions. Manual
       // intervention is reserved for the auditable exception of cancellation.
       return ['rejected_cancelled' => $phases['rejected_cancelled']];
+   }
+
+   /** @return array<string, array<int, string>> */
+   private static function getAllowedTransitions(): array
+   {
+      return [
+         'classification' => ['awaiting_pretip', 'awaiting_tip'],
+         'awaiting_pretip' => ['awaiting_pretip_review', 'rejected_cancelled'],
+         'awaiting_pretip_review' => ['classification', 'rejected_cancelled'],
+         'awaiting_tip' => ['portfolio_analysis', 'rejected_cancelled'],
+         'portfolio_analysis' => ['awaiting_authorization', 'rejected_cancelled'],
+         'awaiting_authorization' => ['authorized_opening', 'rejected_cancelled'],
+         'authorized_opening' => ['awaiting_tap_acceptance', 'project_opened', 'rejected_cancelled'],
+         'awaiting_tap_acceptance' => ['authorized_opening', 'rejected_cancelled'],
+      ];
+   }
+
+   /** Ensures that a workflow action is executed in its single valid phase. */
+   public static function assertCurrentPhase(Ticket $ticket, string $expectedPhase, string $message): void
+   {
+      self::ensureForTicket($ticket);
+      $current = self::getForTicket((int) $ticket->getID());
+      if ((string) ($current['phase'] ?? '') !== $expectedPhase) {
+         throw new \RuntimeException($message);
+      }
+   }
+
+   /** Registers the portfolio manager's explicit opening decision. */
+   public static function decideOpening(Ticket $ticket, bool $authorized, string $justification = ''): void
+   {
+      self::assertCurrentPhase($ticket, 'awaiting_authorization', __('A autorização de abertura ainda não está disponível.', 'projectplus'));
+      TicketRouting::assertActor($ticket, 'portfolio', ProjectProfile::RIGHT_AUTHORIZE_OPENING);
+      if (!$authorized && trim($justification) === '') {
+         throw new \RuntimeException(__('Informe a justificativa para negar a abertura do projeto.', 'projectplus'));
+      }
+      if ($authorized) {
+         self::setPhase(
+            $ticket,
+            'authorized_opening',
+            __('Abertura do projeto autorizada.', 'projectplus'),
+            false
+         );
+         return;
+      }
+      $justification = trim($justification);
+      $ticket->update(['id' => (int) $ticket->getID(), 'status' => Ticket::SOLVED, 'solution' => $justification]);
+      self::setPhase($ticket, 'rejected_cancelled', $justification);
    }
 
    public static function postTicketAdd(Ticket $ticket): void
@@ -99,6 +240,7 @@ class TicketPhase extends CommonDBTM
          return;
       }
       if (self::getForTicket((int) $ticket->getID()) !== null) {
+         TicketRouting::syncResponsibilities($ticket);
          return;
       }
 
@@ -120,6 +262,8 @@ class TicketPhase extends CommonDBTM
          'justification' => __('Fase inicial definida automaticamente pela categoria do Ticket.', 'projectplus'),
          'date_creation' => $now,
       ]);
+      TicketRouting::syncResponsibilities($ticket);
+      self::addAutomaticFollowup($ticket, 'classification', '', '');
    }
 
    public static function updateForTicket(Ticket $ticket, array $input): bool
@@ -157,7 +301,12 @@ class TicketPhase extends CommonDBTM
    }
 
    /** Changes a phase and writes its audit history. Intended for controlled plugin actions. */
-   public static function setPhase(Ticket $ticket, string $phase, string $justification = ''): bool
+   public static function setPhase(
+      Ticket $ticket,
+      string $phase,
+      string $justification = '',
+      bool $validateNextActorRight = true
+   ): bool
    {
       /** @var DBmysql $DB */
       global $DB;
@@ -170,9 +319,14 @@ class TicketPhase extends CommonDBTM
       if ($current === null || $phase === (string) $current['phase']) {
          return $current !== null;
       }
+      $currentPhase = (string) $current['phase'];
+      $allowed = self::getAllowedTransitions()[$currentPhase] ?? [];
+      if (!in_array($phase, $allowed, true)) {
+         throw new \RuntimeException(__('A etapa solicitada não pode ser executada antes da conclusão da etapa anterior.', 'projectplus'));
+      }
       // Resolve the configured manager before committing the phase. This keeps
       // the ticket in the entity that owns the next Project+ responsibility.
-      TicketRouting::routeForPhase($ticket, $phase);
+      TicketRouting::routeForPhase($ticket, $phase, $validateNextActorRight);
       $current = self::getForTicket((int) $ticket->getID());
       if ($current === null) {
          return false;
@@ -194,7 +348,30 @@ class TicketPhase extends CommonDBTM
          'justification' => $justification,
          'date_creation' => $now,
       ]);
+      self::addAutomaticFollowup($ticket, $phase, $currentPhase, $justification);
       return true;
+   }
+
+   private static function addAutomaticFollowup(Ticket $ticket, string $phase, string $previousPhase, string $justification): void
+   {
+      $content = FlowStageDescription::getPhaseFollowup($phase);
+      if ($content === '') {
+         return;
+      }
+      $content = strtr($content, [
+         '{fase}' => self::getPhaseLabel($phase),
+         '{fase_anterior}' => $previousPhase === '' ? '' : self::getPhaseLabel($previousPhase),
+         '{chamado_id}' => (string) $ticket->getID(),
+         '{justificativa}' => $justification,
+      ]);
+      $followup = new ITILFollowup();
+      $followup->add([
+         'itemtype' => Ticket::class,
+         'items_id' => (int) $ticket->getID(),
+         'users_id' => (int) Session::getLoginUserID(),
+         'content' => $content,
+         'is_private' => 0,
+      ]);
    }
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0): string
@@ -236,28 +413,30 @@ class TicketPhase extends CommonDBTM
       echo "<div class='projectplus-document-legend' aria-label='" . self::escape(__('Legenda dos documentos', 'projectplus')) . "'><span class='projectplus-document-legend__title'><i class='ti ti-info-circle'></i> " . self::escape(__('Legenda', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--accepted'><i></i>" . self::escape(__('Aceito pelo gestor', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--released'><i></i>" . self::escape(__('Liberado para preenchimento', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--rejected'><i></i>" . self::escape(__('Recusado', 'projectplus')) . "</span><span class='projectplus-document-legend__item projectplus-document-legend__item--disabled'><i></i>" . self::escape(__('Não enviado / desabilitado', 'projectplus')) . '</span></div>';
 
       echo "<div class='projectplus-document-journey'>";
-      $preTip = TicketIntent::getForTicket((int) $ticket->getID(), 'pretip');
+      $preTip = TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::TIP);
       $preTipState = self::getIntentVisualState($preTip);
-      $intent = TicketIntent::getForTicket((int) $ticket->getID(), 'tip');
+      $intent = TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::DETAIL);
       $tipState = self::getIntentVisualState($intent);
-      $tapState = DocumentAcceptance::getVisualState(DocumentAcceptance::getForItem($ticket, 'tap'));
+      $tap = DocumentAcceptance::getForItem($ticket, 'tap');
+      $tapState = DocumentAcceptance::getVisualState($tap);
+      $tapAccepted = (string) ($tap['status'] ?? '') === 'accepted';
       $currentPhase = (string) $phase['phase'];
       $technicalPriorityComplete = TicketPriority::isStrategicPriorityAvailable($ticket);
       if ($tapState === 'disabled' && $currentPhase === 'authorized_opening') {
          $tapState = 'released';
       }
       self::showDocumentStep('TIP - Termo de Intenção de Projeto', 'ti ti-file-search', $preTipState, in_array($currentPhase, ['awaiting_pretip', 'awaiting_pretip_review'], true), static function () use ($ticket): void {
-         TicketIntent::showForTicket($ticket, 'pretip');
+         TicketIntent::showForTicket($ticket, TipDocumentType::TIP);
       });
       self::showDocumentStep('TIP - Detalhamento Técnico', 'ti ti-file-text', $tipState, $currentPhase === 'awaiting_tip', static function () use ($ticket): void {
-         TicketIntent::showForTicket($ticket);
+         TicketIntent::showForTicket($ticket, TipDocumentType::DETAIL);
       });
       if (ProjectPriority::canViewPriorityType('technical')) {
          $tipDetailGenerated = (string) ($intent['status'] ?? '') === 'generated';
          $technicalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'technical') ? 'accepted' : ($tipDetailGenerated ? 'released' : 'disabled');
          self::showDocumentStep(__('Priorização técnica', 'projectplus'), 'ti ti-list-numbers', $technicalState, $currentPhase === 'portfolio_analysis' && !$technicalPriorityComplete, static function () use ($ticket, $tipDetailGenerated): void {
             if (!$tipDetailGenerated) {
-               echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Gere o TIP - Detalhamento Técnico para liberar esta etapa.', 'projectplus')) . '</div>';
+               echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(FlowStageDescription::get('technical_priority', 'pending')) . '</div>';
                return;
             }
             TicketPriority::showForTicket($ticket, 'technical');
@@ -267,19 +446,46 @@ class TicketPhase extends CommonDBTM
          $institutionalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'institutional') ? 'accepted' : ($technicalPriorityComplete ? 'released' : 'disabled');
          self::showDocumentStep(__('Priorização estratégica', 'projectplus'), 'ti ti-list-numbers', $institutionalState, $currentPhase === 'portfolio_analysis' && $technicalPriorityComplete, static function () use ($ticket, $technicalPriorityComplete): void {
             if (!$technicalPriorityComplete) {
-               echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização estratégica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(__('Conclua a priorização técnica para liberar esta etapa.', 'projectplus')) . '</div>';
+               echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização estratégica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(FlowStageDescription::get('strategic_priority', 'pending')) . '</div>';
                return;
             }
             TicketPriority::showForTicket($ticket, 'institutional');
          });
       }
-      self::showDocumentStep('TAP - Termo de Abertura do Projeto', 'ti ti-file-description', $tapState, in_array($currentPhase, ['awaiting_authorization', 'authorized_opening', 'awaiting_tap_acceptance'], true), static function () use ($ticket): void {
+      self::showDocumentStep(__('Autorização de abertura do projeto', 'projectplus'), 'ti ti-circle-check', $currentPhase === 'authorized_opening' ? 'accepted' : ($currentPhase === 'awaiting_authorization' ? 'released' : 'disabled'), $currentPhase === 'awaiting_authorization', static function () use ($ticket, $currentPhase): void {
+         if ($currentPhase !== 'awaiting_authorization') {
+            echo "<div class='alert alert-info'>" . self::escape(FlowStageDescription::get('authorization_opening', 'pending')) . '</div>';
+            return;
+         }
+         if (!Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
+            echo "<div class='alert alert-info'>" . self::escape(__('Aguardando o Gestor de Portfólio autorizado.', 'projectplus')) . '</div>';
+            return;
+         }
+         global $CFG_GLPI;
+         $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/ticketauthorization.form.php';
+         echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Autorização de abertura pendente.', 'projectplus')) . '</strong><br>' . self::escape(FlowStageDescription::get('authorization_opening', 'active')) . '</div>';
+         echo "<form method='post' action='" . self::escape($url) . "' class='projectplus-phase-form'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]);
+         echo "<label>" . self::escape(__('Justificativa em caso de negativa', 'projectplus')) . "</label><textarea class='form-control' name='justification' rows='3'></textarea><div class='center mt-3'><button class='btn btn-primary' type='submit' name='authorize_opening' value='1'>" . self::escape(__('Autorizar abertura', 'projectplus')) . "</button> <button class='btn btn-danger' type='submit' name='deny_opening' value='1'>" . self::escape(__('Negar abertura', 'projectplus')) . '</button></div></form>';
+      });
+      $tapOpen = $currentPhase === 'awaiting_tap_acceptance'
+         || ($currentPhase === 'authorized_opening' && !$tapAccepted);
+      self::showDocumentStep('TAP - Termo de Abertura do Projeto', 'ti ti-file-description', $tapState, $tapOpen, static function () use ($ticket): void {
          DocumentAcceptance::showTicketDocument($ticket);
       });
+      $projectId = TicketProject::getProjectId((int) $ticket->getID());
+      $projectReady = $projectId === 0 && TicketProject::getMissingOpeningRequirements($ticket) === [];
+      $projectState = $projectId > 0 ? 'accepted' : ($projectReady ? 'released' : 'disabled');
+      self::showDocumentStep(
+         __('Abrir projeto e solucionar chamado', 'projectplus'),
+         'ti ti-briefcase',
+         $projectState,
+         $projectReady || $currentPhase === 'project_opened',
+         static function () use ($ticket): void {
+            TicketProject::showForTicket($ticket);
+         }
+      );
       echo '</div>';
       DocumentAcceptance::showJourneyAccordionScript();
-
-      TicketProject::showForTicket($ticket);
 
       if (Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE) && $currentPhase !== 'rejected_cancelled') {
          self::showUpdateForm($ticket, $phase);

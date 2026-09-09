@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
+use GlpiPlugin\Projectplus\RoutingNotice;
 
 Session::checkLoginUser();
 $itemtype = (string) ($_POST['itemtype'] ?? '');
@@ -28,7 +29,7 @@ try {
          throw new \RuntimeException(__('Ação disponível somente para o TAP do chamado.', 'projectplus'));
       }
       DocumentAcceptance::startTicketTap($item);
-      Session::addMessageAfterRedirect(__('TAP liberado para preenchimento e abertura autorizada.', 'projectplus'));
+      Session::addMessageAfterRedirect(__('TAP liberado para preenchimento.', 'projectplus'));
    } elseif (isset($_POST['publish_document'])) {
       DocumentAcceptance::publish($item, (string) ($_POST['document_type'] ?? ''), (int) ($_POST['documents_id'] ?? 0));
       Session::addMessageAfterRedirect(__('Documento publicado para aceite.', 'projectplus'));
@@ -45,4 +46,4 @@ try {
 } catch (\RuntimeException $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
-Html::redirect($redirectUrl);
+Html::redirect($item instanceof Ticket ? RoutingNotice::getRedirectUrl($item) : $redirectUrl);

@@ -7,20 +7,21 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\TicketIntent;
 use GlpiPlugin\Projectplus\TicketIntentAnswer;
+use GlpiPlugin\Projectplus\TipDocumentType;
 
 Session::checkLoginUser();
 $ticket = new Ticket();
 $ticketId = (int) ($_GET['tickets_id'] ?? 0);
 $documentType = (string) ($_GET['document_type'] ?? 'tip');
-if ($documentType !== 'pretip') {
-   $documentType = 'tip';
+if ($documentType !== TipDocumentType::DETAIL) {
+   $documentType = TipDocumentType::TIP;
 }
-$documentName = $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus');
+$documentName = $documentType === TipDocumentType::TIP ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus');
 $documentTitle = $documentName;
-$documentIntro = $documentType === 'pretip'
+$documentIntro = $documentType === TipDocumentType::TIP
    ? __('Formulário preenchido pelo solicitante e disponível para análise.', 'projectplus')
    : __('Detalhamento técnico preenchido pelo Gerente de Projetos e disponível para consulta.', 'projectplus');
-$documentStatus = $documentType === 'pretip'
+$documentStatus = $documentType === TipDocumentType::TIP
    ? __('Dados de identificação e registro do envio.', 'projectplus')
    : __('Dados de identificação e registro da geração do documento.', 'projectplus');
 if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEntity((int) $ticket->getEntityID()) || !TicketIntent::canViewForTicket($ticket, $documentType)) {
@@ -41,7 +42,7 @@ $pdf->SetFont('dejavusans', '', 9);
 $pdf->AddPage();
 $html = '<style>body{color:#18372e;font-family:dejavusans;font-size:9pt}.eyebrow{color:#d8eee1;font-size:8pt;font-weight:bold}.title{color:#fff;font-size:21pt;font-weight:bold}.subtitle{color:#e5f3ea;font-size:10pt}.section{color:#1f6040;font-size:13pt;font-weight:bold}.muted{color:#60756c}.label{color:#48655a;font-size:8pt;font-weight:bold}.value{color:#173b2d;font-size:10pt;font-weight:bold}.answer-title{color:#1d4435;font-size:10pt;font-weight:bold}.answer-value{color:#30483e;font-size:9pt}</style>';
 $html .= '<table width="100%" cellpadding="12" bgcolor="#256b45"><tr><td><div class="eyebrow">SOLICITAÇÃO DE PROJETO</div><div class="title">' . $esc($documentTitle) . '</div><br><div class="subtitle">' . $esc($documentIntro) . '</div></td></tr></table><br>';
-$html .= '<table width="100%" cellpadding="7"><tr><td><div class="section">' . $esc($documentName) . ' ' . ($documentType === 'pretip' ? 'enviado' : 'gerado') . '</div><div class="muted">' . $esc($documentStatus) . '</div></td></tr></table><br>';
+$html .= '<table width="100%" cellpadding="7"><tr><td><div class="section">' . $esc($documentName) . ' ' . ($documentType === TipDocumentType::TIP ? 'enviado' : 'gerado') . '</div><div class="muted">' . $esc($documentStatus) . '</div></td></tr></table><br>';
 $html .= '<table width="100%" cellspacing="5" cellpadding="9"><tr><td width="20%" bgcolor="#eff6f1"><div class="label">TICKET</div><div class="value">#' . $ticketId . '</div></td><td width="35%" bgcolor="#eff6f1"><div class="label">ENVIADO EM</div><div class="value">' . $esc(Html::convDateTime((string) $intent['date_submitted'])) . '</div></td><td width="45%" bgcolor="#eff6f1"><div class="label">ENVIADO POR</div><div class="value">' . $esc((string) $intent['submitter_name']) . '</div><div class="muted">' . $esc((string) $intent['submitter_email']) . '</div></td></tr></table><br>';
 $html .= '<table width="100%" cellpadding="7"><tr><td><div class="section">Respostas do formulário</div><div class="muted">Informações declaradas no ' . $esc($documentTitle) . '.</div></td></tr></table><br>';
 foreach (TicketIntentAnswer::getForIntent((int) $intent['id']) as $answer) {

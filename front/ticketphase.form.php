@@ -6,6 +6,7 @@ if (!defined('GLPI_ROOT')) {
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\TicketPhase;
+use GlpiPlugin\Projectplus\RoutingNotice;
 
 Session::checkLoginUser();
 
@@ -27,4 +28,4 @@ if (isset($_POST['update_phase'])) {
    }
 }
 
-Html::redirect(Ticket::getFormURLWithID($ticketId));
+Html::redirect(RoutingNotice::getRedirectUrl($ticket));

@@ -7,20 +7,23 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\TipConfig;
+use GlpiPlugin\Projectplus\TipDocumentType;
 use GlpiPlugin\Projectplus\TipField;
 
 Session::checkRight('config', UPDATE);
+
 $documentType = (string) ($_REQUEST['document_type'] ?? 'tip');
-if ($documentType !== 'pretip') {
-   $documentType = 'tip';
+if ($documentType !== TipDocumentType::DETAIL) {
+   $documentType = TipDocumentType::TIP;
 }
-$documentLabel = $documentType === 'pretip'
+$documentLabel = $documentType === TipDocumentType::TIP
    ? __('TIP - Termo de Intenção de Projeto', 'projectplus')
    : __('TIP - Detalhamento Técnico', 'projectplus');
 $entityId = (int) Session::getActiveEntity();
 if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
    Html::displayErrorAndDie(__('Entidade inválida ou sem permissão de configuração.', 'projectplus'));
 }
+
 if (isset($_POST['save_tip_config'])) {
    if (TipConfig::saveForEntity($entityId, $documentType, $_POST)) {
       Session::addMessageAfterRedirect(__('Modelo TIP salvo.', 'projectplus'));
@@ -29,29 +32,138 @@ if (isset($_POST['save_tip_config'])) {
    }
    Html::redirect($_SERVER['PHP_SELF'] . '?document_type=' . $documentType);
 }
-if (isset($_POST['delete_tip_field'])) {
-   if (TipField::delete((int) ($_POST['id'] ?? 0), $entityId, $documentType)) {
-      Session::addMessageAfterRedirect(__('Campo removido.', 'projectplus'));
-   }
-   Html::redirect($_SERVER['PHP_SELF'] . '?document_type=' . $documentType);
-}
 
 $config = TipConfig::getForEntity($entityId, $documentType);
-$fields = TipField::getForEntity($entityId, $documentType, false);
 Html::header($documentLabel, $_SERVER['PHP_SELF'], 'config', 'plugins');
-ConfigPage::begin($documentType === 'pretip' ? 'pretipmodel' : 'tipmodel');
-echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-forms'></i> " . ConfigPage::escape(sprintf(__('Modelo do %s', 'projectplus'), $documentLabel)) . '</header><div class="projectplus-config-card__body">';
-echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('entities_id', ['value' => $entityId]) . Html::hidden('document_type', ['value' => $documentType]);
-echo "<table class='tab_cadre_fixe'><tr class='tab_bg_2'><th colspan='2'>" . __('Disponibilização do TIP', 'projectplus') . '</th></tr>';
-echo "<tr class='tab_bg_1'><td>" . __('Habilitar modelo TIP', 'projectplus') . '</td><td>'; Dropdown::showYesNo('is_active', (int) $config['is_active']); echo '</td></tr>';
-echo "<tr class='tab_bg_1'><td>" . __('Título', 'projectplus') . "</td><td><input class='form-control' type='text' required name='title' value='" . ConfigPage::escape((string) $config['title']) . "'></td></tr>";
-echo "<tr class='tab_bg_1'><td>" . __('Introdução', 'projectplus') . "</td><td><textarea class='form-control' name='introduction' rows='4'>" . ConfigPage::escape((string) $config['introduction']) . "</textarea></td></tr>";
-echo "<tr class='tab_bg_1'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='save_tip_config' value='1'>" . __('Salvar', 'projectplus') . '</button></td></tr></table></form>';
-echo "<p class='projectplus-config-help'>" . ConfigPage::escape(__('Os campos deste modelo são independentes e serão exibidos somente neste documento.', 'projectplus')) . '</p>';
-echo "<div class='center'><a class='btn btn-primary' href='tipfield.form.php?entities_id=" . $entityId . '&document_type=' . $documentType . "'>" . __('Adicionar campo', 'projectplus') . '</a></div>';
-echo "<table class='tab_cadre_fixe'><tr><th>" . __('Ordem', 'projectplus') . '</th><th>' . __('Campo', 'projectplus') . '</th><th>' . __('Tipo', 'projectplus') . '</th><th>' . __('Obrigatório', 'projectplus') . '</th><th>' . __('Ativo', 'projectplus') . '</th><th>' . __('Ações', 'projectplus') . '</th></tr>';
-foreach ($fields as $field) {
-   echo "<tr class='tab_bg_1'><td>" . (int) $field['sort_order'] . '</td><td>' . ConfigPage::escape((string) $field['label']) . '</td><td>' . ConfigPage::escape(TipField::getTypes()[(string) $field['field_type']] ?? '') . '</td><td>' . ((int) $field['is_required'] ? __('Sim') : __('Não')) . '</td><td>' . ((int) $field['is_active'] ? __('Sim') : __('Não')) . "</td><td><a class='btn btn-sm btn-secondary' href='tipfield.form.php?entities_id=" . $entityId . '&document_type=' . $documentType . '&id=' . (int) $field['id'] . "'>" . __('Editar') . "</a> <form style='display:inline' method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('entities_id', ['value' => $entityId]) . Html::hidden('document_type', ['value' => $documentType]) . Html::hidden('id', ['value' => (int) $field['id']]) . "<button class='btn btn-sm btn-danger' type='submit' name='delete_tip_field' value='1'>" . __('Excluir') . '</button></form></td></tr>';
-}
-echo '</table></div></section>';
-ConfigPage::end(); Html::footer();
+ConfigPage::begin($documentType === TipDocumentType::TIP ? 'pretipmodel' : 'tipmodel');
+echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-forms'></i> "
+   . ConfigPage::escape(sprintf(__('Modelo do %s', 'projectplus'), $documentLabel))
+   . '</header><div class="projectplus-config-card__body">';
+
+echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>"
+   . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()])
+   . Html::hidden('entities_id', ['value' => $entityId])
+   . Html::hidden('document_type', ['value' => $documentType]);
+echo "<table class='tab_cadre_fixe'><tr class='tab_bg_2'><th colspan='2'>"
+   . __('Disponibilização do TIP', 'projectplus') . '</th></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Habilitar modelo TIP', 'projectplus') . '</td><td>';
+Dropdown::showYesNo('is_active', (int) $config['is_active']);
+echo '</td></tr>';
+echo "<tr class='tab_bg_1'><td>" . __('Título', 'projectplus') . "</td><td><input class='form-control' type='text' required name='title' value='"
+   . ConfigPage::escape((string) $config['title']) . "'></td></tr>";
+echo "<tr class='tab_bg_1'><td>" . __('Introdução', 'projectplus') . "</td><td><textarea class='form-control' name='introduction' rows='4'>"
+   . ConfigPage::escape((string) $config['introduction']) . '</textarea></td></tr>';
+echo "<tr class='tab_bg_1'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='save_tip_config' value='1'>"
+   . __('Salvar', 'projectplus') . '</button></td></tr></table></form>';
+
+echo "<p class='projectplus-config-help'>"
+   . ConfigPage::escape(__('Os campos deste modelo são independentes e serão exibidos somente neste documento.', 'projectplus'))
+   . '</p>';
+echo "<p><a class='btn btn-primary' href='tipfield.form.php?entities_id=" . $entityId
+   . '&document_type=' . rawurlencode($documentType) . "'>" . __('Adicionar campo', 'projectplus') . '</a></p>';
+
+$_GET['criteria'] = is_array($_GET['criteria'] ?? null) ? $_GET['criteria'] : [];
+// The selected tab owns the document type. Never expose or persist this
+// technical constraint as an editable native-search criterion.
+$_GET['criteria'] = array_values(array_filter($_GET['criteria'], static function (array $criterion): bool {
+   return (int) ($criterion['field'] ?? 0) !== 8;
+}));
+$_GET['criteria'][] = [
+   'link' => 'AND',
+   'field' => 80,
+   'searchtype' => 'equals',
+   'value' => $entityId,
+];
+$searchParams = Search::manageParams(TipField::class, $_GET);
+$searchParams['display_type'] = Search::HTML_OUTPUT;
+$listInput = $_GET;
+$listInput['criteria'][] = [
+   'link' => 'AND',
+   'field' => 8,
+   'searchtype' => 'equals',
+   'value' => $documentType,
+];
+$listParams = Search::manageParams(TipField::class, $listInput);
+$listParams['display_type'] = Search::HTML_OUTPUT;
+echo "<div class='search_page row'><div class='col search-container'>";
+Search::showGenericSearch(TipField::class, $searchParams);
+Search::showList(TipField::class, $listParams, [2, 3, 4, 5, 6, 9, 7]);
+echo '</div></div>';
+
+$editUrl = 'tipfield.form.php?entities_id=' . $entityId
+   . '&document_type=' . rawurlencode($documentType) . '&id=';
+$editUrlJson = json_encode($editUrl);
+echo <<<HTML
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+   const renderProjectplusActions = function () {
+      document.querySelectorAll('.search-container table').forEach(function (table) {
+      const headers = Array.from(table.querySelectorAll('thead th'));
+      const idIndex = headers.findIndex(function (cell) {
+         return cell.textContent.trim().indexOf('ID') === 0;
+      });
+      const actionIndex = headers.findIndex(function (cell) {
+         return cell.textContent.trim() === 'Ação';
+      });
+      const documentTypeIndex = headers.findIndex(function (cell) {
+         return cell.textContent.trim() === 'Tipo de documento';
+      });
+      // This criterion is an internal scope guard for TIP/TIP-DT. Search
+      // adds every active criterion to the result set, so hide its technical
+      // column while keeping the native query and pagination intact.
+      if (documentTypeIndex >= 0) {
+         headers[documentTypeIndex].hidden = true;
+         table.querySelectorAll('tbody tr').forEach(function (row) {
+            const cells = row.querySelectorAll('td');
+            if (cells[documentTypeIndex]) {
+               cells[documentTypeIndex].hidden = true;
+            }
+         });
+      }
+      if (actionIndex < 0) {
+         return;
+      }
+      table.querySelectorAll('tbody tr').forEach(function (row) {
+         const cells = row.querySelectorAll('td');
+         const actionCell = cells[actionIndex];
+         // The massive-action checkbox is rendered by GLPI for every result
+         // row and retains the record id even when a search rule is removed.
+         // Fall back to the visible ID only for render modes without it.
+         const checkbox = row.querySelector('input[type="checkbox"]');
+         const checkboxNameMatch = checkbox ? (checkbox.name || '').match(/\[(\d+)\](?:\[[^\]]*\])?$/) : null;
+         const checkboxId = checkboxNameMatch ? checkboxNameMatch[1] : '';
+         const idMatch = idIndex >= 0 && cells[idIndex]
+            ? cells[idIndex].textContent.trim().match(/(\d+)\s*$/)
+            : null;
+         const id = idMatch ? idMatch[1] : checkboxId;
+         if (!actionCell || id === '') {
+            return;
+         }
+         if (actionCell.dataset.projectplusActionId === id) {
+            return;
+         }
+         const link = document.createElement('a');
+         link.className = 'btn btn-sm btn-outline-secondary';
+         link.textContent = 'Editar';
+         link.href = {$editUrlJson} + encodeURIComponent(id);
+         actionCell.replaceChildren(link);
+         actionCell.dataset.projectplusActionId = id;
+      });
+      });
+   };
+
+   renderProjectplusActions();
+   const container = document.querySelector('.search-container');
+   if (container) {
+      new MutationObserver(renderProjectplusActions).observe(container, {
+         childList: true,
+         subtree: true,
+      });
+   }
+});
+</script>
+HTML;
+
+echo '</div></section>';
+ConfigPage::end();
+Html::footer();

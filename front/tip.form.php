@@ -7,15 +7,17 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\TicketConfig;
 use GlpiPlugin\Projectplus\TicketIntent;
+use GlpiPlugin\Projectplus\TipDocumentType;
+use GlpiPlugin\Projectplus\RoutingNotice;
 
 Session::checkLoginUser();
 
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
 $documentType = (string) ($_POST['document_type'] ?? 'tip');
-if ($documentType !== 'pretip') {
-   $documentType = 'tip';
+if ($documentType !== TipDocumentType::DETAIL) {
+   $documentType = TipDocumentType::TIP;
 }
-$documentName = $documentType === 'pretip' ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus');
+$documentName = $documentType === TipDocumentType::TIP ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus');
 $ticket = new Ticket();
 if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEntity((int) $ticket->getEntityID()) || !TicketConfig::isEnabledForTicket($ticket)) {
    Html::displayErrorAndDie(__('Ticket inválido ou sem permissão de acesso.', 'projectplus'));
@@ -42,4 +44,4 @@ try {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }
 
-Html::redirect(Ticket::getFormURLWithID($ticketId));
+Html::redirect(RoutingNotice::getRedirectUrl($ticket));

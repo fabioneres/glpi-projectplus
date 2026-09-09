@@ -181,6 +181,18 @@ class TicketConfig
 
    public static function isEnabledForTicket(Ticket $ticket): bool
    {
+      global $DB;
+
+      // Once the request has entered Project+, its phase row is the source of
+      // truth. During hierarchical routing the ticket may legitimately move
+      // to an entity with no active Project+ category and therefore receive
+      // an empty category without losing access to the ongoing workflow.
+      if ((int) $ticket->getID() > 0
+         && $DB->tableExists(TicketPhase::getTable())
+         && TicketPhase::getForTicket((int) $ticket->getID()) !== null) {
+         return true;
+      }
+
       $entityId = (int) $ticket->getEntityID();
       $categoryId = (int) ($ticket->fields['itilcategories_id'] ?? 0);
       $configs = self::getCategoriesForEntity($entityId);

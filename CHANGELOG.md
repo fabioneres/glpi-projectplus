@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.11-beta
+
+- Torna o fluxo estritamente sequencial, abre automaticamente apenas a fase atual e apresenta somente a próxima pendência necessária.
+- Adiciona descrições configuráveis para as etapas, inclusive mensagens de etapa pendente e de encaminhamento para outra entidade.
+- Inclui a autorização de abertura pelo Gestor de Portfólio, com permissão própria, autorização ou recusa mediante justificativa.
+- Evolui o roteamento hierárquico: busca o responsável mais próximo na árvore, retorna o chamado ao Gerente de Projetos e adiciona o Gestor de Portfólio como observador quando aplicável.
+- Acrescenta filtros Project+ na pesquisa nativa de chamados para fase atual, ranking, Gerente de Projetos e Gestor de Portfólio.
+- Padroniza as listas administrativas com paginação e ações em massa e melhora a edição, exclusão segura e apresentação dos campos documentais.
+- Corrige os tipos TIP e TIP-DT, oculta o filtro técnico de tipo de documento e mantém o botão Editar nas pesquisas dos documentos.
+- Move a opção de disponibilização para entidades filhas para cada campo de TIP, TIP-DT, TAP, TEP e TA, permitindo composições diferentes por entidade sem tornar o modelo inteiro recursivo.
+- Integra a caixa nativa de solução como etapa final da abertura do projeto, incluindo modelo, tipo, anexos e opção de base de conhecimento.
+- Faz “Preenchimento manual” deixar efetivamente vazios os campos configuráveis do projeto e converte HTML para texto legível quando uma origem textual é selecionada explicitamente.
+- Corrige a criação do projeto quando a descrição ou um valor mapeado contém HTML/CSS com apóstrofos.
+- Corrige inconsistências visuais, barras de rolagem duplicadas e mensagens de bloqueio/permissão durante as transferências entre entidades.
+
 ## 0.9.10-beta
 - Adiciona configuração por entidade da origem dos campos da tela nativa de Projetos.
 - Permite sugerir valores do chamado, TIP, TIP - DT e TAP para todos os campos disponíveis no formulário de Projeto; quando não houver configuração ou conversão possível, mantém o comportamento padrão do GLPI.

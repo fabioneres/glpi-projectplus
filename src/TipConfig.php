@@ -17,24 +17,20 @@ class TipConfig
    }
 
    /** @return array<string, mixed> */
-   public static function getForEntity(int $entityId, string $documentType = 'pretip'): array
+   public static function getForEntity(int $entityId, string $documentType = 'tip'): array
    {
       /** @var DBmysql $DB */
       global $DB;
 
       $documentType = self::normalizeDocumentType($documentType);
-      $isIntent = $documentType === 'pretip';
+      $defaults = self::getDefaults($documentType);
       $default = [
          'id' => 0,
          'entities_id' => $entityId,
          'document_type' => $documentType,
          'is_active' => 1,
-         'title' => $isIntent
-            ? __('TIP - Termo de Intenção de Projeto', 'projectplus')
-            : __('TIP - Detalhamento Técnico', 'projectplus'),
-         'introduction' => $isIntent
-            ? __('Preencha as informações para análise da demanda de intenção de projeto.', 'projectplus')
-            : __('Preencha as informações técnicas para detalhamento do projeto.', 'projectplus'),
+         'title' => $defaults['title'],
+         'introduction' => $defaults['introduction'],
       ];
       if (!$DB->tableExists(self::getTable())) {
          return $default;
@@ -47,7 +43,7 @@ class TipConfig
       return $row ? array_merge($default, $row) : $default;
    }
 
-   public static function isActiveForEntity(int $entityId, string $documentType = 'pretip'): bool
+   public static function isActiveForEntity(int $entityId, string $documentType = 'tip'): bool
    {
       return (int) self::getForEntity($entityId, $documentType)['is_active'] === 1;
    }
@@ -86,6 +82,36 @@ class TipConfig
 
    private static function normalizeDocumentType(string $documentType): string
    {
-      return $documentType === 'pretip' ? 'pretip' : 'tip';
+      return in_array($documentType, ['tip', 'tip_dt', 'tap', 'tep', 'ta'], true)
+         ? $documentType
+         : TipDocumentType::TIP;
+   }
+
+   /** @return array{title:string,introduction:string} */
+   private static function getDefaults(string $documentType): array
+   {
+      $defaults = [
+         'tip' => [
+            'title' => __('TIP - Termo de Intenção de Projeto', 'projectplus'),
+            'introduction' => __('Preencha as informações para análise da demanda de intenção de projeto.', 'projectplus'),
+         ],
+         'tip_dt' => [
+            'title' => __('TIP - Detalhamento Técnico', 'projectplus'),
+            'introduction' => __('Preencha as informações técnicas para detalhamento do projeto.', 'projectplus'),
+         ],
+         'tap' => [
+            'title' => __('TAP - Termo de Abertura do Projeto', 'projectplus'),
+            'introduction' => __('Preencha as informações necessárias para formalizar a abertura do projeto.', 'projectplus'),
+         ],
+         'tep' => [
+            'title' => __('TEP - Relatório de Entrega do Projeto', 'projectplus'),
+            'introduction' => __('Registre as informações de entrega e encerramento do projeto.', 'projectplus'),
+         ],
+         'ta' => [
+            'title' => __('TA - Termo de Aceite', 'projectplus'),
+            'introduction' => __('Registre as informações necessárias para o aceite do projeto.', 'projectplus'),
+         ],
+      ];
+      return $defaults[$documentType];
    }
 }
