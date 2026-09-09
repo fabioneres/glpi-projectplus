@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.12-beta
+
+- Mantém a coluna **Ação** fixa na configuração do fluxo, independentemente das preferências de visão global ou pessoal.
+- Preserva o botão **Editar** após pesquisas e atualizações AJAX da lista, associando cada ação ao ID correto da configuração.
+- Remove com segurança configurações órfãs quando a entidade ou a categoria ITIL correspondente foi excluída ou deixou de pertencer à entidade configurada.
+- Impede que categorias excluídas sejam recriadas durante a sincronização da tela, sem alterar chamados, fases ou históricos existentes.
+
 ## 0.9.11-beta
 
 - Torna o fluxo estritamente sequencial, abre automaticamente apenas a fase atual e apresenta somente a próxima pendência necessária.

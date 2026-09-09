@@ -148,10 +148,15 @@ class TicketConfig
          return [];
       }
 
+      $where = ['entities_id' => $entityIds];
+      if ($DB->fieldExists('glpi_itilcategories', 'is_deleted')) {
+         $where['is_deleted'] = 0;
+      }
+
       return iterator_to_array($DB->request([
          'SELECT' => ['id', 'entities_id', 'name', 'completename'],
          'FROM' => 'glpi_itilcategories',
-         'WHERE' => ['entities_id' => $entityIds],
+         'WHERE' => $where,
          'ORDER' => ['entities_id', 'completename'],
       ]));
    }

@@ -112,6 +112,25 @@ function plugin_projectplus_searchOptionsValues($options = []): bool
 /** Displays the translated phase label when the search option is used as a column. */
 function plugin_projectplus_giveItem($type, $id, $data, $num): string
 {
+   // Option 31 is reserved by TicketCategoryConfig for its fixed row action.
+   // Accept both names used by GLPI 10 for plugin item types.
+   if (($type === \GlpiPlugin\Projectplus\TicketCategoryConfig::class
+         || $type === 'PluginProjectplusTicketCategoryConfig')
+      && (int) $id === 31) {
+      $rowId = (int) ($data['id'] ?? 0);
+      if ($rowId <= 0) {
+         $rowId = (int) ($data[$num][0]['name'] ?? 0);
+      }
+      if ($rowId <= 0 || !\Session::haveRight('config', UPDATE)) {
+         return '';
+      }
+
+      $url = \GlpiPlugin\Projectplus\TicketCategoryConfig::getFormURL(true)
+         . '?id=' . $rowId;
+      return "<a class='btn btn-sm btn-outline-secondary' href='"
+         . \Html::clean($url) . "'>" . __('Editar') . '</a>';
+   }
+
    if (($type !== \Ticket::class && $type !== 'Ticket') || (int) $id !== 9523) {
       return '';
    }

@@ -67,6 +67,8 @@ class TicketCategoryConfig extends CommonDBTM
          return;
       }
 
+      self::removeOrphanedConfigurations();
+
       $states = TicketConfig::getAllCategoryStates();
       $now = $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s');
       $userId = (int) Session::getLoginUserID();
@@ -86,6 +88,74 @@ class TicketCategoryConfig extends CommonDBTM
             'date_creation' => $now,
             'date_mod' => $now,
          ]);
+      }
+   }
+
+   /**
+    * Removes configuration rows whose native entity/category was deleted.
+    *
+    * This intentionally checks the complete native tables instead of the
+    * current session scope. A configuration outside the administrator's
+    * visible entities is still valid and must never be removed here.
+    */
+   private static function removeOrphanedConfigurations(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $entityTable = Entity::getTable();
+      $categoryTable = ITILCategory::getTable();
+      $entityCriteria = [];
+      $categoryCriteria = [];
+      if ($DB->fieldExists($entityTable, 'is_deleted')) {
+         $entityCriteria['is_deleted'] = 0;
+      }
+      if ($DB->fieldExists($categoryTable, 'is_deleted')) {
+         $categoryCriteria['is_deleted'] = 0;
+      }
+
+      $entities = [];
+      $entityQuery = [
+         'SELECT' => ['id'],
+         'FROM' => $entityTable,
+      ];
+      if ($entityCriteria !== []) {
+         $entityQuery['WHERE'] = $entityCriteria;
+      }
+      foreach ($DB->request($entityQuery) as $entity) {
+         $entities[(int) $entity['id']] = true;
+      }
+
+      $categoryEntities = [];
+      $categoryQuery = [
+         'SELECT' => ['id', 'entities_id'],
+         'FROM' => $categoryTable,
+      ];
+      if ($categoryCriteria !== []) {
+         $categoryQuery['WHERE'] = $categoryCriteria;
+      }
+      foreach ($DB->request($categoryQuery) as $category) {
+         $categoryEntities[(int) $category['id']] = (int) $category['entities_id'];
+      }
+
+      $orphanIds = [];
+      foreach ($DB->request([
+         'SELECT' => ['id', 'entities_id', 'itilcategories_id'],
+         'FROM' => self::getTable(),
+      ]) as $config) {
+         $entityId = (int) $config['entities_id'];
+         $categoryId = (int) $config['itilcategories_id'];
+         $invalidEntity = !isset($entities[$entityId]);
+         $invalidCategory = $categoryId > 0
+            && (!isset($categoryEntities[$categoryId])
+               || $categoryEntities[$categoryId] !== $entityId);
+         if ($invalidEntity || $invalidCategory) {
+            $orphanIds[] = (int) $config['id'];
+         }
+      }
+
+      foreach (array_chunk($orphanIds, 500) as $ids) {
+         $DB->delete(self::getTable(), ['id' => $ids]);
       }
    }
 
@@ -177,14 +247,17 @@ class TicketCategoryConfig extends CommonDBTM
          $options[] = ['id' => 30, 'table' => self::getTable(), 'field' => 'is_recursive', 'name' => __('Recursivo', 'projectplus'), 'datatype' => 'bool'];
       }
       $options[] = [
-         // This is deliberately virtual: it is only a stable UI action and
-         // must never become a database field or a search criterion.
+         // Reuse the row identifier as the data source for this fixed UI
+         // action.  A real field keeps native Search stable after filtering,
+         // while plugin_projectplus_giveItem() replaces its value with the
+         // edit button on the server side.
          'id' => 31,
          'table' => self::getTable(),
-         'field' => '_virtual_action',
+         'field' => 'id',
          'name' => __('Ação', 'projectplus'),
-         'datatype' => 'text',
+         'datatype' => 'number',
          'nosearch' => true,
+         'nosort' => true,
          'massiveaction' => false,
       ];
       $options[] = [

@@ -26,52 +26,130 @@ echo "<p class='projectplus-config-help'>"
    . '</p>';
 
 // Keep the native GLPI criteria builder, pagination and massive actions. The
-// forced display list only pins the configuration columns (including Ação), so
-// a user preference cannot hide the edit control required to manage a row.
+// normal columns follow the personal/global view.  Ação is appended to that
+// view and therefore remains fixed even when preferences or filters change.
 $params = Search::manageParams(TicketCategoryConfig::class, $_GET);
 $params['display_type'] = Search::HTML_OUTPUT;
+$displayColumns = DisplayPreference::getForTypeUser(
+   TicketCategoryConfig::class,
+   (int) Session::getLoginUserID()
+);
+if ($displayColumns === []) {
+   $displayColumns = [80, 2, 15, 16, 29, 30, 4];
+}
+$displayColumns = array_values(array_unique(array_map('intval', $displayColumns)));
+$displayColumns = array_values(array_filter($displayColumns, static function (int $column): bool {
+   return $column !== 31;
+}));
+$displayColumns[] = 31;
 echo "<div class='search_page row'><div class='col search-container disable-overflow-y'>";
 Search::showGenericSearch(TicketCategoryConfig::class, $params);
-Search::showList(TicketCategoryConfig::class, $params, [1, 80, 2, 15, 16, 29, 30, 4, 31]);
+Search::showList(TicketCategoryConfig::class, $params, $displayColumns);
 echo '</div></div>';
 
-// GLPI does not select a value for virtual search columns. Use the column
-// reserved above to render the row action after the native table is built.
-// The form still checks the configuration right and the record ID server-side.
-$editUrl = TicketCategoryConfig::getFormURL(true);
+// GLPI refreshes native search results through ajax/search.php. That endpoint
+// does not receive this page's forced-display list, so keep the structural
+// action column stable after every partial refresh. Normal columns remain
+// entirely controlled by the personal/global display preference.
+$editUrl = json_encode(TicketCategoryConfig::getFormURL(true));
+$actionLabel = json_encode(__('Ação', 'projectplus'));
+$editLabel = json_encode(__('Editar'));
 echo <<<HTML
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-   document.querySelectorAll('.search-container table').forEach(function (table) {
-      const headerCells = Array.from(table.querySelectorAll('thead th'));
-      const idIndex = headerCells.findIndex(function (cell) {
-         return cell.textContent.trim().indexOf('ID') === 0;
-      });
-      const actionIndex = headerCells.findIndex(function (cell) {
-         return cell.textContent.trim() === 'Ação';
-      });
-      if (idIndex < 0 || actionIndex < 0) {
+(function () {
+   const container = document.querySelector('.search-container');
+   if (!container || container.dataset.projectplusFixedActionReady) {
+      return;
+   }
+   container.dataset.projectplusFixedActionReady = '1';
+   const editUrl = {$editUrl};
+   const actionLabel = {$actionLabel};
+   const editLabel = {$editLabel};
+
+   function rowId(row) {
+      const checkbox = row.querySelector('input[type="checkbox"][value]');
+      if (checkbox) {
+         const nameMatch = checkbox.name.match(/\[(\d+)\]$/);
+         if (nameMatch) {
+            return nameMatch[1];
+         }
+      }
+      const cells = Array.from(row.querySelectorAll('td'));
+      for (const cell of cells) {
+         const value = cell.textContent.trim();
+         if (/^\d+$/.test(value)) {
+            return value;
+         }
+      }
+      return '';
+   }
+
+   function syncTable(table) {
+      const headerRow = table.querySelector('thead tr');
+      const body = table.querySelector('tbody');
+      if (!headerRow || !body) {
          return;
       }
-      table.querySelectorAll('tbody tr').forEach(function (row) {
-         const cells = row.querySelectorAll('td');
-         const idText = cells[idIndex] ? cells[idIndex].textContent.trim() : '';
-         // Native GLPI themes can render the identifier as "1" or "ID: 1".
-         // Keep the numeric token so the edit link always receives its id.
-         const idMatch = idText.match(/(\d+)\s*$/);
-         const id = idMatch ? idMatch[1] : '';
-         const actionCell = cells[actionIndex];
-         if (!actionCell || id === '') {
+
+      let actionHeader = Array.from(headerRow.querySelectorAll('th')).find(function (cell) {
+         return cell.textContent.trim() === actionLabel;
+      });
+      let actionIndex = actionHeader
+         ? Array.from(headerRow.children).indexOf(actionHeader)
+         : -1;
+
+      if (!actionHeader) {
+         actionHeader = document.createElement('th');
+         actionHeader.textContent = actionLabel;
+         actionHeader.className = 'text-center';
+         headerRow.appendChild(actionHeader);
+      } else if (actionHeader !== headerRow.lastElementChild) {
+         headerRow.appendChild(actionHeader);
+      }
+
+      body.querySelectorAll('tr').forEach(function (row) {
+         const id = rowId(row);
+         if (!id) {
             return;
          }
-         const link = document.createElement('a');
-         link.className = 'btn btn-sm btn-outline-secondary';
-         link.textContent = 'Editar';
-         link.href = '{$editUrl}?id=' + encodeURIComponent(id);
-         actionCell.replaceChildren(link);
+         let cell = actionIndex >= 0 ? row.children[actionIndex] : null;
+         if (!cell) {
+            cell = document.createElement('td');
+         }
+         cell.dataset.projectplusActionCell = '1';
+         if (cell !== row.lastElementChild) {
+            row.appendChild(cell);
+         }
+         let link = cell.querySelector('a[data-projectplus-edit]');
+         if (!link) {
+            link = document.createElement('a');
+            link.dataset.projectplusEdit = '1';
+            link.className = 'btn btn-sm btn-outline-secondary';
+            link.textContent = editLabel;
+            cell.replaceChildren(link);
+         }
+         link.href = editUrl + '?id=' + encodeURIComponent(id);
+      });
+   }
+
+   function syncAll() {
+      container.querySelectorAll('table').forEach(syncTable);
+   }
+
+   let scheduled = false;
+   const observer = new MutationObserver(function () {
+      if (scheduled) {
+         return;
+      }
+      scheduled = true;
+      window.requestAnimationFrame(function () {
+         scheduled = false;
+         syncAll();
       });
    });
-});
+   observer.observe(container, {childList: true, subtree: true});
+   syncAll();
+})();
 </script>
 HTML;
 
