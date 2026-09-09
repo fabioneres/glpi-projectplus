@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.13-beta
+
+- Permite que substitutos continuem o fluxo quando o perfil ativo possui a permissão específica da etapa e acesso à entidade do chamado, sem substituir o Gerente de Projetos ou o Gestor de Portfólio titular configurado.
+- Mantém os titulares como referências oficiais de roteamento, responsabilidades, observação e notificações, registrando nas fases o usuário que efetivamente executou cada ação.
+
 ## 0.9.12-beta
 
 - Mantém a coluna **Ação** fixa na configuração do fluxo, independentemente das preferências de visão global ou pessoal.

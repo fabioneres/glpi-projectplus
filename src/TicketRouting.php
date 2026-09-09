@@ -53,11 +53,18 @@ class TicketRouting
          throw new \RuntimeException(__('Não há responsável configurado para esta etapa do fluxo na entidade atual ou em uma entidade superior.', 'projectplus'));
       }
       $field = $role === 'portfolio' ? 'portfolio_manager_users_id' : 'project_manager_users_id';
-      if ((int) $target[$field] !== (int) Session::getLoginUserID()) {
-         throw new \RuntimeException(__('Esta etapa deve ser executada pelo responsável configurado para a entidade e a categoria do fluxo.', 'projectplus'));
+      // The configured user remains the official routing and notification
+      // reference. Execution, however, follows GLPI's native authorization
+      // model so an authorized substitute can continue the workflow without
+      // replacing the titular actor in the category configuration.
+      if (!Session::haveAccessToEntity((int) $ticket->getEntityID())) {
+         throw new \RuntimeException(__('Você não possui acesso à entidade atual do chamado.', 'projectplus'));
       }
-      if (!Session::haveRight($right, UPDATE) || !self::userHasRight((int) $target[$field], $right, (int) $target['resolved_entities_id'])) {
-         throw new \RuntimeException(__('O responsável configurado não possui a permissão Project+ obrigatória para esta etapa.', 'projectplus'));
+      if (!Session::haveRight($right, UPDATE)) {
+         throw new \RuntimeException(__('Seu perfil não possui a permissão Project+ obrigatória para esta etapa.', 'projectplus'));
+      }
+      if (!self::userHasRight((int) $target[$field], $right, (int) $target['resolved_entities_id'])) {
+         throw new \RuntimeException(__('O responsável titular configurado não possui a permissão Project+ obrigatória para esta etapa.', 'projectplus'));
       }
       if ($role === 'project') {
          self::rememberProjectManagerEntity($ticket, (int) $target['resolved_entities_id']);
