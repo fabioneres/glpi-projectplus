@@ -5,7 +5,7 @@ use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\DocumentTemplate;
 Session::checkRight('config', UPDATE);
 $entity=(int)($_REQUEST['entities_id']??Session::getActiveEntity());
-if($entity<0||!Session::haveAccessToEntity($entity,true)) Html::displayErrorAndDie(__('Entidade inválida.', 'projectplus'));
+if($entity<0||!Session::haveAccessToEntity($entity)) Html::displayErrorAndDie(__('Entidade inválida.', 'projectplus'));
 if(isset($_POST['save_template'])){ DocumentTemplate::save($entity,$_POST)?Session::addMessageAfterRedirect(__('Modelo salvo.', 'projectplus')):Session::addMessageAfterRedirect(__('Informe nome e documento PDF.', 'projectplus'),false,ERROR); Html::redirect($_SERVER['PHP_SELF'].'?entities_id='.$entity); }
 if(isset($_POST['delete_template'])){ DocumentTemplate::delete((int)$_POST['id'],$entity); Html::redirect($_SERVER['PHP_SELF'].'?entities_id='.$entity); }
 $edit=DocumentTemplate::get($entity,(int)($_GET['id']??0)); $edit=$edit[0]??['id'=>0,'document_type'=>'tap','name'=>'','version'=>'','documents_id'=>0,'is_active'=>1];

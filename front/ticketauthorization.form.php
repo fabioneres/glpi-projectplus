@@ -5,13 +5,14 @@ if (!defined('GLPI_ROOT')) {
 }
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\TicketPhase;
 use GlpiPlugin\Projectplus\RoutingNotice;
 
 Session::checkLoginUser();
 $ticket = new Ticket();
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
-if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEntity((int) $ticket->getEntityID())) {
+if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !ItemAccess::canAct($ticket)) {
    Html::displayErrorAndDie(__('Chamado inválido ou sem permissão.', 'projectplus'));
 }
 try {

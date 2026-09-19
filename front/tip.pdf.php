@@ -5,6 +5,7 @@ if (!defined('GLPI_ROOT')) {
 }
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\TicketIntent;
 use GlpiPlugin\Projectplus\TicketIntentAnswer;
 use GlpiPlugin\Projectplus\TipDocumentType;
@@ -24,7 +25,7 @@ $documentIntro = $documentType === TipDocumentType::TIP
 $documentStatus = $documentType === TipDocumentType::TIP
    ? __('Dados de identificação e registro do envio.', 'projectplus')
    : __('Dados de identificação e registro da geração do documento.', 'projectplus');
-if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEntity((int) $ticket->getEntityID()) || !TicketIntent::canViewForTicket($ticket, $documentType)) {
+if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !ItemAccess::canView($ticket) || !TicketIntent::canViewForTicket($ticket, $documentType)) {
    Html::displayErrorAndDie(__('TIP não encontrado ou sem permissão de acesso.', 'projectplus'));
 }
 $intent = TicketIntent::getForTicket($ticketId, $documentType);

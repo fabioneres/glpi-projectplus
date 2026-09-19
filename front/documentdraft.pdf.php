@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\DocumentDraft;
+use GlpiPlugin\Projectplus\ItemAccess;
 
 Session::checkLoginUser();
 $itemtype = (string) ($_GET['itemtype'] ?? '');
@@ -16,7 +17,7 @@ if (!in_array($itemtype, [Ticket::class, Project::class], true) || !in_array($ty
    Html::displayErrorAndDie(__('Documento inválido.', 'projectplus'));
 }
 $item = new $itemtype();
-if (!$item->getFromDB($id) || !Session::haveAccessToEntity((int) $item->getEntityID())) {
+if (!$item->getFromDB($id) || !ItemAccess::canView($item)) {
    Html::displayErrorAndDie(__('Sem permissão.', 'projectplus'));
 }
 

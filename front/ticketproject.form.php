@@ -2,6 +2,7 @@
 
 include('../../../inc/includes.php');
 
+use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\TicketProject;
 use GlpiPlugin\Projectplus\RoutingNotice;
 
@@ -11,7 +12,7 @@ $ticket = new Ticket();
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
 if ($ticketId <= 0
     || !$ticket->getFromDB($ticketId)
-    || !Session::haveAccessToEntity((int) $ticket->getEntityID())) {
+    || !ItemAccess::canAct($ticket)) {
    Html::displayErrorAndDie(__('Chamado inválido ou sem permissão.', 'projectplus'));
 }
 

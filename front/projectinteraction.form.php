@@ -2,6 +2,7 @@
 
 include('../../../inc/includes.php');
 
+use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\ProjectInteraction;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
 
@@ -12,7 +13,7 @@ $project_id = (int) ($_POST['projects_id'] ?? 0);
 
 if ($project_id <= 0
     || !$project->getFromDB($project_id)
-    || !Session::haveAccessToEntity((int) $project->getEntityID())) {
+    || !ItemAccess::canView($project)) {
    Html::displayErrorAndDie(__('Projeto inválido.', 'projectplus'));
 }
 

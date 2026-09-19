@@ -99,6 +99,12 @@ class TicketIntent
    public static function canViewForTicket(Ticket $ticket, string $documentType = 'tip'): bool
    {
       $documentType = self::documentType($documentType);
+      // The Project+ right authorizes the feature; the ticket itself still
+      // decides who may read this document. Without this, the right alone
+      // would expose the TIP of any ticket in the entity.
+      if (!ItemAccess::canView($ticket)) {
+         return false;
+      }
       // The "Ler" column is the persistent consultation permission for both
       // TIP documents. It must be enough for requesters to consult a document
       // after it has been submitted, accepted or rejected.

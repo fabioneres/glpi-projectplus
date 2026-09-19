@@ -5,6 +5,7 @@ if (!defined('GLPI_ROOT')) {
 }
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\TicketPhase;
 use GlpiPlugin\Projectplus\RoutingNotice;
 
@@ -12,7 +13,7 @@ Session::checkLoginUser();
 
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
 $ticket = new Ticket();
-if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEntity((int) $ticket->getEntityID())) {
+if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !ItemAccess::canAct($ticket)) {
    Html::displayErrorAndDie(__('Ticket inválido ou sem permissão de acesso.', 'projectplus'));
 }
 

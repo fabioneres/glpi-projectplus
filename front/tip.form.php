@@ -5,6 +5,7 @@ if (!defined('GLPI_ROOT')) {
 }
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\TicketConfig;
 use GlpiPlugin\Projectplus\TicketIntent;
 use GlpiPlugin\Projectplus\TipDocumentType;
@@ -19,7 +20,7 @@ if ($documentType !== TipDocumentType::DETAIL) {
 }
 $documentName = $documentType === TipDocumentType::TIP ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus');
 $ticket = new Ticket();
-if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !Session::haveAccessToEntity((int) $ticket->getEntityID()) || !TicketConfig::isEnabledForTicket($ticket)) {
+if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !ItemAccess::canAct($ticket) || !TicketConfig::isEnabledForTicket($ticket)) {
    Html::displayErrorAndDie(__('Ticket inválido ou sem permissão de acesso.', 'projectplus'));
 }
 

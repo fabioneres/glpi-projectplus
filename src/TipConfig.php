@@ -53,7 +53,7 @@ class TipConfig
       /** @var DBmysql $DB */
       global $DB;
 
-      if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
+      if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
          return false;
       }
       $documentType = self::normalizeDocumentType($documentType);

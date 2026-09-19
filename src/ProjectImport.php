@@ -110,40 +110,56 @@ class ProjectImport
          throw new \RuntimeException(__('A pré-validação expirou. Envie o arquivo novamente.', 'projectplus'));
       }
 
+      /** @var \DBmysql $DB */
+      global $DB;
+
       $created = [];
       $errors = [];
-      foreach ($preview['rows'] as $row) {
-         if (!$row['valid']) {
-            continue;
+      // The whole file is one operation: a partial load would leave projects
+      // created and parent links missing, with no way to tell how far it got.
+      $DB->beginTransaction();
+      try {
+         foreach ($preview['rows'] as $row) {
+            if (!$row['valid']) {
+               continue;
+            }
+            $project = new Project();
+            $id = $project->add(self::projectInput($row));
+            if ($id <= 0) {
+               throw new \RuntimeException(sprintf(
+                  __('Falha ao criar o Projeto da linha %s. Nenhum projeto foi importado.', 'projectplus'),
+                  (string) $row['line']
+               ));
+            }
+            $key = $row['entity_id'] . ':' . self::cleanValue($row['record']['Código*']);
+            $created[$key] = $id;
          }
-         $project = new Project();
-         $id = $project->add(self::projectInput($row));
-         if ($id <= 0) {
-            $errors[] = ['line' => $row['line'], 'message' => __('Falha ao criar o Projeto.', 'projectplus')];
-            continue;
-         }
-         $key = $row['entity_id'] . ':' . self::cleanValue($row['record']['Código*']);
-         $created[$key] = $id;
-      }
 
-      foreach ($preview['rows'] as $row) {
-         if (!$row['valid']) {
-            continue;
+         foreach ($preview['rows'] as $row) {
+            if (!$row['valid']) {
+               continue;
+            }
+            $parentCode = self::cleanValue($row['record']['Código do projeto-pai']);
+            if ($parentCode === '') {
+               continue;
+            }
+            $key = $row['entity_id'] . ':' . self::cleanValue($row['record']['Código*']);
+            $parentKey = $row['entity_id'] . ':' . $parentCode;
+            $projectId = $created[$key] ?? 0;
+            $parentId = $created[$parentKey] ?? self::findProjectByCode($row['entity_id'], $parentCode);
+            if (!$projectId || !$parentId) {
+               // A missing parent is a data problem in the file, not a failure
+               // of the row itself: the project stays, the link is reported.
+               $errors[] = ['line' => $row['line'], 'message' => __('Projeto-pai não localizado para vínculo.', 'projectplus')];
+               continue;
+            }
+            $project = new Project();
+            $project->update(['id' => $projectId, 'projects_id' => $parentId, '_disablenotif' => 1]);
          }
-         $parentCode = self::cleanValue($row['record']['Código do projeto-pai']);
-         if ($parentCode === '') {
-            continue;
-         }
-         $key = $row['entity_id'] . ':' . self::cleanValue($row['record']['Código*']);
-         $parentKey = $row['entity_id'] . ':' . $parentCode;
-         $projectId = $created[$key] ?? 0;
-         $parentId = $created[$parentKey] ?? self::findProjectByCode($row['entity_id'], $parentCode);
-         if (!$projectId || !$parentId) {
-            $errors[] = ['line' => $row['line'], 'message' => __('Projeto-pai não localizado para vínculo.', 'projectplus')];
-            continue;
-         }
-         $project = new Project();
-         $project->update(['id' => $projectId, 'projects_id' => $parentId, '_disablenotif' => 1]);
+         $DB->commit();
+      } catch (\Throwable $exception) {
+         $DB->rollBack();
+         throw $exception;
       }
 
       unset($_SESSION[self::SESSION_KEY]);
@@ -224,7 +240,7 @@ class ProjectImport
             $errors[] = __('ID da entidade não encontrado.', 'projectplus');
          } elseif (!self::entityNameMatches($entityId, $entityName, $record['Entidade*'])) {
             $errors[] = __('O nome da entidade não corresponde ao ID informado.', 'projectplus');
-         } elseif (!Session::haveAccessToEntity($entityId, true)) {
+         } elseif (!Session::haveAccessToEntity($entityId)) {
             $errors[] = __('Sem acesso à entidade informada.', 'projectplus');
          }
       }

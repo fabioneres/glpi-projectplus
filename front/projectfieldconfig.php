@@ -9,7 +9,7 @@ use GlpiPlugin\Projectplus\ProjectFieldConfig;
 
 Session::checkRight('config', UPDATE);
 $entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
-if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
+if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
    Html::displayErrorAndDie(__('Entidade inválida ou sem acesso.', 'projectplus'));
 }
 if (isset($_POST['save'])) {

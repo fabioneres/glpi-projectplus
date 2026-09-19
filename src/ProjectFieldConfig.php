@@ -76,7 +76,7 @@ class ProjectFieldConfig
    public static function save(int $entityId, array $input): bool
    {
       global $DB;
-      if (!Session::haveAccessToEntity($entityId, true)) { return false; }
+      if (!Session::haveAccessToEntity($entityId)) { return false; }
       $allowed = FieldSource::getProjectDocumentOptions($entityId);
       foreach (self::getConfigurableTargets() as $field => $label) {
          $source = trim((string) (($input['sources'][$field] ?? '')));

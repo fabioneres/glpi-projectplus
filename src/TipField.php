@@ -81,7 +81,7 @@ class TipField extends CommonDBTM
          return;
       }
       foreach (array_keys($ids) as $id) {
-         if (!$item->getFromDB((int) $id) || !Session::haveAccessToEntity((int) $item->fields['entities_id'], true)) {
+         if (!$item->getFromDB((int) $id) || !Session::haveAccessToEntity((int) $item->fields['entities_id'])) {
             $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_NORIGHT);
             continue;
          }
@@ -207,7 +207,7 @@ class TipField extends CommonDBTM
       /** @var DBmysql $DB */
       global $DB;
 
-      if (!Session::haveAccessToEntity($entityId, true)) {
+      if (!Session::haveAccessToEntity($entityId)) {
          return false;
       }
       $documentType = self::normalizeDocumentType($documentType);
@@ -259,7 +259,7 @@ class TipField extends CommonDBTM
       /** @var DBmysql $DB */
       global $DB;
 
-      if (!Session::haveAccessToEntity($entityId, true)
+      if (!Session::haveAccessToEntity($entityId)
          || self::getForEntityById($id, $entityId, $documentType) === null) {
          return false;
       }

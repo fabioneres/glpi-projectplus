@@ -16,7 +16,7 @@ $documentType = (string) ($_REQUEST['document_type'] ?? 'tap');
 if (!in_array($documentType, ['tap', 'tep', 'ta'], true)) {
    $documentType = 'tap';
 }
-if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
+if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
    Html::displayErrorAndDie(__('Entidade inválida ou sem permissão de configuração.', 'projectplus'));
 }
 

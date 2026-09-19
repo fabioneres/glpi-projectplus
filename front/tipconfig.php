@@ -20,7 +20,7 @@ $documentLabel = $documentType === TipDocumentType::TIP
    ? __('TIP - Termo de Intenção de Projeto', 'projectplus')
    : __('TIP - Detalhamento Técnico', 'projectplus');
 $entityId = (int) Session::getActiveEntity();
-if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
+if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
    Html::displayErrorAndDie(__('Entidade inválida ou sem permissão de configuração.', 'projectplus'));
 }
 

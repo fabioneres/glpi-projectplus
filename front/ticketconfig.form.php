@@ -15,7 +15,7 @@ if ($id <= 0 || !$config->getFromDB($id)) {
 
 $entityId = (int) $config->fields['entities_id'];
 $configId = (int) $config->getID();
-if (!Session::haveAccessToEntity($entityId, true)) {
+if (!Session::haveAccessToEntity($entityId)) {
    Html::displayRightError();
 }
 

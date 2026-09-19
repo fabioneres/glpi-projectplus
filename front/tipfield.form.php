@@ -15,7 +15,7 @@ if ($documentType !== TipDocumentType::DETAIL) {
    $documentType = TipDocumentType::TIP;
 }
 $entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
-if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) { Html::displayErrorAndDie(__('Entidade inválida.', 'projectplus')); }
+if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) { Html::displayErrorAndDie(__('Entidade inválida.', 'projectplus')); }
 if (isset($_POST['save_tip_field'])) {
    if (TipField::save($entityId, $documentType, $_POST)) { Session::addMessageAfterRedirect(__('Campo do TIP salvo.', 'projectplus')); }
    else { Session::addMessageAfterRedirect(__('Não foi possível salvar o campo.', 'projectplus'), false, ERROR); }

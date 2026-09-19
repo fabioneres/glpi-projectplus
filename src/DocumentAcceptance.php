@@ -94,6 +94,12 @@ class DocumentAcceptance extends CommonDBTM
       if (!array_key_exists($type, self::typesForItem($item))) {
          return false;
       }
+      // The Project+ right authorizes the feature; the ticket or project still
+      // decides who may read this document. Without this, the right alone would
+      // expose every term of the entity.
+      if (!ItemAccess::canView($item)) {
+         return false;
+      }
 
       // "Ler" is an explicit Project+ permission in the profile matrix.
       // A requester with only this right must be able to open the generated

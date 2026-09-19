@@ -6,6 +6,7 @@ if (!defined('GLPI_ROOT')) {
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\DocumentAcceptance;
+use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
 use GlpiPlugin\Projectplus\RoutingNotice;
 
@@ -16,7 +17,7 @@ if (!in_array($itemtype, [Ticket::class, Project::class], true) || $itemsId <= 0
    Html::displayErrorAndDie(__('Item inválido.', 'projectplus'));
 }
 $item = new $itemtype();
-if (!$item->getFromDB($itemsId) || !Session::haveAccessToEntity((int)$item->getEntityID())) {
+if (!$item->getFromDB($itemsId) || !ItemAccess::canAct($item)) {
    Html::displayErrorAndDie(__('Item inválido ou sem permissão de acesso.', 'projectplus'));
 }
 $redirectUrl = $item instanceof Project

@@ -11,6 +11,9 @@ if (!defined('GLPI_ROOT')) { die("Sorry. You can't access directly to this file"
 /** Fixed Central block listing Project+ requests in the active entity. */
 class CentralRequests
 {
+   /** Upper bound of requests examined per rendering. */
+   private const SCAN_LIMIT = 500;
+
    public static function display($params = []): void
    {
       // Plugin hooks receive their parameters as an array. A boolean false is
@@ -19,22 +22,7 @@ class CentralRequests
       if (!Session::haveRight(ProjectProfile::RIGHT_REQUESTS, READ)) {
          return;
       }
-      global $DB;
-      $entityId = (int) ($_SESSION['glpiactive_entity'] ?? 0);
-      $rows = $DB->request([
-         'SELECT' => [
-            'glpi_tickets.id',
-            'glpi_tickets.name',
-            'glpi_tickets.date_mod',
-            'glpi_tickets.priority',
-            TicketPhase::getTable() . '.phase',
-         ],
-         'FROM' => 'glpi_tickets',
-         'INNER JOIN' => [TicketPhase::getTable() => ['FKEY' => [TicketPhase::getTable() => 'tickets_id', 'glpi_tickets' => 'id']]],
-         'WHERE' => ['glpi_tickets.entities_id' => $entityId, 'glpi_tickets.is_deleted' => 0],
-         'ORDER' => ['glpi_tickets.date_mod DESC'],
-      ]);
-      $items = iterator_to_array($rows, false);
+      $items = self::getVisibleRequests();
       $total = count($items);
       $displayed = $forCentral
          ? min((int) ($_SESSION['glpidisplay_count_on_home'] ?? 0), $total)
@@ -119,6 +107,48 @@ class CentralRequests
          . "$(document).trigger('masonry_grid:layout');"
          . "}"
          . "});</script>";
+   }
+
+   /**
+    * Project+ requests of the active entity that the user may actually open.
+    *
+    * The Project+ right authorizes the listing; it does not decide which
+    * tickets appear in it. A list of its own bypasses GLPI's Search engine and,
+    * with it, every visibility rule the core would have applied, so each
+    * candidate is confirmed against `Ticket::canViewItem()` - the same rule
+    * that decides whether the ticket opens at all.
+    *
+    * @return array<int, array<string, mixed>>
+    */
+   private static function getVisibleRequests(): array
+   {
+      /** @var \DBmysql $DB */
+      global $DB;
+
+      $entityId = (int) ($_SESSION['glpiactive_entity'] ?? 0);
+      $ticket = new Ticket();
+      $visible = [];
+      foreach ($DB->request([
+         'SELECT' => [
+            'glpi_tickets.id',
+            'glpi_tickets.name',
+            'glpi_tickets.date_mod',
+            'glpi_tickets.priority',
+            TicketPhase::getTable() . '.phase',
+         ],
+         'FROM' => 'glpi_tickets',
+         'INNER JOIN' => [TicketPhase::getTable() => ['FKEY' => [TicketPhase::getTable() => 'tickets_id', 'glpi_tickets' => 'id']]],
+         'WHERE' => ['glpi_tickets.entities_id' => $entityId, 'glpi_tickets.is_deleted' => 0],
+         'ORDER' => ['glpi_tickets.date_mod DESC'],
+         // The confirmation below costs one read per candidate, so the scan is
+         // bounded. Only requests in the Project+ flow reach this point.
+         'LIMIT' => self::SCAN_LIMIT,
+      ]) as $row) {
+         if ($ticket->getFromDB((int) $row['id']) && $ticket->canViewItem()) {
+            $visible[] = $row;
+         }
+      }
+      return $visible;
    }
 
    public static function getListUrl(): string

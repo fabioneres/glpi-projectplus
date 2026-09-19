@@ -396,7 +396,7 @@ class TicketCategoryConfig extends CommonDBTM
 
       foreach (array_keys($ids) as $id) {
          if (!$item->getFromDB((int) $id)
-            || !Session::haveAccessToEntity((int) $item->fields['entities_id'], true)
+            || !Session::haveAccessToEntity((int) $item->fields['entities_id'])
             || !Session::haveRight('config', UPDATE)) {
             $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_NORIGHT);
             continue;

@@ -92,7 +92,7 @@ class DocumentField extends CommonDBTM
          return;
       }
       foreach (array_keys($ids) as $id) {
-         if (!$item->getFromDB((int) $id) || !Session::haveAccessToEntity((int) $item->fields['entities_id'], true)) {
+         if (!$item->getFromDB((int) $id) || !Session::haveAccessToEntity((int) $item->fields['entities_id'])) {
             $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_NORIGHT);
             continue;
          }
@@ -171,7 +171,7 @@ class DocumentField extends CommonDBTM
    {
       global $DB;
 
-      if (!in_array($type, ['tap', 'tep', 'ta'], true) || !Session::haveAccessToEntity($entity, true)) {
+      if (!in_array($type, ['tap', 'tep', 'ta'], true) || !Session::haveAccessToEntity($entity)) {
          return false;
       }
       $label = trim((string) ($in['label'] ?? ''));
@@ -213,7 +213,7 @@ class DocumentField extends CommonDBTM
    public static function deleteForEntity(int $id, int $entity, string $type): bool
    {
       global $DB;
-      if (!Session::haveAccessToEntity($entity, true) || self::one($id, $entity, $type) === null) {
+      if (!Session::haveAccessToEntity($entity) || self::one($id, $entity, $type) === null) {
          return false;
       }
       $DB->beginTransaction();

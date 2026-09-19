@@ -83,7 +83,7 @@ class TicketConfig
       global $DB;
       $ids = array_map('intval', (array) ($_SESSION['glpiactiveentities'] ?? [Session::getActiveEntity()]));
       $ids = array_values(array_filter($ids, static function (int $id): bool {
-         return $id >= 0 && Session::haveAccessToEntity($id, true);
+         return $id >= 0 && Session::haveAccessToEntity($id);
       }));
       if ($ids === []) {
          return [];
@@ -100,7 +100,7 @@ class TicketConfig
    public static function getAvailableCategories(int $entityId): array
    {
       global $DB;
-      if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
+      if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
          return [];
       }
 
@@ -227,7 +227,7 @@ class TicketConfig
    private static function saveState(int $entityId, int $categoryId, bool $isActive): bool
    {
       global $DB;
-      if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
+      if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
          return false;
       }
       $now = date('Y-m-d H:i:s');
@@ -252,7 +252,7 @@ class TicketConfig
       /** @var DBmysql $DB */
       global $DB;
 
-      if ($entityId < 0 || !Session::haveAccessToEntity($entityId, true)) {
+      if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
          return false;
       }
 
