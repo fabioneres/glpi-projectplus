@@ -102,17 +102,23 @@ final class FieldAttachment
       $tags = $post['_tag_' . $name] ?? [];
       $tags = is_array($tags) ? array_values($tags) : [];
 
+      // O limite e conferido antes de criar qualquer documento: recusar no meio
+      // do lote deixaria os primeiros arquivos ja anexados ao registro.
+      // Os indices de $uploads, $prefixes e $tags sao paralelos, entao a
+      // contagem ignora as posicoes vazias sem reindexar o lote.
+      $pending = count(array_filter($uploads, static fn($upload): bool => trim((string) $upload) !== ''));
+      if (count($kept) + $pending > self::MAX_FILES) {
+         throw new \RuntimeException(sprintf(
+            __('O campo "%1$s" aceita no máximo %2$d arquivos.', 'projectplus'),
+            $label,
+            self::MAX_FILES
+         ));
+      }
+
       $added = [];
       foreach ($uploads as $index => $filename) {
          if (trim((string) $filename) === '') {
             continue;
-         }
-         if (count($kept) + count($added) >= self::MAX_FILES) {
-            throw new \RuntimeException(sprintf(
-               __('O campo "%1$s" aceita no máximo %2$d arquivos.', 'projectplus'),
-               $label,
-               self::MAX_FILES
-            ));
          }
          $documentId = self::createDocument(
             (string) $filename,
