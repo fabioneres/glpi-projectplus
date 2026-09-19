@@ -50,6 +50,7 @@ class DocumentField extends CommonDBTM
          'radio'    => __('Seleção única', 'projectplus'),
          'checkboxes' => __('Caixas de seleção', 'projectplus'),
          'multiselect' => __('Seleção múltipla', 'projectplus'),
+         FieldAttachment::TYPE => __('Anexo', 'projectplus'),
          'section'  => __('Título de seção', 'projectplus'),
          'info'     => __('Texto informativo', 'projectplus'),
       ];
@@ -188,7 +189,9 @@ class DocumentField extends CommonDBTM
          'description' => trim((string) ($in['description'] ?? '')),
          'field_type' => $fieldType,
          'values' => trim((string) ($in['values'] ?? '')),
-         'source' => FieldValue::isDisplayOnly($fieldType) ? '' : substr(trim((string) ($in['source'] ?? '')), 0, 128),
+         'source' => FieldValue::isDisplayOnly($fieldType) || FieldValue::isFileType($fieldType)
+            ? ''
+            : substr(trim((string) ($in['source'] ?? '')), 0, 128),
          'display_rule' => 'always',
          'condition_field_id' => 0,
          'condition_operator' => 'equals',

@@ -591,7 +591,8 @@ class DocumentAcceptance extends CommonDBTM
          }
          $help = (string) ($field['description'] ?? '');
          $helpIcon = $help === '' ? '' : " <i class='ti ti-help-circle text-muted' title='" . self::esc($help) . "' aria-label='" . self::esc(__('Ajuda', 'projectplus')) . "'></i>";
-         echo "<div class='projectplus-tip__field'><label>" . self::esc((string) $field['label']) . ((int) $field['is_required'] ? ' *' : '') . $helpIcon . '</label>';
+         $wide = $fieldType === 'textarea' || FieldValue::isFileType($fieldType);
+         echo "<div class='projectplus-tip__field" . ($wide ? ' projectplus-tip__field--wide' : '') . "'><label>" . self::esc((string) $field['label']) . ((int) $field['is_required'] ? ' *' : '') . $helpIcon . '</label>';
          if ($help !== '') echo '<small>' . self::esc($help) . '</small>';
          echo FieldValue::render('document_fields', $field, $value) . '</div>';
       }

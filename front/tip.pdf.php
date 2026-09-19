@@ -5,10 +5,12 @@ if (!defined('GLPI_ROOT')) {
 }
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use GlpiPlugin\Projectplus\FieldAttachment;
 use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\TicketIntent;
 use GlpiPlugin\Projectplus\TicketIntentAnswer;
 use GlpiPlugin\Projectplus\TipDocumentType;
+use GlpiPlugin\Projectplus\TipField;
 
 Session::checkLoginUser();
 $ticket = new Ticket();
@@ -46,8 +48,21 @@ $html .= '<table width="100%" cellpadding="12" bgcolor="#256b45"><tr><td><div cl
 $html .= '<table width="100%" cellpadding="7"><tr><td><div class="section">' . $esc($documentName) . ' ' . ($documentType === TipDocumentType::TIP ? 'enviado' : 'gerado') . '</div><div class="muted">' . $esc($documentStatus) . '</div></td></tr></table><br>';
 $html .= '<table width="100%" cellspacing="5" cellpadding="9"><tr><td width="20%" bgcolor="#eff6f1"><div class="label">TICKET</div><div class="value">#' . $ticketId . '</div></td><td width="35%" bgcolor="#eff6f1"><div class="label">ENVIADO EM</div><div class="value">' . $esc(Html::convDateTime((string) $intent['date_submitted'])) . '</div></td><td width="45%" bgcolor="#eff6f1"><div class="label">ENVIADO POR</div><div class="value">' . $esc((string) $intent['submitter_name']) . '</div><div class="muted">' . $esc((string) $intent['submitter_email']) . '</div></td></tr></table><br>';
 $html .= '<table width="100%" cellpadding="7"><tr><td><div class="section">Respostas do formulário</div><div class="muted">Informações declaradas no ' . $esc($documentTitle) . '.</div></td></tr></table><br>';
-foreach (TicketIntentAnswer::getForIntent((int) $intent['id']) as $answer) {
-   $html .= '<table width="100%" cellpadding="9" bgcolor="#f8fbf9"><tr><td><div class="answer-title">' . $esc((string) $answer['label']) . '</div><br><div class="answer-value">' . nl2br($esc((string) $answer['value'])) . '</div></td></tr></table><br>';
+$answers = TicketIntentAnswer::getForIntent((int) $intent['id']);
+// Campos de anexo guardam ids de documentos: no PDF valem os nomes dos arquivos.
+$attachmentFields = FieldAttachment::attachmentFieldIds(
+   TipField::getTable(),
+   array_map(static fn(array $answer): int => (int) $answer['plugin_projectplus_tipfields_id'], $answers)
+);
+foreach ($answers as $answer) {
+   $value = (string) $answer['value'];
+   if (in_array((int) $answer['plugin_projectplus_tipfields_id'], $attachmentFields, true)) {
+      $value = FieldAttachment::names($value);
+      if ($value === '') {
+         $value = __('Nenhum arquivo anexado.', 'projectplus');
+      }
+   }
+   $html .= '<table width="100%" cellpadding="9" bgcolor="#f8fbf9"><tr><td><div class="answer-title">' . $esc((string) $answer['label']) . '</div><br><div class="answer-value">' . nl2br($esc($value)) . '</div></td></tr></table><br>';
 }
 $pdf->writeHTML($html);
 $pdf->Output(strtolower($documentType) . '-ticket-' . $ticketId . '.pdf', 'I');

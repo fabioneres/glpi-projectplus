@@ -7,6 +7,8 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\DocumentDraft;
+use GlpiPlugin\Projectplus\DocumentField;
+use GlpiPlugin\Projectplus\FieldAttachment;
 use GlpiPlugin\Projectplus\ItemAccess;
 
 Session::checkLoginUser();
@@ -44,8 +46,17 @@ $html = '<style>body{color:#18372e;font-family:dejavusans;font-size:9pt}.eyebrow
 $html .= '<table width="100%" cellpadding="12" bgcolor="#256b45"><tr><td><div class="eyebrow">VALIDAÇÃO DOCUMENTAL</div><div class="title">' . $esc($title) . '</div><br><div class="subtitle">Versão gerada e disponível para validação.</div></td></tr></table><br>';
 $html .= '<table width="100%" cellpadding="7"><tr><td><div class="section">Documento gerado</div><div class="muted">Registro formal das informações declaradas.</div></td></tr></table><br>';
 $html .= '<table width="100%" cellspacing="5" cellpadding="9"><tr><td width="33%" bgcolor="#eff6f1"><div class="label">PROJETO/CHAMADO</div><div class="value">#' . $id . '</div></td><td width="33%" bgcolor="#eff6f1"><div class="label">DOCUMENTO</div><div class="value">' . $esc(strtoupper($type)) . '</div></td><td width="34%" bgcolor="#eff6f1"><div class="label">VERSÃO</div><div class="value">' . (int) $draft['version'] . '</div></td></tr></table><br>';
-foreach ($answers as $answer) {
-   $html .= '<table width="100%" cellpadding="9" bgcolor="#f8fbf9"><tr><td><div class="answer-title">' . $esc((string) $answer['label']) . '</div><br><div class="answer-value">' . nl2br($esc((string) $answer['value'])) . '</div></td></tr></table><br>';
+// Campos de anexo guardam ids de documentos: no PDF valem os nomes dos arquivos.
+$attachmentFields = FieldAttachment::attachmentFieldIds(DocumentField::getTable(), array_keys($answers));
+foreach ($answers as $fieldId => $answer) {
+   $value = (string) $answer['value'];
+   if (in_array((int) $fieldId, $attachmentFields, true)) {
+      $value = FieldAttachment::names($value);
+      if ($value === '') {
+         $value = __('Nenhum arquivo anexado.', 'projectplus');
+      }
+   }
+   $html .= '<table width="100%" cellpadding="9" bgcolor="#f8fbf9"><tr><td><div class="answer-title">' . $esc((string) $answer['label']) . '</div><br><div class="answer-value">' . nl2br($esc($value)) . '</div></td></tr></table><br>';
 }
 $pdf->writeHTML($html);
 $pdf->Output(strtolower($type) . '-' . $id . '-v' . $draft['version'] . '.pdf', 'I');

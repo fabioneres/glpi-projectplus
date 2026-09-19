@@ -10,6 +10,7 @@ use GlpiPlugin\Projectplus\DocumentField;
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ItemAccess;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
+use GlpiPlugin\Projectplus\FieldAttachment;
 use GlpiPlugin\Projectplus\FieldValue;
 use GlpiPlugin\Projectplus\RoutingNotice;
 
@@ -38,9 +39,21 @@ $redirectUrl = $item instanceof Project
    ? ProjectWorkspace::getProjectRedirectUrl($id, (string) ($_POST['projectplus_workspace_tab'] ?? 'documents'))
    : $itemtype::getFormURLWithID($id);
 $answers = is_array($_POST['document_fields'] ?? null) ? $_POST['document_fields'] : [];
+$draft = DocumentDraft::get($itemtype, $id, $type);
+$stored = $draft ? (json_decode((string) $draft['content'], true) ?: []) : [];
 $saved = [];
+$fileFields = [];
 foreach (DocumentField::get((int) $item->getEntityID(), $type, true) as $field) {
-   if (FieldValue::isDisplayOnly((string) $field['field_type'])) {
+   $fieldType = (string) $field['field_type'];
+   if (FieldValue::isDisplayOnly($fieldType)) {
+      continue;
+   }
+   // Anexos ficam para depois da validação dos demais campos: criar documento é
+   // efeito colateral, e uma recusa adiante deixaria arquivos órfãos no registro.
+   // A chave é reservada agora para o documento sair na ordem configurada.
+   if (FieldValue::isFileType($fieldType)) {
+      $saved[(int) $field['id']] = ['label' => $field['label'], 'value' => ''];
+      $fileFields[] = $field;
       continue;
    }
    try {
@@ -54,6 +67,25 @@ foreach (DocumentField::get((int) $item->getEntityID(), $type, true) as $field) 
       Html::redirect($redirectUrl);
    }
    $saved[(int) $field['id']] = ['label' => $field['label'], 'value' => $value];
+}
+foreach ($fileFields as $field) {
+   try {
+      $value = FieldAttachment::collect(
+         'document_fields',
+         $field,
+         (string) ($stored[(int) $field['id']]['value'] ?? ''),
+         $_POST,
+         $item
+      );
+   } catch (\RuntimeException $exception) {
+      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Html::redirect($redirectUrl);
+   }
+   if ((int) $field['is_required'] && $value === '') {
+      Session::addMessageAfterRedirect(__('Preencha os campos obrigatórios.', 'projectplus'), false, ERROR);
+      Html::redirect($redirectUrl);
+   }
+   $saved[(int) $field['id']]['value'] = $value;
 }
 
 if (isset($_POST['generate_document'])) {

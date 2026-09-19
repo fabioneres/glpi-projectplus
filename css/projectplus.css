@@ -552,6 +552,49 @@
    resize: vertical;
 }
 
+/* Campo de anexo: a area de upload e a nativa do GLPI (.fileupload), aqui so
+   recebe a moldura do formulario e a lista dos arquivos ja anexados. */
+.projectplus-attachment {
+   padding: 12px 14px;
+   border: 1px dashed #cddbd2;
+   border-radius: 8px;
+   background: #fbfcfb;
+}
+
+.projectplus-attachment__list {
+   margin: 0 0 10px;
+   padding: 0;
+   list-style: none;
+}
+
+.projectplus-attachment__item {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   padding: 7px 0;
+   border-bottom: 1px solid #e4ebe7;
+}
+
+.projectplus-attachment__item:last-child {
+   border-bottom: 0;
+}
+
+.projectplus-attachment__item .form-check {
+   margin: 0;
+   white-space: nowrap;
+}
+
+.projectplus-attachment__item a {
+   overflow: hidden;
+   color: #1f6040;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.projectplus-attachment .fileupload {
+   margin: 0;
+}
+
 .projectplus-tip__footer {
    display: flex;
    align-items: center;

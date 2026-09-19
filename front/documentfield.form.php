@@ -69,7 +69,7 @@ Dropdown::showFromArray('field_type', DocumentField::types(), ['value' => $field
 echo '</td></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Descrição/orientação', 'projectplus') . "</td><td><textarea class='form-control' name='description' rows='3'>" . ConfigPage::escape($field['description']) . "</textarea></td></tr>";
 echo "<tr class='tab_bg_1' id='projectplus-choice-options-row'><td>" . __('Opções de escolha', 'projectplus') . "</td><td><textarea class='form-control' name='values' rows='4'>" . ConfigPage::escape($field['values']) . "</textarea><small>" . __('Uma opção por linha; utilizado em listas, seleção única e seleção múltipla.', 'projectplus') . '</small></td></tr>';
-echo "<tr class='tab_bg_1'><td>" . __('Preencher com origem', 'projectplus') . '</td><td>';
+echo "<tr class='tab_bg_1' id='projectplus-source-row'><td>" . __('Preencher com origem', 'projectplus') . '</td><td>';
 Dropdown::showFromArray('source', FieldSource::getOptions($entityId, $documentType), ['value' => $field['source']]);
 echo '<small>' . __('Sugere o valor ao criar o documento; o responsável ainda pode alterá-lo.', 'projectplus') . '</small></td></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Ordem', 'projectplus') . "</td><td><input class='form-control' min='0' type='number' name='sort_order' value='" . (int) $field['sort_order'] . "'></td></tr>";
@@ -84,7 +84,7 @@ Dropdown::showYesNo('is_recursive', (int) ($field['is_recursive'] ?? 0));
 echo '<small>' . __('Disponibiliza somente este campo nas entidades descendentes.', 'projectplus') . '</small></td></tr>';
 echo "<tr class='tab_bg_1'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='save' value='1'>" . __('Salvar') . '</button></td></tr>';
 echo '</table></form></div></section>';
-echo "<script>(function(){const type=document.querySelector('select[name=\"field_type\"]');const row=document.getElementById('projectplus-choice-options-row');if(!type||!row)return;const choices=['select','radio','checkboxes','multiselect'];const toggle=()=>{row.style.display=choices.includes(type.value)?'table-row':'none';};type.addEventListener('change',toggle);if(window.jQuery)jQuery(type).on('select2:select select2:clear',toggle);toggle();})();</script>";
+echo "<script>(function(){const type=document.querySelector('select[name=\"field_type\"]');const row=document.getElementById('projectplus-choice-options-row');const source=document.getElementById('projectplus-source-row');if(!type||!row)return;const choices=['select','radio','checkboxes','multiselect'];const toggle=()=>{row.style.display=choices.includes(type.value)?'table-row':'none';if(source)source.style.display=(type.value==='attachment'||type.value==='section'||type.value==='info')?'none':'table-row';};type.addEventListener('change',toggle);if(window.jQuery)jQuery(type).on('select2:select select2:clear',toggle);toggle();})();</script>";
 
 ConfigPage::end();
 Html::footer();

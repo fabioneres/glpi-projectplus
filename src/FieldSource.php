@@ -5,6 +5,7 @@ namespace GlpiPlugin\Projectplus;
 use CommonDBTM;
 use CommonITILActor;
 use Entity;
+use Html;
 use Ticket;
 use Ticket_User;
 use User;
@@ -38,7 +39,10 @@ class FieldSource
             : DocumentField::get($entityId, $sourceType, true);
          $sourceLabel = self::documentLabel($sourceType);
          foreach ($fields as $field) {
-            if ((string) $field['field_type'] !== 'section') {
+            $fieldType = (string) $field['field_type'];
+            // Anexo nao alimenta outro campo: o valor gravado e uma lista de ids
+            // de documentos, que nao faz sentido copiar para um campo de texto.
+            if ($fieldType !== 'section' && !FieldValue::isFileType($fieldType)) {
                $options['document:' . $sourceType . ':' . (int) $field['id']]
                   = $sourceLabel . ' › ' . (string) $field['label'];
             }
@@ -81,7 +85,8 @@ class FieldSource
    {
       $values = [];
       foreach ($fields as $field) {
-         if ((string) $field['field_type'] === 'section') {
+         $fieldType = (string) $field['field_type'];
+         if ($fieldType === 'section' || FieldValue::isFileType($fieldType)) {
             continue;
          }
          $value = self::getValue($item, (string) ($field['source'] ?? ''));
@@ -133,6 +138,8 @@ class FieldSource
    private static function ticketOptions(): array
    {
       return [
+         'number'          => __('Número do chamado', 'projectplus'),
+         'date'            => __('Data de abertura', 'projectplus'),
          'requester_name'  => __('Requerente', 'projectplus'),
          'requester_email' => __('E-mail do requerente', 'projectplus'),
          'name'            => __('Título', 'projectplus'),
@@ -159,6 +166,15 @@ class FieldSource
    {
       if ($key === 'name' || $key === 'content') {
          return trim((string) ($ticket->fields[$key] ?? ''));
+      }
+      if ($key === 'number') {
+         return (string) (int) $ticket->getID();
+      }
+      if ($key === 'date') {
+         // 'date' e a data de abertura do chamado; 'date_creation' registra a
+         // criacao do registro e pode divergir em importacoes.
+         $openingDate = trim((string) ($ticket->fields['date'] ?? ''));
+         return $openingDate === '' ? '' : Html::convDateTime($openingDate);
       }
       if ($key === 'category') {
          return \ITILCategory::getFriendlyNameById((int) ($ticket->fields['itilcategories_id'] ?? 0));

@@ -190,22 +190,40 @@ class TicketIntent
       }
       $fields = TipField::getForEntity((int) $ticket->getEntityID(), $documentType);
       $answers = is_array($input['tip_fields'] ?? null) ? $input['tip_fields'] : [];
+      $current = self::currentAnswers((int) $intent['id']);
       $validated = [];
-      foreach ($fields as $field) {
-         if (FieldValue::isDisplayOnly((string) $field['field_type'])) {
+      $fileFields = [];
+      foreach ($fields as $position => $field) {
+         $fieldType = (string) $field['field_type'];
+         if (FieldValue::isDisplayOnly($fieldType)) {
+            continue;
+         }
+         // Anexos ficam para o fim: criar documento e efeito colateral, e uma
+         // recusa em qualquer campo seguinte deixaria arquivos orfaos no chamado.
+         // A posicao na lista e preservada para o documento sair na ordem configurada.
+         if (FieldValue::isFileType($fieldType)) {
+            $fileFields[$position] = $field;
             continue;
          }
          $value = FieldValue::normalize($field, $answers[(int) $field['id']] ?? '');
          if ((int) $field['is_required'] === 1 && $value === '') {
             throw new \RuntimeException(sprintf(__('Preencha todos os campos obrigatórios do %s.', 'projectplus'), $name));
          }
-         $validated[] = ['field' => $field, 'value' => $value];
+         $validated[$position] = ['field' => $field, 'value' => $value];
       }
       $userId = (int) Session::getLoginUserID();
       $email = UserEmail::getDefaultForUser($userId);
       if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
          throw new \RuntimeException(__('Seu usuário não possui e-mail válido cadastrado.', 'projectplus'));
       }
+      foreach ($fileFields as $position => $field) {
+         $value = FieldAttachment::collect('tip_fields', $field, (string) ($current[(int) $field['id']] ?? ''), $input, $ticket);
+         if ((int) $field['is_required'] === 1 && $value === '') {
+            throw new \RuntimeException(sprintf(__('Preencha todos os campos obrigatórios do %s.', 'projectplus'), $name));
+         }
+         $validated[$position] = ['field' => $field, 'value' => $value];
+      }
+      ksort($validated);
       global $DB;
       $now = date('Y-m-d H:i:s');
       $DB->delete(TicketIntentAnswer::getTable(), ['plugin_projectplus_ticketintents_id' => (int) $intent['id']]);
@@ -367,6 +385,21 @@ class TicketIntent
       echo "</div></section><footer class='projectplus-tip__footer'><span><i class='ti ti-asterisk'></i> " . self::escape(__('Campos obrigatórios', 'projectplus')) . "</span><button class='btn btn-primary' type='submit' name='" . self::escape($action) . "' value='1'><i class='" . self::escape($icon) . "'></i> " . self::escape($button) . '</button></footer></form></div>';
    }
 
+   /**
+    * Respostas ja gravadas, por id de campo. As linhas sao reescritas a cada
+    * envio, entao os anexos mantidos precisam ser conferidos contra o que existe.
+    *
+    * @return array<int,string>
+    */
+   private static function currentAnswers(int $intentId): array
+   {
+      $values = [];
+      foreach (TicketIntentAnswer::getForIntent($intentId) as $answer) {
+         $values[(int) $answer['plugin_projectplus_tipfields_id']] = (string) $answer['value'];
+      }
+      return $values;
+   }
+
    private static function getRequesterId(Ticket $ticket): int
    {
       global $DB;
@@ -407,7 +440,8 @@ class TicketIntent
       $required = (int) $field['is_required'] === 1; $name = 'tip_fields[' . $id . ']';
       $help = (string) ($field['description'] ?? '');
       $helpIcon = $help !== '' ? " <i class='ti ti-help-circle text-muted' title='" . self::escape($help) . "' aria-label='" . self::escape(__('Ajuda', 'projectplus')) . "'></i>" : '';
-      echo "<div class='projectplus-tip__field" . ($type === 'textarea' ? ' projectplus-tip__field--wide' : '') . "'><label for='tip-field-" . $id . "'>" . self::escape((string) $field['label'] . ($required ? ' *' : '')) . $helpIcon . '</label>' . ($help !== '' ? '<small>' . self::escape($help) . '</small>' : '') . '<div>';
+      $wide = $type === 'textarea' || FieldValue::isFileType($type);
+      echo "<div class='projectplus-tip__field" . ($wide ? ' projectplus-tip__field--wide' : '') . "'><label for='tip-field-" . $id . "'>" . self::escape((string) $field['label'] . ($required ? ' *' : '')) . $helpIcon . '</label>' . ($help !== '' ? '<small>' . self::escape($help) . '</small>' : '') . '<div>';
       echo FieldValue::render('tip_fields', $field, $value);
       echo '</div></div>';
    }

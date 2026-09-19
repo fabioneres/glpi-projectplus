@@ -8,6 +8,7 @@ final class FieldValue
    private const MULTIPLE = ['checkboxes', 'multiselect'];
    private const CHOICES = ['select', 'radio', 'checkboxes', 'multiselect'];
    private const DISPLAY_ONLY = ['section', 'info'];
+   private const FILES = [FieldAttachment::TYPE];
 
    /** @return array<string,string> */
    public static function objectTypes(): array
@@ -33,6 +34,15 @@ final class FieldValue
    public static function isDisplayOnly(string $type): bool
    {
       return in_array($type, self::DISPLAY_ONLY, true);
+   }
+
+   /**
+    * Campos cujo valor sao arquivos: nao sao preenchidos por uma origem de texto
+    * e exigem o fluxo dedicado de FieldAttachment para gravar a resposta.
+    */
+   public static function isFileType(string $type): bool
+   {
+      return in_array($type, self::FILES, true);
    }
 
    public static function displayRules(): array { return ['always' => __('Sempre exibido', 'projectplus'), 'conditional' => __('Exibir conforme resposta', 'projectplus')]; }
@@ -79,6 +89,11 @@ final class FieldValue
    {
       $type = (string) ($field['field_type'] ?? 'text');
       if (self::isDisplayOnly($type)) {
+         return '';
+      }
+      // Anexos nunca vem do POST do proprio campo: quem grava e FieldAttachment::collect(),
+      // que so aceita ids ja gravados ou arquivos recem-enviados pelo pipeline do GLPI.
+      if (self::isFileType($type)) {
          return '';
       }
       $allowed = self::options($field);
@@ -131,6 +146,9 @@ final class FieldValue
       $esc = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
       if ($type === 'info') {
          return "<div class='alert alert-info'>" . nl2br($esc((string) ($field['description'] ?? ''))) . '</div>';
+      }
+      if (self::isFileType($type)) {
+         return FieldAttachment::render($prefix, $field, $value);
       }
       if (in_array($type, ['glpi_object', 'actor'], true)) {
          $itemtype = trim((string) ($field['values'] ?? ''));

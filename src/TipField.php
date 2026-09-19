@@ -16,7 +16,7 @@ if (!defined('GLPI_ROOT')) {
 class TipField extends CommonDBTM
 {
    public static $rightname = 'config';
-   private const TYPES = ['text', 'textarea', 'number', 'decimal', 'email', 'date', 'datetime', 'time', 'select', 'radio', 'checkboxes', 'multiselect', 'section', 'info'];
+   private const TYPES = ['text', 'textarea', 'number', 'decimal', 'email', 'date', 'datetime', 'time', 'select', 'radio', 'checkboxes', 'multiselect', FieldAttachment::TYPE, 'section', 'info'];
 
    public static function getTypeName($nb = 0)
    {
@@ -132,6 +132,7 @@ class TipField extends CommonDBTM
          'radio'    => __('Seleção única', 'projectplus'),
          'checkboxes' => __('Caixas de seleção', 'projectplus'),
          'multiselect' => __('Seleção múltipla', 'projectplus'),
+         FieldAttachment::TYPE => __('Anexo', 'projectplus'),
          'section'  => __('Título de seção', 'projectplus'),
          'info'     => __('Texto informativo', 'projectplus'),
       ];
@@ -226,7 +227,9 @@ class TipField extends CommonDBTM
          'description' => trim((string) ($input['description'] ?? '')),
          'field_type'  => $fieldType,
          'values'      => trim((string) ($input['values'] ?? '')),
-         'source'      => FieldValue::isDisplayOnly($fieldType) ? '' : substr(trim((string) ($input['source'] ?? '')), 0, 128),
+         'source'      => FieldValue::isDisplayOnly($fieldType) || FieldValue::isFileType($fieldType)
+            ? ''
+            : substr(trim((string) ($input['source'] ?? '')), 0, 128),
          'display_rule' => 'always',
          'condition_field_id' => 0,
          'condition_operator' => 'equals',
