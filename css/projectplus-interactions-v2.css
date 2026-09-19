@@ -1,5 +1,0 @@
-/* The native GLPI timeline only opens the rich response editor on demand. */
-.projectplus-followups__composer { display: none !important; }
-.projectplus-followups__composer.is-open { display: grid !important; }
-.projectplus-followups__replybar { display: flex; align-items: center; min-height: 64px; margin-top: 18px; padding: 12px 0; border-top: 1px solid #e0e6ec; }
-.projectplus-followups__replybar .btn { min-width: 150px; color: #2d3d54; font-weight: 600; }

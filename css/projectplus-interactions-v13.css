@@ -1,5 +1,0 @@
-/* One template family per composer state; never expose both selectors. */
-.projectplus-followups__composer .projectplus-followups__template-selector--followup { display: grid !important; }
-.projectplus-followups__composer .projectplus-followups__template-selector--solution { display: none !important; }
-.projectplus-followups__composer.projectplus-followups__composer--solution .projectplus-followups__template-selector--followup { display: none !important; }
-.projectplus-followups__composer.projectplus-followups__composer--solution .projectplus-followups__template-selector--solution { display: grid !important; }

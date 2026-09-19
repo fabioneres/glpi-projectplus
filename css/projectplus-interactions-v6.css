@@ -1,6 +1,0 @@
-/* Only the action bar belongs to the sticky footer. Content remains in the
- * normal conversation flow, above that footer. */
-.projectplus-followups__timeline { order: 1 !important; }
-.projectplus-followups__composer { order: 2 !important; }
-.projectplus-followups__escalate { order: 2 !important; }
-.projectplus-followups__toolbar { order: 3 !important; }

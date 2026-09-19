@@ -1,7 +1,0 @@
-.projectplus-project-fields-table tr:not(:first-child) {
-   height: 52px !important;
-}
-.projectplus-project-fields-table th,
-.projectplus-project-fields-table td {
-   vertical-align: middle !important;
-}

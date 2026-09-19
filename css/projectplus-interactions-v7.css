@@ -1,8 +1,0 @@
-/* Preserve the native followup-action color vocabulary. */
-.projectplus-followups__toolbar .projectplus-followups__button--reply { background: #ffcb55 !important; border-color: #e2aa31 !important; color: #21334d !important; }
-.projectplus-followups__toolbar .projectplus-followups__button--task { background: #fff1c7 !important; border-color: #e4c570 !important; color: #21334d !important; }
-.projectplus-followups__toolbar .projectplus-followups__button--solution { background: #b9dff2 !important; border-color: #84bddb !important; color: #20435a !important; }
-.projectplus-followups__toolbar .projectplus-followups__button--document { background: #9bd8c0 !important; border-color: #6cb998 !important; color: #174d3c !important; }
-.projectplus-followups__toolbar .projectplus-followups__button--validation { background: #e2f2df !important; border-color: #b5d7af !important; color: #315f31 !important; }
-.projectplus-followups__toolbar .projectplus-followups__button--escalate { background: #f4cbcf !important; border-color: #df9fa8 !important; color: #7c2e39 !important; }
-.projectplus-followups__toolbar .btn:hover { filter: brightness(.96) !important; }

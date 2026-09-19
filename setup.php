@@ -58,42 +58,12 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
    $PLUGIN_HOOKS[Hooks::DISPLAY_CENTRAL]['projectplus'] = [CentralRequests::class, 'display'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';
+   // One stylesheet for the whole plugin.  GLPI appends "?v=<plugin version>"
+   // to it (Plugin::getPluginFilesVersion, used by the add_css hook), so a
+   // bumped plugin version already invalidates the browser cache: a visual fix
+   // belongs inside this file, never in a new "-vN" one.
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus.css';
-   // Dedicated versioned asset to refresh the unified document-journey UI.
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-documents-v2.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-config-v2.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-flow-pagination.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-project-fields-v1.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-project-fields-v2.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-import-v1.css';
-   // Loaded after legacy layout assets so configuration labels keep their
-   // intended width even in browser sessions with cached stylesheets.
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-config-nav-v2.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v2.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v3.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v4.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v5.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v6.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v7.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v8.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v9.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v10.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v11.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v12.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v13.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-interactions-v14.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v2.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v3.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v4.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v5.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v6.css';
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/projectplus-priority-v7.css';
-   // Arquivo separado para que a correção visual seja carregada mesmo em
-   // sessões que ainda mantenham em cache a folha principal do plugin.
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['projectplus'][] = 'css/document-acceptance.css';
-   $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['projectplus'][] = 'js/projectplus-ranking-search-v2.js';
+   $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['projectplus'][] = 'js/projectplus-ranking-search.js';
    $PLUGIN_HOOKS[Hooks::POST_ITEM_FORM]['projectplus'] = [ProjectForm::class, 'postItemForm'];
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Project::class] = [ProjectData::class, 'postProjectAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectUpdate'];
