@@ -2753,6 +2753,15 @@
    color: #111111 !important;
 }
 
+/* Duas acoes no bloco tecnico: salvar sem rotear e enviar ao Gestor de Portfolio. */
+.projectplus-priority__actions {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   flex-wrap: wrap;
+}
+
+
 /* ===== Aceite de documentos ===== */
 .projectplus-acceptance {
    max-width: calc(100vw - 80px);
@@ -2800,3 +2809,53 @@
 
 }
 
+/* ===== Rodape de decisao: aceitar e recusar lado a lado ===== */
+/* A justificativa pertence somente a recusa e so aparece quando ela e escolhida. */
+.projectplus-decision {
+   margin: 22px 0 0;
+}
+
+/* Os dois botoes juntos, alinhados a direita do cartao. Usado no TIP e nos
+   documentos (TAP, TEP, TA), no chamado e no portal do solicitante. */
+.projectplus-decision__actions {
+   display: flex;
+   align-items: center;
+   justify-content: flex-end;
+   flex-wrap: wrap;
+   gap: 12px;
+   padding: 16px 0 2px;
+   border-top: 1px solid #e4ebe7;
+}
+
+.projectplus-decision__actions .btn {
+   padding: 8px 20px;
+   font-weight: 600;
+}
+
+.projectplus-decision__refuse {
+   margin: 16px 0 2px;
+   padding: 17px 22px;
+   border: 1px solid #edd3cf;
+   border-radius: 10px;
+   background: #fdf7f6;
+}
+
+.projectplus-decision__refuse > label {
+   display: block;
+   margin: 0 0 6px;
+   color: #8a4a40;
+   font-size: .86rem;
+   font-weight: 600;
+}
+
+.projectplus-decision__refuse-actions {
+   display: flex;
+   align-items: center;
+   flex-wrap: wrap;
+   gap: 10px;
+   margin: 12px 0 0;
+}
+
+.projectplus-decision [hidden] {
+   display: none !important;
+}

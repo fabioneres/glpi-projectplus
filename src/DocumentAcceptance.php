@@ -638,13 +638,20 @@ class DocumentAcceptance extends CommonDBTM
          . Html::hidden('itemtype', ['value' => $item::getType()])
          . Html::hidden('items_id', ['value' => (int) $item->getID()])
          . Html::hidden('acceptance_id', ['value' => (int) $row['id']]);
-      echo "<form method='post' action='" . self::esc($actionUrl) . "' class='projectplus-acceptance__form'>" . $hidden
-         . "<label><input required type='checkbox' name='accepted' value='1'> " . self::esc(__('Li e aceito os termos deste documento.', 'projectplus')) . "</label>"
-         . "<button class='btn btn-primary' type='submit' name='accept_document' value='1'><i class='ti ti-check'></i> " . self::esc(__('Aceitar e continuar', 'projectplus')) . '</button></form>';
-      echo "<form method='post' action='" . self::esc($actionUrl) . "' class='projectplus-acceptance__refuse'>" . $hidden
-         . '<label>' . self::esc(__('Justificativa da recusa', 'projectplus')) . '</label>'
-         . "<textarea class='form-control' name='rejection_justification' rows='3' required></textarea>"
-         . "<button class='btn btn-danger' type='submit' name='reject_document' value='1'><i class='ti ti-x'></i> " . self::esc(__('Recusar documento', 'projectplus')) . '</button></form>';
+      // O botao e a propria declaracao de aceite; a caixa separada acrescentava
+      // um passo sem acrescentar evidencia. O rodape e o mesmo do TIP.
+      DecisionFooter::render(
+         $actionUrl,
+         $hidden,
+         ['name' => 'accept_document', 'label' => __('Aceitar e continuar', 'projectplus')],
+         [
+            'name' => 'reject_document',
+            'label' => __('Recusar documento', 'projectplus'),
+            'confirm' => __('Recusar documento', 'projectplus'),
+            'field' => 'rejection_justification',
+            'legend' => __('Justificativa da recusa', 'projectplus'),
+         ]
+      );
    }
 
    /** @param array<string,mixed> $row */

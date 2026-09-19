@@ -62,6 +62,7 @@ class Installer
       self::ensureProjectInteractionTable();
       self::ensureProjectPriorityTable();
       self::ensureTicketPriorityTable();
+      self::ensureTechnicalPrioritySubmission();
       self::normalizePriorityRankings();
       if (!$DB->tableExists($table)) {
          $DB->doQuery(
@@ -152,6 +153,49 @@ class Installer
    private static function ensureProjectInteractionTable(): void { global $DB; $t=ProjectInteraction::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`users_id` int unsigned NOT NULL DEFAULT 0,`content` text NOT NULL,`is_internal` tinyint NOT NULL DEFAULT 0,`notify_participants` tinyint NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),KEY `projects_id`(`projects_id`),KEY `entities_id`(`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
    private static function ensureProjectPriorityTable(): void { global $DB; $t=ProjectPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `projects_id`(`projects_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
    private static function ensureTicketPriorityTable(): void { global $DB; $t=TicketPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`tickets_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `tickets_id`(`tickets_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
+
+   /**
+    * Records when the technical priority was submitted to the Portfolio Manager.
+    *
+    * Completing the technical criteria used to route the request by itself.  The
+    * submission is now an explicit action, so it needs a state of its own.
+    */
+   private static function ensureTechnicalPrioritySubmission(): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $table = TicketPriority::getTable();
+      if (!$DB->tableExists($table)) {
+         return;
+      }
+      $fields = [
+         'date_technical_sent' => 'TIMESTAMP NULL DEFAULT NULL',
+         'technical_sent_users_id' => 'INT UNSIGNED NOT NULL DEFAULT 0',
+      ];
+      $created = false;
+      foreach ($fields as $field => $definition) {
+         if (!$DB->fieldExists($table, $field)) {
+            $DB->doQuery("ALTER TABLE `{$table}` ADD `{$field}` {$definition}");
+            $created = true;
+         }
+      }
+      if (!$created) {
+         return;
+      }
+      // Requests whose technical block was already complete had, by the previous
+      // rule, been routed to the Portfolio Manager.  Backfilling keeps them out
+      // of a state where the strategic block would look locked again.
+      $DB->doQuery(
+         "UPDATE `{$table}`
+            SET `date_technical_sent` = COALESCE(`date_mod`, `date_creation`, NOW())
+          WHERE `date_technical_sent` IS NULL
+            AND `result_scope` > 0
+            AND `project_urgency` > 0
+            AND `estimated_time` > 0
+            AND `team_familiarity` > 0"
+      );
+   }
 
    /** Converts legacy five-level values and recalculates rankings without risk. */
    private static function normalizePriorityRankings(): void

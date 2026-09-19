@@ -20,6 +20,9 @@ class TicketPhase extends CommonDBTM
 {
    protected static $notable = true;
 
+   /** Phases that only exist after the opening was authorized. */
+   public const AUTHORIZED_PHASES = ['authorized_opening', 'awaiting_tap_acceptance', 'project_opened'];
+
    public static function getTable($classname = null): string
    {
       return 'glpi_plugin_projectplus_ticketphases';
@@ -214,6 +217,27 @@ class TicketPhase extends CommonDBTM
       self::ensureForTicket($ticket);
    }
 
+   /** Tells a cancellation that came from a denied authorization from any other. */
+   public static function wasAuthorizationDenied(int $ticketId): bool
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      if ($ticketId <= 0 || !$DB->tableExists(TicketPhaseHistory::getTable())) {
+         return false;
+      }
+      $row = $DB->request([
+         'COUNT' => 'count',
+         'FROM' => TicketPhaseHistory::getTable(),
+         'WHERE' => [
+            'tickets_id' => $ticketId,
+            'old_phase' => 'awaiting_authorization',
+            'new_phase' => 'rejected_cancelled',
+         ],
+      ])->current();
+      return (int) ($row['count'] ?? 0) > 0;
+   }
+
    /** @return array<string, mixed>|null */
    public static function getForTicket(int $ticketId): ?array
    {
@@ -384,7 +408,7 @@ class TicketPhase extends CommonDBTM
       ) {
          return '';
       }
-         return self::createTabEntry(__('Project+', 'projectplus'), 0, $item::getType(), 'ti ti-file-check');
+      return self::createTabEntry(__('Portfólio de Projetos', 'projectplus'), 0, $item::getType(), 'ti ti-file-check');
    }
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0): bool
@@ -433,7 +457,11 @@ class TicketPhase extends CommonDBTM
       });
       if (ProjectPriority::canViewPriorityType('technical')) {
          $tipDetailGenerated = (string) ($intent['status'] ?? '') === 'generated';
-         $technicalState = TicketPriority::isCompleteForType((int) $ticket->getID(), 'technical') ? 'accepted' : ($tipDetailGenerated ? 'released' : 'disabled');
+         // Green means handed over to the Portfolio Manager, not merely filled:
+         // a complete block that was not submitted still expects an action.
+         $technicalState = TicketPriority::isTechnicalSent((int) $ticket->getID())
+            ? 'accepted'
+            : ($tipDetailGenerated ? 'released' : 'disabled');
          self::showDocumentStep(__('Priorização técnica', 'projectplus'), 'ti ti-list-numbers', $technicalState, $currentPhase === 'portfolio_analysis' && !$technicalPriorityComplete, static function () use ($ticket, $tipDetailGenerated): void {
             if (!$tipDetailGenerated) {
                echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Priorização técnica ainda não liberada.', 'projectplus')) . '</strong><br>' . self::escape(FlowStageDescription::get('technical_priority', 'pending')) . '</div>';
@@ -452,7 +480,24 @@ class TicketPhase extends CommonDBTM
             TicketPriority::showForTicket($ticket, 'institutional');
          });
       }
-      self::showDocumentStep(__('Autorização de abertura do projeto', 'projectplus'), 'ti ti-circle-check', $currentPhase === 'authorized_opening' ? 'accepted' : ($currentPhase === 'awaiting_authorization' ? 'released' : 'disabled'), $currentPhase === 'awaiting_authorization', static function () use ($ticket, $currentPhase): void {
+      // The authorization is a milestone, not a transient phase: once granted it
+      // must keep signalling completion while the flow moves on to the TAP and
+      // to the project opening.
+      $authorizationGranted = in_array($currentPhase, self::AUTHORIZED_PHASES, true);
+      $authorizationDenied = $currentPhase === 'rejected_cancelled'
+         && self::wasAuthorizationDenied((int) $ticket->getID());
+      $authorizationState = $authorizationGranted
+         ? 'accepted'
+         : ($authorizationDenied ? 'rejected' : ($currentPhase === 'awaiting_authorization' ? 'released' : 'disabled'));
+      self::showDocumentStep(__('Autorização de abertura do projeto', 'projectplus'), 'ti ti-circle-check', $authorizationState, $currentPhase === 'awaiting_authorization', static function () use ($ticket, $currentPhase, $authorizationGranted, $authorizationDenied): void {
+         if ($authorizationGranted) {
+            echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::escape(__('Abertura do projeto autorizada.', 'projectplus')) . '</div>';
+            return;
+         }
+         if ($authorizationDenied) {
+            echo "<div class='alert alert-danger'><i class='ti ti-circle-x'></i> " . self::escape(__('Abertura do projeto negada. A justificativa está no histórico das fases.', 'projectplus')) . '</div>';
+            return;
+         }
          if ($currentPhase !== 'awaiting_authorization') {
             echo "<div class='alert alert-info'>" . self::escape(FlowStageDescription::get('authorization_opening', 'pending')) . '</div>';
             return;

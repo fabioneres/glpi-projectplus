@@ -420,8 +420,22 @@ class TicketIntent
       $pdfUrl = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.pdf.php?tickets_id=' . (int) $ticket->getID() . '&document_type=' . rawurlencode($documentType);
       $hidden = Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]) . Html::hidden('document_type', ['value' => $documentType]);
       echo "<section class='projectplus-tip__card projectplus-acceptance__card'><div class='projectplus-tip__section-title'><i class='ti ti-file-check'></i><div><h3>" . self::escape(sprintf(__('Validação do %s', 'projectplus'), $name)) . '</h3><p>' . self::escape(__('Revise o termo preenchido antes de aceitar ou recusar a solicitação.', 'projectplus')) . "</p></div></div><div class='projectplus-acceptance__document'><div><strong>" . self::escape($name) . " preenchido</strong><a target='_blank' rel='noopener' href='" . self::escape($pdfUrl) . "'>" . self::escape(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='Documento preenchido' src='" . self::escape($pdfUrl) . "'></iframe></div>";
-      echo "<form method='post' action='" . self::escape($url) . "' class='projectplus-tip__footer'>" . $hidden . "<button class='btn btn-success' type='submit' name='accept_intent' value='1'><i class='ti ti-check'></i> " . self::escape(sprintf(__('Aceitar %s', 'projectplus'), $name)) . "</button></form>";
-      echo "<form method='post' action='" . self::escape($url) . "' class='projectplus-tip__review-refuse'>" . $hidden . '<label>' . self::escape(__('Justificativa da recusa', 'projectplus')) . "</label><textarea class='form-control' name='justification' rows='4' required></textarea><button class='btn btn-danger' type='submit' name='reject_intent' value='1'><i class='ti ti-x'></i> " . self::escape(sprintf(__('Recusar %s e solucionar chamado', 'projectplus'), $name)) . '</button></form></section>';
+      // O titulo do cartao ja diz qual documento esta em validacao: os rotulos
+      // ficam curtos para a dupla nao virar dois blocos largos. A consequencia
+      // da recusa aparece por extenso no botao que a confirma.
+      DecisionFooter::render(
+         $url,
+         $hidden,
+         ['name' => 'accept_intent', 'label' => __('Aceitar', 'projectplus')],
+         [
+            'name' => 'reject_intent',
+            'label' => __('Recusar', 'projectplus'),
+            'confirm' => sprintf(__('Recusar %s e solucionar chamado', 'projectplus'), $name),
+            'field' => 'justification',
+            'legend' => __('Justificativa da recusa', 'projectplus'),
+         ]
+      );
+      echo '</section>';
    }
 
    private static function showSubmittedReadOnly(Ticket $ticket, string $documentType): void

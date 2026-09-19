@@ -73,8 +73,7 @@ class TicketProject
          $missing[] = __('A priorização institucional deve estar concluída.', 'projectplus');
       }
       $phase = TicketPhase::getForTicket((int) $ticket->getID());
-      $authorizedPhases = ['authorized_opening', 'awaiting_tap_acceptance', 'project_opened'];
-      if (!$phase || !in_array((string) $phase['phase'], $authorizedPhases, true)) {
+      if (!$phase || !in_array((string) $phase['phase'], TicketPhase::AUTHORIZED_PHASES, true)) {
          $missing[] = __('A autorização para abertura do projeto ainda não foi registrada.', 'projectplus');
       }
       $tap = DocumentAcceptance::getForItem($ticket, 'tap');
@@ -89,6 +88,23 @@ class TicketProject
    {
       $missing = self::getMissingOpeningRequirements($ticket);
       return $missing[0] ?? null;
+   }
+
+   /**
+    * Returns the project name, or the documented placeholder when the mapped
+    * source is absent, set to manual completion or resolved to an empty value.
+    *
+    * @param mixed $name
+    */
+   public static function resolveProjectName($name): string
+   {
+      $name = trim((string) $name);
+      // A source such as the ticket description arrives as rich text: a value
+      // made only of markup is empty for naming purposes.
+      if (trim(html_entity_decode(strip_tags($name), ENT_QUOTES, 'UTF-8')) === '') {
+         return __('Projeto sem nome', 'projectplus');
+      }
+      return $name;
    }
 
    /** Opens a project, creates the native GLPI relation, then solves the ticket. */
@@ -118,6 +134,11 @@ class TicketProject
          // Configurable destinations are populated exclusively by their
          // explicit mappings. An empty source means manual GLPI completion.
          $projectInput = array_replace($projectInput, ProjectFieldConfig::getPrefill($ticket));
+         // GLPI refuses a Project without a name.  The mapping may legitimately
+         // leave it empty: the administrator chose manual completion, or the
+         // configured source produced no value for this ticket.  A placeholder
+         // keeps the flow working and leaves the project visible for renaming.
+         $projectInput['name'] = self::resolveProjectName($projectInput['name'] ?? '');
          $project = new Project();
          // Values loaded from the database do not pass through GLPI's normal
          // request escaping. Escape the complete programmatic input before

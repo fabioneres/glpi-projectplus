@@ -65,11 +65,32 @@ class TicketPriority
       return (string) ($intent['status'] ?? '') === 'generated';
    }
 
-   /** The strategic assessment follows completion of the technical assessment. */
+   /** The strategic assessment follows the submission of the technical block. */
    public static function isStrategicPriorityAvailable(Ticket $ticket): bool
    {
       return self::isTechnicalPriorityAvailable($ticket)
-         && self::isCompleteForType((int) $ticket->getID(), 'technical');
+         && self::isCompleteForType((int) $ticket->getID(), 'technical')
+         && self::isTechnicalSent((int) $ticket->getID());
+   }
+
+   /** Tells whether the columns added for the explicit submission are in place. */
+   private static function hasSubmissionColumns(): bool
+   {
+      global $DB;
+      return $DB->tableExists(self::getTable())
+         && $DB->fieldExists(self::getTable(), 'date_technical_sent');
+   }
+
+   /** The technical block was handed over to the Portfolio Manager. */
+   public static function isTechnicalSent(int $ticketId): bool
+   {
+      if (!self::hasSubmissionColumns()) {
+         // Before the upgrade runs, completion is the only available evidence
+         // and it matches the previous behaviour, where completing routed.
+         return self::isCompleteForType($ticketId, 'technical');
+      }
+      $data = self::getForTicket($ticketId);
+      return trim((string) ($data['date_technical_sent'] ?? '')) !== '';
    }
 
    public static function saveForTicket(Ticket $ticket, array $input): void
@@ -98,13 +119,19 @@ class TicketPriority
       if ($editable === [] || !Session::haveAccessToEntity((int) $ticket->getEntityID())) {
          throw new \RuntimeException(__('Sem permissão para priorizar esta solicitação.', 'projectplus'));
       }
+      // Submitting is an explicit decision of the technical block: saving keeps
+      // the request with the Project Manager, sending hands it over.
+      $send = $type === 'technical' && !empty($input['send_to_portfolio']);
+      if ($type === 'technical' && self::isTechnicalSent((int) $ticket->getID())) {
+         throw new \RuntimeException(__('A priorização técnica já foi enviada ao Gestor de Portfólio e não pode mais ser alterada.', 'projectplus'));
+      }
 
       $current = self::getForTicket((int) $ticket->getID());
       $values = [];
       $complete = true;
       foreach (ProjectPriority::getCriteria() as $field => $label) {
          if (!isset($editable[$field]) && array_key_exists($field, $input)) {
-            throw new \RuntimeException(__('Sem permissÃ£o para alterar este critÃ©rio.', 'projectplus'));
+            throw new \RuntimeException(__('Sem permissão para alterar este critério.', 'projectplus'));
          }
          $value = isset($editable[$field]) ? (int) ($input[$field] ?? $current[$field] ?? 0) : (int) ($current[$field] ?? 0);
          if (!in_array($value, [0, 1, 3, 5], true)) {
@@ -117,9 +144,12 @@ class TicketPriority
       foreach (ProjectPriority::getCriteriaForPriorityType($type) as $field => $label) {
          $typeComplete = $typeComplete && (int) ($values[$field] ?? 0) > 0;
       }
-      if ($type === 'technical' && $typeComplete) {
-         // Validate the next owner before committing the final technical
-         // values, avoiding a completed block with no valid route forward.
+      if ($send) {
+         if (!$typeComplete) {
+            throw new \RuntimeException(__('Preencha todos os critérios da priorização técnica antes de enviar ao Gestor de Portfólio.', 'projectplus'));
+         }
+         // Validate the next owner before committing the submission, avoiding a
+         // block closed for editing with no valid route forward.
          TicketRouting::assertRoleCanBeRouted(
             $ticket,
             'portfolio',
@@ -132,6 +162,10 @@ class TicketPriority
       $values['ranking'] = array_sum($values);
       $values['entities_id'] = (int) $ticket->getEntityID();
       $values['date_mod'] = date('Y-m-d H:i:s');
+      if ($send && self::hasSubmissionColumns()) {
+         $values['date_technical_sent'] = date('Y-m-d H:i:s');
+         $values['technical_sent_users_id'] = (int) Session::getLoginUserID();
+      }
       /** @var DBmysql $DB */
       global $DB;
       $DB->updateOrInsert(
@@ -139,9 +173,9 @@ class TicketPriority
          $values + ['tickets_id' => (int) $ticket->getID(), 'date_creation' => date('Y-m-d H:i:s')],
          ['tickets_id' => (int) $ticket->getID()]
       );
-      if ($type === 'technical' && $typeComplete) {
+      if ($send) {
          // The technical block belongs to the previously recorded Project
-         // Manager. Once complete, the request moves to the closest eligible
+         // Manager. On submission the request moves to the closest eligible
          // Portfolio Manager in the ancestor chain for strategic priority.
          TicketRouting::routeToRole(
             $ticket,
@@ -208,7 +242,11 @@ class TicketPriority
       $fullyClassified = self::isComplete((int) $ticket->getID());
       $nativePriority = $fullyClassified ? ProjectPriority::getNativePriorityForRanking($ranking) : 0;
       $editable = ProjectPriority::getEditableCriteria($type);
-      $canEdit = $editable !== [] && Session::haveAccessToEntity((int) $ticket->getEntityID());
+      $technicalSent = self::isTechnicalSent((int) $ticket->getID());
+      // Once handed over to the Portfolio Manager, the technical block becomes
+      // the record of what was submitted.
+      $canEdit = $editable !== [] && Session::haveAccessToEntity((int) $ticket->getEntityID())
+         && !($type === 'technical' && $technicalSent);
       global $CFG_GLPI;
       $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/ticketpriority.form.php';
       $priorityLabel = $fullyClassified
@@ -230,7 +268,18 @@ class TicketPriority
       }
       echo '</div><footer class="projectplus-priority__footer"><small>' . self::escape(__('O ranking é calculado pela soma dos seis critérios preenchidos. A autorização de abertura requer o preenchimento completo.', 'projectplus')) . '</small>';
       if ($canEdit) {
-         echo "<button class='btn btn-primary' type='submit' name='save_ticket_priority' value='1'><i class='ti ti-device-floppy'></i> " . self::escape(__('Salvar priorização', 'projectplus')) . '</button></form>';
+         echo "<div class='projectplus-priority__actions'><button class='btn btn-primary' type='submit' name='save_ticket_priority' value='1'><i class='ti ti-device-floppy'></i> " . self::escape(__('Salvar priorização', 'projectplus')) . '</button>';
+         if ($type === 'technical') {
+            // Saving keeps the request with the Project Manager; sending is the
+            // explicit handover that also closes this block for editing. O envio
+            // usa a mesma classe do aceite do TIP para as duas conclusoes de
+            // etapa terem a mesma cor em todo o fluxo.
+            echo " <button class='btn btn-success' type='submit' name='send_to_portfolio' value='1'><i class='ti ti-send'></i> " . self::escape(__('Enviar para Gestor de Portfólio', 'projectplus')) . '</button>';
+         }
+         echo '</div></form>';
+      }
+      if ($type === 'technical' && $technicalSent) {
+         echo "<div class='projectplus-acceptance__accepted'><i class='ti ti-circle-check'></i> " . self::escape(__('Priorização técnica enviada ao Gestor de Portfólio. Este bloco ficou somente leitura.', 'projectplus')) . '</div>';
       }
       echo '</footer></section>';
    }

@@ -18,7 +18,11 @@ if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !ItemAccess::canAct($tic
 
 try {
    TicketPriority::saveForTicket($ticket, $_POST);
-   Session::addMessageAfterRedirect(__('Priorização da solicitação salva.', 'projectplus'));
+   Session::addMessageAfterRedirect(
+      isset($_POST['send_to_portfolio'])
+         ? __('Priorização técnica enviada ao Gestor de Portfólio.', 'projectplus')
+         : __('Priorização da solicitação salva.', 'projectplus')
+   );
 } catch (\Throwable $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }

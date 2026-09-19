@@ -21,9 +21,6 @@ if (!$project->getFromDB($projectId)) {
 
 try {
    if (isset($_POST['accept_document'])) {
-      if ((int) ($_POST['accepted'] ?? 0) !== 1) {
-         throw new RuntimeException(__('Marque a confirmação de aceite antes de continuar.', 'projectplus'));
-      }
       DocumentAcceptance::accept($project, (int) ($_POST['acceptance_id'] ?? 0));
       Session::addMessageAfterRedirect(__('Aceite registrado com sucesso.', 'projectplus'), true, INFO);
    } elseif (isset($_POST['reject_document'])) {

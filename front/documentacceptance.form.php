@@ -37,7 +37,7 @@ try {
    } elseif (isset($_POST['publish_generated'])) {
       DocumentAcceptance::publishGenerated($item, (string) ($_POST['document_type'] ?? ''));
       Session::addMessageAfterRedirect(__('Documento gerado enviado para aceite.', 'projectplus'));
-   } elseif (isset($_POST['accept_document']) && (int) ($_POST['accepted'] ?? 0) === 1) {
+   } elseif (isset($_POST['accept_document'])) {
       DocumentAcceptance::accept($item, (int) ($_POST['acceptance_id'] ?? 0));
       Session::addMessageAfterRedirect(__('Aceite registrado com sucesso.', 'projectplus'));
    } elseif (isset($_POST['reject_document'])) {
