@@ -4,6 +4,7 @@ namespace GlpiPlugin\Projectplus;
 
 use DBmysql;
 use Dropdown;
+use Glpi\Application\View\TemplateRenderer;
 use Html;
 use Session;
 
@@ -104,39 +105,120 @@ class ProjectPortal
       return null;
    }
 
+   /**
+    * Lista os projetos do solicitante com a apresentacao nativa do GLPI.
+    *
+    * A tabela e renderizada pelo mesmo componente que a tela nativa de
+    * Projetos usa (`components/table.html.twig`) e cada celula e montada pelos
+    * mesmos helpers do core - cracha de entidade, bloco de prioridade, cor do
+    * estado e resumo de texto rico. Assim a aparencia acompanha o GLPI em vez
+    * de imitar uma versao dele.
+    */
    public static function displayList(): void
    {
       $projects = self::getProjectsForCurrentUser();
-      echo "<div class='card'><div class='table-responsive'>";
-      echo "<table class='table table-hover table-striped mb-0'>";
-      echo '<tr><th>' . self::escape(__('Nome', 'projectplus')) . '</th>';
-      echo '<th>' . self::escape(__('Entidade', 'projectplus')) . '</th>';
-      echo '<th>' . self::escape(__('Prioridade', 'projectplus')) . '</th>';
-      echo '<th>' . self::escape(__('Código', 'projectplus')) . '</th>';
-      echo '<th>' . self::escape(__('Status', 'projectplus')) . '</th>';
-      echo '<th>' . self::escape(__('Percentual finalizado', 'projectplus')) . '</th>';
-      echo '<th>' . self::escape(__('Data de criação', 'projectplus')) . '</th>';
-      echo '<th>' . self::escape(__('Descrição', 'projectplus')) . '</th></tr>';
-
-      if (empty($projects)) {
-         echo '<tr><td colspan="8">' . self::escape(__('Nenhum projeto encontrado.', 'projectplus')) . '</td></tr>';
-      }
+      $table = [
+         'class' => 'table table-hover table-striped card-table',
+         // Rotulos do proprio core, para acompanharem o idioma e a nomenclatura
+         // da tela nativa de Projetos em vez de traduzirem de novo no plugin.
+         'header_rows' => [[
+            ['content' => __('Name')],
+            ['content' => \Entity::getTypeName(1)],
+            ['content' => __('ID')],
+            ['content' => __('Priority')],
+            ['content' => __('Ranking', 'projectplus')],
+            ['content' => __('Code')],
+            ['content' => _n('State', 'States', 1)],
+            ['content' => __('Percent done')],
+            ['content' => __('Creation date')],
+            ['content' => __('Description')],
+         ]],
+         'rows' => [],
+      ];
 
       foreach ($projects as $project) {
          $url = self::getProjectUrl((int) $project['id']);
-         echo '<tr>';
-         echo '<td><a href="' . self::escape($url) . '">' . self::escape((string) $project['name']) . '</a></td>';
-         echo '<td>' . self::escape(\Entity::getFriendlyNameById((int) $project['entities_id'])) . '</td>';
-         echo '<td>' . self::escape(\CommonITILObject::getPriorityName((int) $project['priority'])) . '</td>';
-         echo '<td>' . self::textValue((string) $project['code']) . '</td>';
-         echo '<td>' . self::escape(self::getProjectState((int) $project['projectstates_id'])) . '</td>';
-         echo '<td>' . self::escape((string) ((int) $project['percent_done'])) . '%</td>';
-         echo '<td>' . self::textValue(self::formatDateTime((string) $project['date_creation'])) . '</td>';
-         echo '<td>' . self::textValue((string) $project['content']) . '</td>';
-         echo '</tr>';
+         $stateColor = self::getProjectStateColor((int) $project['projectstates_id']);
+         $table['rows'][] = [
+            'values' => [
+               ['content' => '<a href="' . self::escape($url) . '">' . self::escape((string) $project['name']) . '</a>'],
+               ['content' => self::entityBadge((int) $project['entities_id'])],
+               ['content' => (int) $project['id']],
+               ['content' => self::priorityBlock((int) $project['priority'])],
+               ['content' => ((int) ($project['ranking'] ?? 0)) > 0 ? (string) (int) $project['ranking'] : '&nbsp;'],
+               ['content' => self::textValue((string) $project['code'])],
+               [
+                  'content' => self::escape(self::getProjectState((int) $project['projectstates_id'])),
+                  // O core pinta a celula inteira com a cor do estado.
+                  'class' => $stateColor !== '' ? 'shadow-none' : '',
+                  'style' => $stateColor !== '' ? 'background-color: ' . $stateColor . ';' : '',
+               ],
+               ['content' => ((int) $project['percent_done']) . '%'],
+               ['content' => self::textValue(self::formatDateTime((string) $project['date_creation']))],
+               ['content' => self::resumeRichText((string) $project['content'])],
+            ],
+         ];
       }
 
-      echo '</table></div></div>';
+      if ($table['rows'] === []) {
+         $table['rows'][] = [
+            'values' => [[
+               'colspan' => 10,
+               'content' => '<i>' . self::escape(__('Nenhum projeto encontrado.', 'projectplus')) . '</i>',
+            ]],
+         ];
+      }
+
+      echo "<div class='card'>";
+      TemplateRenderer::getInstance()->display('components/table.html.twig', $table);
+      echo '</div>';
+   }
+
+   /** Cracha de entidade identico ao das listas nativas. */
+   private static function entityBadge(int $entityId): string
+   {
+      $badge = \Entity::badgeCompletenameById($entityId);
+      return $badge !== null && $badge !== ''
+         ? $badge
+         : self::escape(\Entity::getFriendlyNameById($entityId));
+   }
+
+   /** Bloco de prioridade identico ao de `Search::giveItem`. */
+   private static function priorityBlock(int $priority): string
+   {
+      $color = (string) ($_SESSION['glpipriority_' . $priority] ?? '');
+      $name = self::escape(\CommonITILObject::getPriorityName($priority));
+      return "<div class='priority_block' style='border-color: " . self::escape($color) . "'>"
+         . "<span style='background: " . self::escape($color) . "'></span>&nbsp;" . $name . '</div>';
+   }
+
+   private static function getProjectStateColor(int $stateId): string
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      if ($stateId <= 0) {
+         return '';
+      }
+      $row = $DB->request([
+         'SELECT' => ['color'],
+         'FROM' => 'glpi_projectstates',
+         'WHERE' => ['id' => $stateId],
+         'LIMIT' => 1,
+      ])->current();
+      return (string) ($row['color'] ?? '');
+   }
+
+   /** Resumo de texto rico no mesmo formato das colunas nativas. */
+   private static function resumeRichText(string $content): string
+   {
+      global $CFG_GLPI;
+
+      if (trim($content) === '') {
+         return '&nbsp;';
+      }
+      $plain = \Glpi\RichText\RichText::getTextFromHtml($content, true, true, true);
+      return Html::resume_text($plain, (int) ($CFG_GLPI['cut'] ?? 255));
    }
 
    /**
@@ -167,12 +249,14 @@ class ProjectPortal
       echo "<div class='projectplus-portal-workspace__panel is-active' data-projectplus-portal-panel='project'>";
       echo "<div class='center'><table class='tab_cadre_fixe'>";
 
+      // Os campos que tambem aparecem na lista usam os rotulos do core, para a
+      // mesma informacao ter o mesmo nome nas duas telas e no GLPI nativo.
       self::headerRow(__('Dados do Projeto', 'projectplus'));
-      self::fieldRow(__('Data de criação', 'projectplus'), self::formatDateTime((string) $project['date']), __('Última atualização', 'projectplus'), self::formatDateTime((string) $project['date_mod']));
-      self::fieldRow(__('Nome', 'projectplus'), (string) $project['name'], __('Código', 'projectplus'), (string) $project['code']);
-      self::fieldRow(__('Prioridade', 'projectplus'), \CommonITILObject::getPriorityName((int) $project['priority']), __('Filho de', 'projectplus'), self::friendlyName(\Project::class, (int) $project['projects_id']));
-      self::fieldRow(__('Status', 'projectplus'), self::getProjectState((int) $project['projectstates_id']), __('Percentual finalizado', 'projectplus'), (string) ((int) $project['percent_done']) . '%');
-      self::fieldRow(__('Tipo', 'projectplus'), self::friendlyName(\ProjectType::class, (int) $project['projecttypes_id']), '', '');
+      self::fieldRow(__('Creation date'), self::formatDateTime((string) $project['date']), __('Last update'), self::formatDateTime((string) $project['date_mod']));
+      self::fieldRow(__('Name'), (string) $project['name'], __('Code'), (string) $project['code']);
+      self::fieldRow(__('Priority'), \CommonITILObject::getPriorityName((int) $project['priority']), __('Filho de', 'projectplus'), self::friendlyName(\Project::class, (int) $project['projects_id']));
+      self::fieldRow(_n('State', 'States', 1), self::getProjectState((int) $project['projectstates_id']), __('Percent done'), (string) ((int) $project['percent_done']) . '%');
+      self::fieldRow(_n('Type', 'Types', 1), self::friendlyName(\ProjectType::class, (int) $project['projecttypes_id']), '', '');
       self::fieldRow(__('Cesta Portfólio', 'projectplus'), self::friendlyName(PortfolioBasket::class, (int) $project['plugin_projectplus_portfoliobaskets_id']), __('Ação PDTIC', 'projectplus'), self::friendlyName(PdticAction::class, (int) $project['plugin_projectplus_pdticactions_id']));
 
       self::headerRow(__('Gerente', 'projectplus'));
@@ -229,6 +313,7 @@ class ProjectPortal
 
       $projectTable = \Project::getTable();
       $dataTable = ProjectData::getTable();
+      $priorityTable = ProjectPriority::getTable();
       $criteria = [
          'SELECT' => [
             $projectTable . '.id AS id',
@@ -262,6 +347,7 @@ class ProjectPortal
             $dataTable . '.focal_point_users_id AS focal_point_users_id',
             $dataTable . '.focal_point AS focal_point',
             $dataTable . '.focal_point_email AS focal_point_email',
+            $priorityTable . '.ranking AS ranking',
          ],
          'FROM' => $projectTable,
          'INNER JOIN' => [
@@ -269,6 +355,15 @@ class ProjectPortal
                'FKEY' => [
                   $projectTable => 'id',
                   $dataTable    => 'projects_id',
+               ],
+            ],
+         ],
+         // O ranking e opcional: projeto sem priorizacao continua na lista.
+         'LEFT JOIN' => [
+            $priorityTable => [
+               'FKEY' => [
+                  $projectTable  => 'id',
+                  $priorityTable => 'projects_id',
                ],
             ],
          ],
@@ -295,11 +390,12 @@ class ProjectPortal
       return $projects;
    }
 
+   /** Projeto sem estado definido fica em branco, como na tela nativa. */
    private static function getProjectState(int $stateId): string
    {
       return $stateId > 0
          ? (string) Dropdown::getDropdownName('glpi_projectstates', $stateId)
-         : __('Sem status', 'projectplus');
+         : '';
    }
 
    private static function headerRow(string $label): void
