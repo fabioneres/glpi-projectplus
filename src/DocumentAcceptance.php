@@ -7,7 +7,6 @@ use CommonGLPI;
 use CommonITILActor;
 use DBmysql;
 use Document;
-use Dropdown;
 use Html;
 use Project;
 use ProjectState;
@@ -146,36 +145,6 @@ class DocumentAcceptance extends CommonDBTM
          return $userId === (int) $data['requester_users_id'];
       }
       return false;
-   }
-
-   public static function publish(CommonDBTM $item, string $type, int $templateId): void
-   {
-      if ($item instanceof Ticket && $type === 'tap') {
-         TicketPhase::assertCurrentPhase(
-            $item,
-            'authorized_opening',
-            __('O TAP só pode ser enviado para aceite depois de sua autorização de abertura.', 'projectplus')
-         );
-      }
-      if (!self::canManageDocument($item, $type, 'send')) { throw new \RuntimeException(__('Sem permissão para publicar este documento.', 'projectplus')); }
-      if ($item instanceof Project && $type === 'ta') {
-         $tep = self::getForItem($item, 'tep');
-         if (!$tep || (string) $tep['status'] !== 'accepted') {
-            throw new \RuntimeException(__('O TA só pode ser publicado após o aceite do TEP.', 'projectplus'));
-         }
-      }
-      $templates = DocumentTemplate::get((int)$item->getEntityID(), $templateId);
-      $template = $templates[0] ?? null;
-      if (!$template || (string)$template['document_type'] !== $type || !(int)$template['is_active']) { throw new \RuntimeException(__('Selecione um modelo ativo compatível.', 'projectplus')); }
-      $documentId = (int)$template['documents_id'];
-      $document = new Document();
-      if ($documentId <= 0 || !$document->getFromDB($documentId)) { throw new \RuntimeException(__('Selecione um documento válido.', 'projectplus')); }
-      /** @var DBmysql $DB */ global $DB;
-      $now = date('Y-m-d H:i:s'); $current = self::getForItem($item, $type);
-      $data = ['documents_id'=>$documentId,'status'=>'published','published_users_id'=>(int)Session::getLoginUserID(),'accepted_users_id'=>0,'rejected_users_id'=>0,'rejection_justification'=>null,'date_rejected'=>null,'date_published'=>$now,'date_accepted'=>null,'date_mod'=>$now];
-      if ($current) { $DB->update(self::getTable(),$data,['id'=>(int)$current['id']]); }
-      else { $DB->insert(self::getTable(),$data+['itemtype'=>$item::getType(),'items_id'=>(int)$item->getID(),'entities_id'=>(int)$item->getEntityID(),'document_type'=>$type]); }
-      if ($item instanceof Ticket && $type === 'tap') { TicketPhase::setPhase($item, 'awaiting_tap_acceptance', __('TAP publicado para aceite.', 'projectplus')); }
    }
 
    public static function publishGenerated(CommonDBTM $item, string $type): void
@@ -599,16 +568,6 @@ class DocumentAcceptance extends CommonDBTM
       $generated = $draft && (string)$draft['status'] === 'generated';
       echo "<div class='projectplus-tip__footer'><span>" . self::esc($generated ? __('Versão gerada. Edite e gere novamente caso necessário.', 'projectplus') : __('Salve o rascunho antes de gerar o documento.', 'projectplus')) . "</span><button class='btn btn-secondary' type='submit'>" . self::esc(__('Salvar rascunho', 'projectplus')) . "</button><button class='btn btn-primary' type='submit' name='generate_document' value='1'>" . self::esc(__('Gerar ', 'projectplus') . strtoupper($type)) . '</button></div></form>';
       if ($generated) echo "<form method='post' action='" . self::esc(self::url()) . "' class='projectplus-tip__footer'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]) . "<a target='_blank' href='" . self::esc(rtrim((string)$CFG_GLPI['root_doc'],'/') . '/plugins/projectplus/front/documentdraft.pdf.php?itemtype=' . rawurlencode($item::getType()) . '&items_id=' . (int)$item->getID() . '&document_type=' . $type) . "'>" . self::esc(__('Visualizar PDF gerado','projectplus')) . "</a><button class='btn btn-primary' name='publish_generated' value='1'>" . self::esc(__('Enviar para aceite','projectplus')) . '</button></form>';
-   }
-
-   private static function showPublishForm(CommonDBTM $item, string $type): void
-   {
-      echo "<form method='post' action='" . self::esc(self::url()) . "'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]);
-      $options = [];
-      foreach (DocumentTemplate::get((int)$item->getEntityID()) as $model) { if ((string)$model['document_type'] === $type && (int)$model['is_active']) { $options[(int)$model['id']] = (string)$model['name'] . ((string)$model['version'] !== '' ? ' — v' . (string)$model['version'] : ''); } }
-      echo "<div class='projectplus-acceptance__publish'><div><label>" . self::esc(__('Modelo PDF', 'projectplus')) . '</label>';
-      Dropdown::showFromArray('documents_id',$options);
-      echo '</div><button class="btn btn-primary" type="submit" name="publish_document" value="1"><i class="ti ti-send"></i> ' . self::esc(__('Publicar para aceite', 'projectplus')) . '</button></div></form>';
    }
 
    /** @param array<string,mixed> $row */

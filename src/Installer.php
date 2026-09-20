@@ -54,7 +54,9 @@ class Installer
       self::ensureTipAnswerTable();
       TipDocumentType::migrateLegacyValues();
       self::ensureDocumentAcceptanceTable();
-      self::ensureDocumentTemplateTable();
+      // Os modelos PDF foram removidos na 0.9.14-beta (REL-002). A tabela nao e
+      // mais criada nem lida; a existente permanece no banco, porque apagar dado
+      // de usuario durante um upgrade seria migracao destrutiva.
       self::ensureDocumentFieldTable();
       self::ensureDocumentDraftTable();
       self::ensureProjectFieldConfigTable();
@@ -685,21 +687,6 @@ class Installer
       $migration->executeMigration();
    }
 
-   private static function ensureDocumentTemplateTable(): void
-   {
-      /** @var DBmysql $DB */ global $DB;
-      $table = DocumentTemplate::getTable();
-      if ($DB->tableExists($table)) { return; }
-      $DB->doQuery("CREATE TABLE `{$table}` (
-         `id` int unsigned NOT NULL AUTO_INCREMENT, `entities_id` int unsigned NOT NULL DEFAULT 0,
-         `document_type` varchar(8) NOT NULL DEFAULT '', `name` varchar(255) NOT NULL DEFAULT '',
-         `version` varchar(64) NOT NULL DEFAULT '', `documents_id` int unsigned NOT NULL DEFAULT 0,
-         `is_active` tinyint NOT NULL DEFAULT 1, `users_id` int unsigned NOT NULL DEFAULT 0,
-         `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL,
-         PRIMARY KEY (`id`), KEY `entity_type_active` (`entities_id`, `document_type`, `is_active`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
-   }
-
    private static function ensureDocumentFieldTable(): void
    {
       global $DB; $t = DocumentField::getTable();
@@ -737,7 +724,9 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketIntentAnswer::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . ProjectPriority::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . DocumentAcceptance::getTable() . '`');
-      $DB->doQuery('DROP TABLE IF EXISTS `' . DocumentTemplate::getTable() . '`');
+      // Nome literal: a classe saiu na 0.9.14-beta, mas a desinstalacao ainda
+      // precisa limpar a tabela de quem instalou uma versao anterior.
+      $DB->doQuery('DROP TABLE IF EXISTS `glpi_plugin_projectplus_documenttemplates`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipField::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipConfig::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');

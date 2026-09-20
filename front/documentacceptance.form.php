@@ -31,9 +31,6 @@ try {
       }
       DocumentAcceptance::startTicketTap($item);
       Session::addMessageAfterRedirect(__('TAP liberado para preenchimento.', 'projectplus'));
-   } elseif (isset($_POST['publish_document'])) {
-      DocumentAcceptance::publish($item, (string) ($_POST['document_type'] ?? ''), (int) ($_POST['documents_id'] ?? 0));
-      Session::addMessageAfterRedirect(__('Documento publicado para aceite.', 'projectplus'));
    } elseif (isset($_POST['publish_generated'])) {
       DocumentAcceptance::publishGenerated($item, (string) ($_POST['document_type'] ?? ''));
       Session::addMessageAfterRedirect(__('Documento gerado enviado para aceite.', 'projectplus'));
