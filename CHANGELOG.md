@@ -1,5 +1,42 @@
 # Changelog
 
+## [Unreleased]
+
+## 0.9.14-beta
+
+### Removido
+
+- Sai o cadastro de **modelos PDF** (tela *Modelos de documentos*, seleção de modelo na publicação e o endpoint correspondente). Ele era a primeira forma de publicar TAP, TEP e TA para aceite e foi substituído pelo PDF que o próprio plugin gera a partir dos campos preenchidos — na base de homologação, 25 documentos publicados pelo caminho gerado contra 1 pelo modelo. A tela já estava sem link no menu e a interface que consumia os modelos não tinha mais chamador. Aceites publicados anteriormente a partir de um modelo continuam abrindo normalmente: eles apontam para o documento do GLPI, não para o cadastro. A tabela `glpi_plugin_projectplus_documenttemplates` **não é apagada** na atualização; ela deixa de ser criada e de ser lida, e só é removida quando o plugin é desinstalado.
+
+### Novidades
+
+- Os modelos de documento ganham o tipo de campo **Anexo**, disponível no TIP, no TIP - DT, no TAP, no TEP e no TA. O envio usa a área de upload nativa do GLPI — arrastar e soltar, limite de tamanho e lista de extensões permitidas são os mesmos do restante do produto. Cada arquivo vira um documento do GLPI vinculado ao chamado ou ao projeto, aparece na aba **Documentos** e só é baixado por quem já podia abrir aquele registro. Um campo aceita até 10 arquivos; ao reabrir o formulário, cada anexo já gravado aparece com a opção *Manter*, e desmarcá-la o remove do campo ao salvar. No PDF gerado, o campo lista os nomes dos arquivos.
+- **Preencher com origem** passa a oferecer duas informações do chamado que faltavam: **Número do chamado** e **Data de abertura**.
+
+### Segurança
+
+- **Listagem de solicitações**: a lista da Central e a página *Solicitações de projeto* passam a mostrar apenas os chamados que o usuário pode abrir no GLPI. Antes, o direito de leitura do Project+ exibia título, solicitante e fase de todos os chamados da entidade.
+- **Documentos do fluxo**: leitura, visualização e PDF de TIP, TIP-DT, TAP, TEP e TA passam a validar o chamado ou projeto informado na URL, e não apenas a entidade. Antes, trocar o identificador dava acesso ao termo de outra solicitação.
+- **Configuração por entidade**: gravação de fluxo, campos, modelos e categorias passa a exigir acesso efetivo à entidade de destino. Antes, um perfil administrativo restrito a uma subentidade conseguia gravar na entidade raiz ou em qualquer entidade superior.
+- **Documento publicado como termo**: passa a ser servido apenas com tipos seguros para exibição embutida; os demais são baixados como anexo. O caminho do arquivo é confirmado dentro do diretório de documentos do GLPI.
+- **Importação de projetos**: o lote passa a ser atômico. Uma falha no meio da importação desfaz tudo e indica a linha, em vez de deixar projetos criados pela metade.
+
+- A lista **Meus projetos**, na visão do solicitante, passa a ser renderizada pelo mesmo componente de tabela da tela nativa de Projetos, com as mesmas colunas e na mesma ordem — Nome, Entidade, ID, Prioridade, Ranking, Código, Estado, Percentual finalizado, Data de criação e Descrição. Crachá de entidade com o caminho da árvore, bloco de prioridade colorido, célula de estado pintada com a cor do status e descrição resumida seguem o formato nativo, e os rótulos vêm do próprio GLPI. Projeto sem estado definido aparece em branco, como no GLPI, em vez de *Sem status*. A regra de quais projetos aparecem continua a mesma — apenas aqueles em que o usuário é solicitante ou ponto focal.
+- Os campos que existem nas duas telas do portal passam a usar o mesmo nome da tela nativa (Nome, Código, Prioridade, Estado, Percentual finalizado, Data de criação, Última atualização e Tipo), em vez de traduções próprias do plugin.
+
+### Correções
+
+- Corrige a abertura do projeto quando o nome não tem origem configurada, está como preenchimento manual ou o campo mapeado chega vazio: o projeto passa a ser criado com o nome **Projeto sem nome**, em vez de falhar.
+- O card **Autorização de abertura do projeto** permanece verde depois de concluído, em vez de voltar ao estado neutro quando o fluxo avança para o TAP e para a abertura; uma autorização negada passa a aparecer em vermelho.
+- A **Priorização técnica** ganha dois botões: *Salvar priorização*, que grava sem encaminhar, e *Enviar para Gestor de Portfólio*, que exige todos os critérios preenchidos, encaminha a solicitação e deixa o bloco técnico somente leitura. A priorização estratégica só é liberada após esse envio. O envio usa o mesmo verde do *Aceitar* do TIP, para que concluir uma etapa tenha sempre a mesma cor no fluxo; salvar fica em âmbar, como as demais gravações.
+- Na validação do TIP, **Aceitar** e **Recusar** passam a ficar lado a lado, em um rodapé alinhado à direita do documento, com rótulos curtos — o título do cartão já diz qual termo está em validação. A justificativa deixa de ocupar a tela o tempo todo: aparece apenas depois que a recusa é escolhida, já com o cursor no campo, e o botão *Cancelar* volta ao estado anterior descartando o texto. O botão que confirma a recusa mantém a consequência por extenso.
+- Reordena as sub-abas do Portfólio de Projetos para **Interações**, **Termos** e **Priorização**. A aba aberta ao entrar passa a ser a primeira exibida; links e redirecionamentos que já indicam a aba continuam abrindo a aba indicada.
+- Remove a caixa **Li e aceito os termos deste documento**: o botão *Aceitar e continuar* passa a ser a própria declaração de aceite, em todas as fases e também no portal do solicitante.
+- O aceite dos documentos (TAP, TEP e TA) passa a usar o mesmo rodapé do TIP, mantendo os textos: *Aceitar e continuar* e *Recusar documento* lado a lado, alinhados à direita, com a justificativa aparecendo somente depois que a recusa é escolhida. Vale também no portal do solicitante.
+- Reúne todas as folhas de estilo do plugin em `css/projectplus.css`. O GLPI passa a carregar **1 folha por página no lugar de 30**, sem alteração visual, de regra de negócio, de permissão ou de dado.
+- As folhas foram concatenadas na ordem exata em que eram carregadas, preservando especificidade, ordem de cascata e `!important`. Foram removidas as declarações que já eram inalcançáveis por serem redeclaradas adiante pelo mesmo seletor, e as regras de 19 classes que não existem mais no markup — sobras das telas de configuração e da lista de fluxo reescritas para a pesquisa nativa do GLPI.
+- Nenhum arquivo do plugin carrega mais sufixo de versão no nome. O JavaScript passou a se chamar `js/projectplus-ranking-search.js`. O cache do navegador já é invalidado pelo `?v=` que o GLPI anexa com a versão do plugin, então uma correção visual passa a ser editada no próprio arquivo.
+
 ## 0.9.13-beta
 
 - Permite que substitutos continuem o fluxo quando o perfil ativo possui a permissão específica da etapa e acesso à entidade do chamado, sem substituir o Gerente de Projetos ou o Gestor de Portfólio titular configurado.
