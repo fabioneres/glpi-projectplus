@@ -54,6 +54,44 @@ class FlowStageDescription
             'active' => __('O chamado #{chamado_id} foi enviado para a entidade {entidade} e está agora na fase {fase}. Você poderá voltar a acessá-lo quando o fluxo retornar para a entidade do Gerente de Projetos.', 'projectplus'),
             'pending' => '',
          ],
+         // Etapa sem tela propria: existe so para o texto da recusa. Por isso
+         // declara apenas 'blocked', e a tela de configuracao renderiza o que
+         // cada etapa declara em vez de um conjunto fixo de colunas.
+         'project_closure' => [
+            'label' => __('Encerramento do projeto', 'projectplus'),
+            'blocked' => __('Não é possível aplicar {acao}: o TA - Termo de Aceite ainda não foi aceito pelo cliente. Gere o TA na aba Portfólio de Projetos, envie para aceite e aguarde o aceite; o projeto é encerrado automaticamente quando isso acontecer.', 'projectplus'),
+         ],
+      ];
+   }
+
+   /**
+    * Rotulo e ajuda de cada estado, para a tela de configuracao.
+    *
+    * A ordem aqui e a ordem em que os campos aparecem no cartao da etapa. Um
+    * estado que nao esteja nesta lista ainda e gravado, mas aparece com o
+    * proprio nome - o que serve de aviso de que faltou descrever.
+    *
+    * @return array<string, array{0:string, 1:string}>
+    */
+   public static function getStateLabels(): array
+   {
+      return [
+         'active' => [
+            __('Quando disponível', 'projectplus'),
+            __('Instrução exibida com a etapa liberada.', 'projectplus'),
+         ],
+         'pending' => [
+            __('Quando pendente', 'projectplus'),
+            __('Aviso exibido enquanto a etapa anterior não concluir.', 'projectplus'),
+         ],
+         'warning' => [
+            __('Aviso de consequência', 'projectplus'),
+            __('Mostrado antes de confirmar uma ação irreversível.', 'projectplus'),
+         ],
+         'blocked' => [
+            __('Aviso de recusa', 'projectplus'),
+            __('Mostrado quando o sistema recusa a ação. Use {acao} para citar o que foi tentado.', 'projectplus'),
+         ],
       ];
    }
 

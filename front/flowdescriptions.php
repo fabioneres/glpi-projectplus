@@ -134,35 +134,36 @@ echo '</div>';
 $sectionTitle(
    'ti ti-help-circle',
    __('Textos de orientação das etapas', 'projectplus'),
-   __('O que o usuário lê dentro de cada etapa do chamado: a instrução quando ela está liberada e o aviso enquanto ela depende da etapa anterior.', 'projectplus')
+   __('O que o usuário lê em cada etapa: a instrução quando ela está liberada, o aviso enquanto depende da etapa anterior e, onde existir, o aviso de uma ação irreversível ou de uma recusa. Cada etapa mostra só os textos que fazem sentido para ela.', 'projectplus')
 );
 echo "<div class='projectplus-flowcfg__list'>";
+$stateLabels = FlowStageDescription::getStateLabels();
 foreach (FlowStageDescription::getStages() as $stage => $definition) {
    $escapado = ConfigPage::escape($stage);
-   $hasWarning = array_key_exists('warning', $definition);
-   echo "<article class='projectplus-flowcfg__item" . ($hasWarning ? ' projectplus-flowcfg__item--warning' : '') . "'>";
+   // Os campos saem da propria definicao da etapa, na ordem de getStateLabels:
+   // 'warning' e 'blocked' so existem onde a etapa tem o que declarar, e uma
+   // coluna fixa para eles ficava quase toda vazia.
+   $states = array_keys(array_diff_key($definition, ['label' => null]));
+   usort($states, static function (string $a, string $b) use ($stateLabels): int {
+      $ordem = array_keys($stateLabels);
+      return array_search($a, $ordem, true) <=> array_search($b, $ordem, true);
+   });
+   $destaque = array_intersect(['warning', 'blocked'], $states) !== [];
+   echo "<article class='projectplus-flowcfg__item" . ($destaque ? ' projectplus-flowcfg__item--warning' : '') . "'>";
    $rail((string) $definition['label'], $stage);
    echo "<div class='projectplus-flowcfg__fields'>";
-   $field(
-      __('Quando disponível', 'projectplus'),
-      __('Instrução exibida com a etapa liberada.', 'projectplus'),
-      "<textarea class='form-control' name='descriptions[{$escapado}][active]' rows='3'>"
-         . ConfigPage::escape(FlowStageDescription::get($stage, 'active')) . '</textarea>'
-   );
-   $field(
-      __('Quando pendente', 'projectplus'),
-      __('Aviso exibido enquanto a etapa anterior não concluir.', 'projectplus'),
-      "<textarea class='form-control' name='descriptions[{$escapado}][pending]' rows='3'>"
-         . ConfigPage::escape(FlowStageDescription::get($stage, 'pending')) . '</textarea>'
-   );
-   // A coluna so tem campo onde a acao da etapa tem consequencia a declarar.
-   if ($hasWarning) {
+   foreach ($states as $state) {
+      $rotulo = $stateLabels[$state][0] ?? $state;
+      $ajuda = $stateLabels[$state][1] ?? '';
+      $modificador = in_array($state, ['warning', 'blocked'], true)
+         ? 'projectplus-tip__field--wide projectplus-flowcfg__field--warning'
+         : '';
       $field(
-         __('Aviso de consequência', 'projectplus'),
-         __('Mostrado antes de confirmar uma ação irreversível.', 'projectplus'),
-         "<textarea class='form-control' name='descriptions[{$escapado}][warning]' rows='3'>"
-            . ConfigPage::escape(FlowStageDescription::get($stage, 'warning')) . '</textarea>',
-         'projectplus-tip__field--wide projectplus-flowcfg__field--warning'
+         $rotulo,
+         $ajuda,
+         "<textarea class='form-control' name='descriptions[{$escapado}][" . ConfigPage::escape($state) . "]' rows='3'>"
+            . ConfigPage::escape(FlowStageDescription::get($stage, $state)) . '</textarea>',
+         $modificador
       );
    }
    echo '</div></article>';

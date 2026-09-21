@@ -74,10 +74,15 @@ class ProjectClosure
          return '';
       }
 
-      return sprintf(
-         __('Não é possível aplicar %s: o TA - Termo de Aceite ainda não foi aceito pelo cliente. Gere o TA na aba Portfólio de Projetos, envie para aceite e aguarde o aceite; o projeto é encerrado automaticamente quando isso acontecer.', 'projectplus'),
-         implode(__(' nem ', 'projectplus'), $encerra)
-      );
+      $acao = implode(__(' nem ', 'projectplus'), $encerra);
+      $texto = trim(FlowStageDescription::get('project_closure', 'blocked'));
+      // Esvaziar o texto na configuracao nao pode fazer a gravacao falhar em
+      // silencio: sem explicacao, o usuario so ve o formulario nao salvar.
+      if ($texto === '') {
+         $texto = __('Não é possível aplicar {acao} antes do aceite do TA - Termo de Aceite.', 'projectplus');
+      }
+
+      return str_replace('{acao}', $acao, $texto);
    }
 
    private static function isTaAccepted(Project $project): bool
