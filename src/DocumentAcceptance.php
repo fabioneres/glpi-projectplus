@@ -147,6 +147,27 @@ class DocumentAcceptance extends CommonDBTM
       return false;
    }
 
+   /**
+    * Impede enviar um documento para aceite antes do aceite do anterior.
+    *
+    * A ordem dos termos estava declarada apenas na tela, que esconde o
+    * formulario do TA ate o TEP ser aceito. O endpoint nao conferia nada: dava
+    * para publicar o TA sem TEP aceito e, pior, com a entrega recusada - ou
+    * seja, pedir ao cliente que assinasse o aceite de uma entrega que ele
+    * acabara de recusar. Como aceitar o TA encerra o projeto, isso fechava
+    * como concluido um projeto cuja entrega nao foi aceita.
+    */
+   private static function assertPredecessorAccepted(CommonDBTM $item, string $type): void
+   {
+      if (!$item instanceof Project || $type !== 'ta') {
+         return;
+      }
+      $tep = self::getForItem($item, 'tep');
+      if (!$tep || (string) ($tep['status'] ?? '') !== 'accepted') {
+         throw new \RuntimeException(__('O TA só pode ser enviado para aceite após o aceite do TEP.', 'projectplus'));
+      }
+   }
+
    public static function publishGenerated(CommonDBTM $item, string $type): void
    {
       if ($item instanceof Ticket && $type === 'tap') {
@@ -157,6 +178,7 @@ class DocumentAcceptance extends CommonDBTM
          );
       }
       if (!self::canManageDocument($item, $type, 'send')) throw new \RuntimeException(__('Sem permissão para enviar este documento.', 'projectplus'));
+      self::assertPredecessorAccepted($item, $type);
       $draft = DocumentDraft::get($item::getType(), (int)$item->getID(), $type);
       if (!$draft || (string)$draft['status'] !== 'generated') throw new \RuntimeException(__('Gere o documento antes de enviá-lo para aceite.', 'projectplus'));
       global $DB; $now=date('Y-m-d H:i:s'); $current=self::getForItem($item,$type);
