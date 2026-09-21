@@ -333,6 +333,8 @@ class TicketPhase extends CommonDBTM
     *        aconteceu. Quando informado, o acompanhamento publico usa o texto
     *        do evento em vez do texto da fase de destino - necessario quando a
     *        mesma fase e alcancada por caminhos com significados diferentes.
+    *        `null` usa o texto da fase; string vazia nao publica acompanhamento
+    *        nenhum, para quem ja publicou o seu antes de mudar a fase.
     */
    public static function setPhase(
       Ticket $ticket,

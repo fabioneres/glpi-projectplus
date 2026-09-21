@@ -91,6 +91,10 @@ class FlowStageDescription
             'label' => __('TIP devolvido para ajuste', 'projectplus'),
             'default' => __('O TIP - Termo de Intenção de Projeto foi devolvido para ajuste pelo Gerente de Projetos. Justificativa: {justificativa}', 'projectplus'),
          ],
+         'document_returned' => [
+            'label' => __('Documento devolvido pelo cliente (TAP, TEP e TA)', 'projectplus'),
+            'default' => __('Documento recusado pelo cliente. Justificativa: {justificativa}', 'projectplus'),
+         ],
       ];
    }
 

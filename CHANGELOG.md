@@ -8,6 +8,11 @@
 - Ao devolver, o solicitante recebe a justificativa como **acompanhamento público** no chamado. Esse texto é editável em *Configuração das etapas do fluxo*, num bloco novo de **acompanhamento de eventos**: alguns acontecimentos precisam de texto próprio porque a fase de destino, sozinha, não explica o que houve — a devolução leva à mesma fase da primeira solicitação de preenchimento, mas só ela tem justificativa.
 - Devolver o TIP passa a exigir a mesma verificação de responsável que aceitar já exigia. Antes, a ação que encerrava a solicitação era a menos controlada das duas.
 
+### Corrigido
+
+- **A recusa do TAP pelo cliente deixava o chamado travado.** O documento voltava corretamente para edição do Gerente de Projetos, mas a fase permanecia em *Aguardando aceite do TAP* — e o reenvio exige a fase *Autorizado para abertura*. Na prática: o cliente recusava, o gerente corrigia, e não conseguia mais enviar, sem que ninguém tivesse errado. A fase passa a acompanhar a devolução, e o ciclo recusar → corrigir → reenviar pode se repetir quantas vezes for necessário. TEP e TA não eram afetados, porque vivem no projeto, que não tem fases.
+- O aviso de recusa de documento (TAP, TEP e TA) passou a usar o mesmo mecanismo de acompanhamento de eventos da devolução do TIP, ficando editável em *Configuração das etapas do fluxo*. O texto padrão é o mesmo de antes.
+
 ## 0.9.14-beta
 
 ### Removido

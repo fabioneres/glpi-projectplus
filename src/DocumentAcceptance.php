@@ -230,11 +230,19 @@ class DocumentAcceptance extends CommonDBTM
          'date_rejected' => $now,
          'date_mod' => $now,
       ], ['id' => (int) $row['id']]);
-      self::addFollowup(
-         $item,
-         (string) $row['document_type'],
-         sprintf(__('Documento recusado pelo cliente. Justificativa: %s', 'projectplus'), $justification)
-      );
+      $type = (string) $row['document_type'];
+      self::addFollowup($item, $type, str_replace(
+         '{justificativa}',
+         $justification,
+         FlowStageDescription::getEventFollowup('document_returned')
+      ));
+      // A recusa devolve o documento ao responsavel para correcao, e a fase
+      // precisa acompanhar: parada em "aguardando aceite", ela impede o reenvio
+      // do TAP corrigido, que exige a fase de abertura autorizada. O
+      // acompanhamento ja saiu acima, entao a troca de fase nao publica outro.
+      if ($item instanceof Ticket && $type === 'tap') {
+         TicketPhase::setPhase($item, 'authorized_opening', $justification, true, '');
+      }
    }
 
    /** Returns the native GLPI project state marked as finished, if configured. */
