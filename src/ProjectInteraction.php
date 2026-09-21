@@ -163,14 +163,24 @@ class ProjectInteraction extends CommonDBTM
          sprintf(__('Projeto escalado para a entidade %s.', 'projectplus'), $targetName),
          0,
          1,
-         $targetEntityId
+         $targetEntityId,
+         null,
+         ProjectNotification::EVENT_ESCALATION
       );
    }
 
-   private static function insertInteraction(Project $project, string $content, int $isInternal, int $notify, ?int $entityId = null, ?int $authorId = null): void
+   /**
+    * Grava a interacao e, quando ela pede notificacao, enfileira o e-mail.
+    *
+    * O evento e declarado por quem chama porque a mesma tabela guarda coisas
+    * com significados diferentes - uma mensagem escrita por alguem, uma
+    * solucao do fluxo, um escalonamento de entidade - e cada uma pode precisar
+    * de destinatario e texto proprios.
+    */
+   private static function insertInteraction(Project $project, string $content, int $isInternal, int $notify, ?int $entityId = null, ?int $authorId = null, string $event = ProjectNotification::EVENT_INTERACTION): void
    {
       global $DB;
-      $DB->insert(self::getTable(), [
+      $linha = [
          'projects_id' => (int) $project->getID(),
          'entities_id' => $entityId ?? (int) $project->getEntityID(),
          'users_id' => $authorId ?? (int) Session::getLoginUserID(),
@@ -178,7 +188,26 @@ class ProjectInteraction extends CommonDBTM
          'is_internal' => $isInternal,
          'notify_participants' => $notify,
          'date_creation' => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
-      ]);
+      ];
+      $DB->insert(self::getTable(), $linha);
+
+      // O prefixo e marcador interno de renderizacao: nao vai para o e-mail.
+      $linha['content'] = strpos($content, self::SYSTEM_SOLUTION_PREFIX) === 0
+         ? substr($content, strlen(self::SYSTEM_SOLUTION_PREFIX))
+         : $content;
+      ProjectNotification::raise($project, $event, $linha);
+   }
+
+   /**
+    * Aviso do fluxo sobre um termo do projeto (aceite, recusa, devolucao).
+    *
+    * Existe para que esses avisos passem pela mesma porta das demais
+    * interacoes, e nao por um INSERT proprio: e o que garante que eles tambem
+    * notifiquem, com evento proprio para quem quiser separar destinatario.
+    */
+   public static function addDocumentNotice(Project $project, string $content): void
+   {
+      self::insertInteraction($project, $content, 0, 1, null, null, ProjectNotification::EVENT_DOCUMENT);
    }
 
    /** Records a workflow event using the same visual treatment as a solution. */
@@ -190,7 +219,8 @@ class ProjectInteraction extends CommonDBTM
          0,
          1,
          null,
-         $authorId > 0 ? $authorId : null
+         $authorId > 0 ? $authorId : null,
+         ProjectNotification::EVENT_SOLUTION
       );
    }
 

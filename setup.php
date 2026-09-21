@@ -9,6 +9,7 @@ use GlpiPlugin\Projectplus\Menu;
 use GlpiPlugin\Projectplus\ProjectProfile;
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectInteraction;
+use GlpiPlugin\Projectplus\ProjectNotification;
 use GlpiPlugin\Projectplus\ProjectPriority;
 use GlpiPlugin\Projectplus\ProjectWorkspace;
 use GlpiPlugin\Projectplus\TicketCategoryConfig;
@@ -55,6 +56,15 @@ function plugin_init_projectplus(): void
    // Project documents, interactions and prioritization are consolidated in
    // one native Project+ tab, preserving their own internal permissions.
    Plugin::registerClass(ProjectWorkspace::class, ['addtabon' => [Project::class]]);
+   // Notificacao das interacoes de projeto: os eventos entram na lista do
+   // NotificationTargetProject nativo e as tags do texto, nos dados do modelo.
+   // Nao ha itemtype de notificacao proprio, pelo mesmo motivo que o
+   // acompanhamento de chamado nao tem: quem notifica e o objeto pai.
+   // Plugin::doHook indexa estes dois hooks pela classe do objeto passado, que
+   // aqui e o proprio NotificationTarget: sem essa chave o hook nunca e
+   // chamado, e o e-mail sai com as tags por substituir.
+   $PLUGIN_HOOKS[Hooks::ITEM_GET_EVENTS]['projectplus'][\NotificationTargetProject::class] = [ProjectNotification::class, 'addEvents'];
+   $PLUGIN_HOOKS[Hooks::ITEM_GET_DATA]['projectplus'][\NotificationTargetProject::class] = [ProjectNotification::class, 'addData'];
    $PLUGIN_HOOKS[Hooks::REDEFINE_MENUS]['projectplus'] = [ProjectPortal::class, 'redefineMenus'];
    $PLUGIN_HOOKS[Hooks::DISPLAY_CENTRAL]['projectplus'] = [CentralRequests::class, 'display'];
    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['projectplus'] = 'front/config.php';

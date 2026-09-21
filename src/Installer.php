@@ -28,6 +28,13 @@ class Installer
          ProjectProfile::disableGranularRightsForAllProfiles();
       }
       ProjectProfile::initProfile();
+      // Nao aborta a instalacao: sem os modelos o plugin continua funcionando,
+      // so nao envia e-mail das interacoes.
+      try {
+         ProjectNotification::install();
+      } catch (Throwable $exception) {
+         Toolbox::logInFile('plugin_projectplus', 'Notification setup failed: ' . $exception->getMessage() . PHP_EOL);
+      }
       \Config::setConfigurationValues('plugin:projectplus', ['dbversion' => PLUGIN_PROJECTPLUS_VERSION]);
       return true;
    }
@@ -730,6 +737,7 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipField::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipConfig::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');
+      ProjectNotification::uninstall();
       \Config::deleteConfigurationValues('plugin:projectplus', ['dbversion']);
       return true;
    }

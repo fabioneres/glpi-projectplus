@@ -673,7 +673,7 @@ class DocumentAcceptance extends CommonDBTM
       // _no_reopen: aviso de andamento do fluxo nao pode reabrir um chamado ja
       // solucionado, o que o GLPI faz quando quem comenta e o requerente.
       if ($item instanceof Ticket) { $f = new ITILFollowup(); $f->add(['itemtype'=>Ticket::class,'items_id'=>(int)$item->getID(),'users_id'=>(int)Session::getLoginUserID(),'content'=>$content,'is_private'=>0,'_no_reopen'=>1]); return; }
-      if ($item instanceof Project && $DB->tableExists(ProjectInteraction::getTable())) $DB->insert(ProjectInteraction::getTable(), ['projects_id'=>(int)$item->getID(),'entities_id'=>(int)$item->getEntityID(),'users_id'=>(int)Session::getLoginUserID(),'content'=>$content,'is_internal'=>0,'notify_participants'=>1,'date_creation'=>date('Y-m-d H:i:s')]);
+      if ($item instanceof Project && $DB->tableExists(ProjectInteraction::getTable())) ProjectInteraction::addDocumentNotice($item, $content);
    }
    private static function esc(string $value): string
    {
