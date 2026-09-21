@@ -41,6 +41,8 @@ class FlowStageDescription
             'label' => __('Autorização de abertura do projeto', 'projectplus'),
             'active' => __('O Gestor de Portfólio autoriza ou nega a abertura do projeto, com justificativa quando houver recusa.', 'projectplus'),
             'pending' => __('Conclua a priorização estratégica para liberar a autorização de abertura.', 'projectplus'),
+            // Consequencia mostrada ao Gestor de Portfolio no momento da negativa.
+            'warning' => __('A negativa encerra a solicitação: o chamado será solucionado com o conteúdo abaixo e o fluxo não poderá ser retomado. Escolha o tipo de solução para distinguir, nos relatórios, uma abertura negada de um atendimento comum.', 'projectplus'),
          ],
          'tap' => [
             'label' => __('TAP - Termo de Abertura do Projeto', 'projectplus'),
@@ -185,7 +187,7 @@ class FlowStageDescription
    public static function get(string $stage, string $state = 'active'): string
    {
       $stages = self::getStages();
-      if (!isset($stages[$stage]) || !in_array($state, ['active', 'pending'], true)) {
+      if (!isset($stages[$stage]) || !array_key_exists($state, $stages[$stage]) || $state === 'label') {
          return '';
       }
       $configured = Config::getConfigurationValue(self::CONTEXT, self::key($stage, $state));
@@ -229,7 +231,12 @@ class FlowStageDescription
          $values[self::eventFollowupKey($event)] = substr($followup, 0, 65535);
       }
       foreach (self::getStages() as $stage => $definition) {
-         foreach (['active', 'pending'] as $state) {
+         // 'warning' so existe nas etapas cuja acao tem consequencia a declarar,
+         // entao os estados gravados vem da propria definicao da etapa.
+         foreach (array_keys($definition) as $state) {
+            if ($state === 'label') {
+               continue;
+            }
             $value = trim((string) ($input['descriptions'][$stage][$state] ?? ''));
             $values[self::key($stage, $state)] = substr($value, 0, 65535);
          }

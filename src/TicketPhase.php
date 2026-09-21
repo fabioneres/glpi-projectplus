@@ -183,13 +183,14 @@ class TicketPhase extends CommonDBTM
    }
 
    /** Registers the portfolio manager's explicit opening decision. */
-   public static function decideOpening(Ticket $ticket, bool $authorized, string $justification = ''): void
+   /**
+    * @param array<string,mixed> $solutionInput Campos da caixa nativa de solucao,
+    *        usados somente na negativa. O conteudo da solucao e a justificativa.
+    */
+   public static function decideOpening(Ticket $ticket, bool $authorized, array $solutionInput = []): void
    {
       self::assertCurrentPhase($ticket, 'awaiting_authorization', __('A autorização de abertura ainda não está disponível.', 'projectplus'));
       TicketRouting::assertActor($ticket, 'portfolio', ProjectProfile::RIGHT_AUTHORIZE_OPENING);
-      if (!$authorized && trim($justification) === '') {
-         throw new \RuntimeException(__('Informe a justificativa para negar a abertura do projeto.', 'projectplus'));
-      }
       if ($authorized) {
          self::setPhase(
             $ticket,
@@ -199,8 +200,31 @@ class TicketPhase extends CommonDBTM
          );
          return;
       }
-      $justification = trim($justification);
-      $ticket->update(['id' => (int) $ticket->getID(), 'status' => Ticket::SOLVED, 'solution' => $justification]);
+
+      $content = trim((string) ($solutionInput['content'] ?? ''));
+      if ($content === '') {
+         throw new \RuntimeException(__('Informe a solução com a justificativa para negar a abertura do projeto.', 'projectplus'));
+      }
+      // A negativa e um encerramento classificado, nao um chamado solucionado
+      // como outro qualquer: o tipo de solucao e o que permite separar os dois
+      // nos indicadores. O ITILSolution do nucleo ja marca o chamado como
+      // solucionado, preservando a ciencia do solicitante.
+      $solution = new \ITILSolution();
+      $input = [
+         'itemtype' => Ticket::class,
+         'items_id' => (int) $ticket->getID(),
+         'content' => $content,
+         'solutiontypes_id' => max(0, (int) ($solutionInput['solutiontypes_id'] ?? 0)),
+      ];
+      foreach (['_filename', '_tag_filename', '_prefix_filename', '_content', '_tag_content', '_prefix_content'] as $field) {
+         if (array_key_exists($field, $solutionInput)) {
+            $input[$field] = $solutionInput[$field];
+         }
+      }
+      if ((int) $solution->add($input) <= 0) {
+         throw new \RuntimeException(__('Não foi possível registrar a solução do chamado.', 'projectplus'));
+      }
+      $justification = \Glpi\RichText\RichText::getTextFromHtml($content, true, true, true);
       self::setPhase($ticket, 'rejected_cancelled', $justification);
    }
 
@@ -533,8 +557,31 @@ class TicketPhase extends CommonDBTM
          global $CFG_GLPI;
          $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/ticketauthorization.form.php';
          echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Autorização de abertura pendente.', 'projectplus')) . '</strong><br>' . self::escape(FlowStageDescription::get('authorization_opening', 'active')) . '</div>';
-         echo "<form method='post' action='" . self::escape($url) . "' class='projectplus-phase-form'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]);
-         echo "<label>" . self::escape(__('Justificativa em caso de negativa', 'projectplus')) . "</label><textarea class='form-control' name='justification' rows='3'></textarea><div class='center mt-3'><button class='btn btn-primary' type='submit' name='authorize_opening' value='1'>" . self::escape(__('Autorizar abertura', 'projectplus')) . "</button> <button class='btn btn-danger' type='submit' name='deny_opening' value='1'>" . self::escape(__('Negar abertura', 'projectplus')) . '</button></div></form>';
+         // A negativa encerra a solicitacao, entao ela e registrada pela caixa
+         // nativa de solucao - a mesma da abertura do projeto. O tipo de solucao
+         // e o que separa, nos indicadores, uma abertura negada de um
+         // atendimento comum.
+         ob_start();
+         echo "<div class='projectplus-decision__solution timeline-item ITILSolution'><div class='timeline-content card mt-0'><div class='card-body px-3 py-3'>";
+         $solutionForm = new \ITILSolution();
+         $solutionForm->showForm(-1, ['parent' => $ticket, 'noform' => true]);
+         echo '</div></div></div>';
+         $solutionBox = (string) ob_get_clean();
+
+         DecisionFooter::render(
+            $url,
+            Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()])
+               . Html::hidden('tickets_id', ['value' => (int) $ticket->getID()]),
+            ['name' => 'authorize_opening', 'label' => __('Autorizar abertura', 'projectplus')],
+            [
+               'name' => 'deny_opening',
+               'label' => __('Negar abertura', 'projectplus'),
+               'confirm' => __('Negar abertura e solucionar chamado', 'projectplus'),
+               'warning' => FlowStageDescription::get('authorization_opening', 'warning'),
+               'body' => $solutionBox,
+               'multipart' => true,
+            ]
+         );
       });
       $tapOpen = $currentPhase === 'awaiting_tap_acceptance'
          || ($currentPhase === 'authorized_opening' && !$tapAccepted);

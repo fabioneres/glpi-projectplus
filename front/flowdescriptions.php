@@ -50,11 +50,19 @@ foreach (FlowStageDescription::getFlowEvents() as $event => $definition) {
 }
 echo '</tbody></table>';
 echo '<h3 class="mt-4">' . ConfigPage::escape(__('Descrições de orientação', 'projectplus')) . '</h3>';
-echo '<p class="projectplus-config-help">' . ConfigPage::escape(__('Defina o texto exibido quando a etapa estiver disponível e o aviso apresentado enquanto ela depender da etapa anterior. Deixe um campo vazio para ocultar seu texto.', 'projectplus')) . '</p>';
+echo '<p class="projectplus-config-help">' . ConfigPage::escape(__('Defina o texto exibido quando a etapa estiver disponível e o aviso apresentado enquanto ela depender da etapa anterior. O aviso de consequência aparece no momento de uma ação irreversível, como a negativa de abertura, e só existe nas etapas que têm uma. Deixe um campo vazio para ocultar seu texto.', 'projectplus')) . '</p>';
 echo '<p class="projectplus-config-help"><i class="ti ti-info-circle"></i> ' . ConfigPage::escape(__('Na mensagem de encaminhamento também podem ser usadas as variáveis {chamado_id}, {entidade} e {fase}.', 'projectplus')) . '</p>';
-echo "<table class='tab_cadre_fixe'><thead><tr class='tab_bg_2'><th>" . __('Etapa', 'projectplus') . '</th><th>' . __('Quando disponível', 'projectplus') . '</th><th>' . __('Quando pendente', 'projectplus') . '</th></tr></thead><tbody>';
+echo "<table class='tab_cadre_fixe'><thead><tr class='tab_bg_2'><th>" . __('Etapa', 'projectplus') . '</th><th>' . __('Quando disponível', 'projectplus') . '</th><th>' . __('Quando pendente', 'projectplus') . '</th><th>' . __('Aviso de consequência', 'projectplus') . '</th></tr></thead><tbody>';
 foreach (FlowStageDescription::getStages() as $stage => $definition) {
-   echo "<tr class='tab_bg_1'><td><strong>" . ConfigPage::escape($definition['label']) . "</strong></td><td><textarea class='form-control' name='descriptions[" . ConfigPage::escape($stage) . "][active]' rows='3'>" . ConfigPage::escape(FlowStageDescription::get($stage, 'active')) . "</textarea></td><td><textarea class='form-control' name='descriptions[" . ConfigPage::escape($stage) . "][pending]' rows='3'>" . ConfigPage::escape(FlowStageDescription::get($stage, 'pending')) . '</textarea></td></tr>';
+   $escapado = ConfigPage::escape($stage);
+   echo "<tr class='tab_bg_1'><td><strong>" . ConfigPage::escape($definition['label']) . "</strong></td>"
+      . "<td><textarea class='form-control' name='descriptions[{$escapado}][active]' rows='3'>" . ConfigPage::escape(FlowStageDescription::get($stage, 'active')) . '</textarea></td>'
+      . "<td><textarea class='form-control' name='descriptions[{$escapado}][pending]' rows='3'>" . ConfigPage::escape(FlowStageDescription::get($stage, 'pending')) . '</textarea></td>';
+   // A coluna so tem campo onde a acao da etapa tem consequencia a declarar.
+   echo array_key_exists('warning', $definition)
+      ? "<td><textarea class='form-control' name='descriptions[{$escapado}][warning]' rows='3'>" . ConfigPage::escape(FlowStageDescription::get($stage, 'warning')) . '</textarea></td>'
+      : "<td class='center text-muted'>—</td>";
+   echo '</tr>';
 }
 echo "</tbody></table><div class='center mt-3'><button class='btn btn-primary' type='submit' name='save_flow_descriptions' value='1'><i class='ti ti-device-floppy'></i> " . ConfigPage::escape(__('Salvar', 'projectplus')) . '</button></div></form>';
 echo '</div></section>';

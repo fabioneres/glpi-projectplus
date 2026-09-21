@@ -2891,6 +2891,29 @@
    font-weight: 600;
 }
 
+/* Aviso da consequencia, quando a recusa encerra a solicitacao. */
+.projectplus-decision__warning {
+   margin: 0 0 14px;
+}
+
+/* Painel com corpo proprio - a caixa nativa de solucao traz o card azul do
+   GLPI, e o fundo rosa da recusa simples brigava com ele. O alerta acima ja
+   sinaliza a consequencia, entao aqui a moldura fica neutra. */
+.projectplus-decision__refuse[data-projectplus-refuse-keep] {
+   border-color: #dce5e1;
+   background: #fbfcfb;
+}
+
+/* A caixa nativa de solucao embutida no painel de recusa: o card do GLPI ja
+   traz a propria moldura, entao aqui ela so perde a margem externa. */
+.projectplus-decision__solution .timeline-content {
+   margin: 0;
+}
+
+.projectplus-decision__solution .card {
+   border-color: #e2d2cf;
+}
+
 .projectplus-decision__refuse-actions {
    display: flex;
    align-items: center;

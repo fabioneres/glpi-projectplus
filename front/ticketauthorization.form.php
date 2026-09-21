@@ -20,8 +20,10 @@ try {
       TicketPhase::decideOpening($ticket, true);
       Session::addMessageAfterRedirect(__('Abertura do projeto autorizada.', 'projectplus'));
    } elseif (isset($_POST['deny_opening'])) {
-      TicketPhase::decideOpening($ticket, false, (string) ($_POST['justification'] ?? ''));
-      Session::addMessageAfterRedirect(__('Abertura do projeto negada.', 'projectplus'));
+      // A negativa chega pela caixa nativa de solucao: conteudo, tipo de solucao
+      // e os metadados de upload que o editor do GLPI gera.
+      TicketPhase::decideOpening($ticket, false, $_POST);
+      Session::addMessageAfterRedirect(__('Abertura negada e chamado solucionado.', 'projectplus'));
    }
 } catch (\RuntimeException $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
