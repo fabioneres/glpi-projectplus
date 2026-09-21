@@ -16,7 +16,7 @@ if ($projectId <= 0 || !$project->getFromDB($projectId) || !ItemAccess::canView(
 
 try {
    ProjectInteraction::escalate($project, $_POST);
-   Session::addMessageAfterRedirect(__('Projeto escalado para a entidade selecionada.', 'projectplus'), true, INFO);
+   Session::addMessageAfterRedirect(__('Projeto transferido para a entidade selecionada.', 'projectplus'), true, INFO);
 } catch (\Throwable $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
 }

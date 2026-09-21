@@ -144,7 +144,7 @@ class ProjectInteraction extends CommonDBTM
    public static function escalate(Project $project, array $input): void
    {
       if (!self::canAction($project, ProjectProfile::RIGHT_INTERACTION_ESCALATE, true)) {
-         throw new \RuntimeException(__('Sem permissão para escalar este projeto.', 'projectplus'));
+         throw new \RuntimeException(__('Sem permissão para transferir este projeto.', 'projectplus'));
       }
       $targetEntityId = (int) ($input['entities_id'] ?? 0);
       if ($targetEntityId <= 0 || !Session::haveAccessToEntity($targetEntityId)) {
@@ -160,7 +160,7 @@ class ProjectInteraction extends CommonDBTM
       }
       self::insertInteraction(
          $project,
-         sprintf(__('Projeto escalado para a entidade %s.', 'projectplus'), $targetName),
+         sprintf(__('Projeto transferido para a entidade %s.', 'projectplus'), $targetName),
          0,
          1,
          $targetEntityId,
@@ -274,11 +274,11 @@ class ProjectInteraction extends CommonDBTM
          echo "<form id='{$escalateId}' method='post' action='{$escalateUrl}' class='projectplus-followups__escalate'>";
          echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
          echo Html::hidden('projects_id', ['value' => (int) $project->getID()]);
-         echo '<div><strong>' . __('Escalar projeto', 'projectplus') . '</strong><p>' . __('Transfira o projeto para outra entidade.', 'projectplus') . '</p></div><div class="projectplus-followups__escalate-control">';
+         echo '<div><strong>' . __('Transferir projeto', 'projectplus') . '</strong><p>' . __('Transfira o projeto para outra entidade.', 'projectplus') . '</p></div><div class="projectplus-followups__escalate-control">';
          $targets = self::getEscalationTargets($project);
          if ($targets) {
             Dropdown::showFromArray('entities_id', $targets, ['display_emptychoice' => true, 'value' => 0]);
-            echo "<button class='btn btn-warning' type='submit'><i class='ti ti-arrow-up-right'></i> " . __('Escalar', 'projectplus') . '</button>';
+            echo "<button class='btn btn-warning' type='submit'><i class='ti ti-arrow-up-right'></i> " . __('Transferir projeto', 'projectplus') . '</button>';
          } else {
             echo "<span class='text-muted'>" . __('Nenhuma entidade de destino disponível.', 'projectplus') . '</span>';
          }
@@ -303,7 +303,7 @@ class ProjectInteraction extends CommonDBTM
          echo "<button class='btn btn-warning projectplus-followups__button--validation' type='button' data-projectplus-action='validation'><i class='ti ti-file-check'></i> " . __('Validação', 'projectplus') . '</button>';
       }
       if (self::canAction($project, ProjectProfile::RIGHT_INTERACTION_ESCALATE, true)) {
-         echo "<button class='btn btn-warning projectplus-followups__button--escalate' type='button' data-projectplus-action='escalate'><i class='ti ti-arrow-up-right'></i> " . __('Escalar', 'projectplus') . '</button>';
+         echo "<button class='btn btn-warning projectplus-followups__button--escalate' type='button' data-projectplus-action='escalate'><i class='ti ti-arrow-up-right'></i> " . __('Transferir projeto', 'projectplus') . '</button>';
       }
       echo '</footer>';
 

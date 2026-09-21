@@ -337,7 +337,7 @@ class ProjectProfile extends GlpiProfile
          ],
          [
             'itemtype' => ProjectInteraction::class,
-            'label' => __('Interações: escalar', 'projectplus'),
+            'label' => __('Interações: transferir projeto', 'projectplus'),
             'field' => self::RIGHT_INTERACTION_ESCALATE,
          ],
       ];
@@ -675,7 +675,7 @@ class ProjectProfile extends GlpiProfile
                ['label' => __('Solução com TEP', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_SOLUTION)],
                ['label' => __('Documento', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_DOCUMENT)],
                ['label' => __('Validação', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_VALIDATION)],
-               ['label' => __('Escalar', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_ESCALATE)],
+               ['label' => __('Transferir projeto', 'projectplus'), 'cells' => self::getInteractionCells(self::RIGHT_INTERACTION_ESCALATE)],
             ],
          ],
          [

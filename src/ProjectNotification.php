@@ -53,7 +53,7 @@ class ProjectNotification
       return [
          self::EVENT_INTERACTION => __('Project+ - Nova interação no projeto', 'projectplus'),
          self::EVENT_SOLUTION => __('Project+ - Solução registrada no projeto', 'projectplus'),
-         self::EVENT_ESCALATION => __('Project+ - Projeto escalado para outra entidade', 'projectplus'),
+         self::EVENT_ESCALATION => __('Project+ - Projeto transferido para outra entidade', 'projectplus'),
          self::EVENT_DOCUMENT => __('Project+ - Aviso sobre um termo do projeto', 'projectplus'),
       ];
    }

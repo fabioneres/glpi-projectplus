@@ -42,7 +42,7 @@ Se uma pré-condição estiver ausente, o caso deve ser marcado como **Bloqueado
 | Gerente de portfólio | Diretor ou assessor com o mesmo acesso técnico: avalia a classificação/ranking, autoriza ou recusa a abertura e consulta a visão de portfólio. |
 | Administrador do Project+ | Configura o fluxo por entidade, modelos de campos TIP/TAP/TEP/TA, listas do plugin e direitos de perfil. |
 
-Os direitos são configuráveis em **Administração → Perfis → Project+**. Os principais são: Solicitações de projeto, Priorização de portfólio, Administração do Project+ e os direitos de Interações (responder, tarefa, solução com TEP, documento, validação e escalar).
+Os direitos são configuráveis em **Administração → Perfis → Project+**. Os principais são: Solicitações de projeto, Priorização de portfólio, Administração do Project+ e os direitos de Interações (responder, tarefa, solução com TEP, documento, validação e transferir projeto).
 
 ---
 
@@ -176,7 +176,7 @@ Solicitante e ponto focal devem ser usuários existentes do GLPI. O sistema exib
 1. Na aba **Interações**, a linha do tempo mostra interações e eventos automáticos do projeto.
 2. O compositor abre somente após selecionar um botão do rodapé, como no módulo de chamados.
 3. **Responder** permite publicar acompanhamento, anexar arquivo, escolher um modelo de acompanhamento, definir Privado e habilitar/desabilitar Notificar participantes.
-4. **Tarefa**, **Documento**, **Validação** e **Escalar** dependem dos direitos do perfil. Escalar transfere o projeto para outra entidade e registra o evento.
+4. **Tarefa**, **Documento**, **Validação** e **Transferir projeto** dependem dos direitos do perfil. Transferir projeto move o projeto para outra entidade e registra o evento.
 5. Interação marcada como privada é destinada à gestão e não deve ser visível ao solicitante/ponto focal.
 
 **Resultado esperado:** os botões visíveis dependem dos direitos Project+ e a aparência segue o padrão do acompanhamento do GLPI.
@@ -285,7 +285,7 @@ Marcar cada caso como **Aprovado**, **Reprovado**, **Bloqueado** ou **Não execu
 - [ ] **PP-E2E-29** — Confirmar que Responder mostra somente modelos de acompanhamento e Solução mostra somente modelos de solução.
 - [ ] **PP-E2E-30** — Publicar resposta em projeto de teste; confirmar histórico, autor, data e visibilidade adequada.
 - [ ] **PP-E2E-31** — Como gestor, publicar interação Privada e confirmar que ela não aparece ao solicitante/ponto focal.
-- [ ] **PP-E2E-32** — Acionar Escalar com entidade de teste autorizada; confirmar transferência e registro do evento. Não escalar projetos reais.
+- [ ] **PP-E2E-32** — Acionar Transferir projeto com entidade de teste autorizada; confirmar transferência e registro do evento. Não transferir projetos reais.
 
 ### 7.7 TEP, TA e encerramento
 
