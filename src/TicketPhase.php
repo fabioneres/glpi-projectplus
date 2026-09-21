@@ -8,6 +8,7 @@ use DBmysql;
 use Dropdown;
 use Html;
 use ITILFollowup;
+use Project;
 use Session;
 use Ticket;
 use User;
@@ -335,14 +336,11 @@ class TicketPhase extends CommonDBTM
       if (!array_key_exists($phase, self::getManualPhases())) {
          return false;
       }
+      // Este formulario existe apenas para o cancelamento manual. A autorizacao
+      // de abertura tem o seu proprio controlador, com as regras de permissao e
+      // de priorizacao - nao ha outra fase manual para tratar aqui.
       if ($phase !== 'rejected_cancelled' || $justification === '') {
          return false;
-      }
-      if ($phase === 'authorized_opening' && !TicketPriority::isComplete((int) $ticket->getID())) {
-         throw new \RuntimeException(__('Conclua a priorização institucional antes de autorizar a abertura do projeto.', 'projectplus'));
-      }
-      if ($phase === 'authorized_opening' && !Session::haveRight(ProjectProfile::RIGHT_AUTHORIZE_OPENING, UPDATE)) {
-         throw new \RuntimeException(__('Você não possui permissão para autorizar a abertura do projeto.', 'projectplus'));
       }
       if ($current === null || $phase === (string) $current['phase']) {
          return true;
@@ -603,8 +601,17 @@ class TicketPhase extends CommonDBTM
       echo '</div>';
       DocumentAcceptance::showJourneyAccordionScript();
 
-      if (Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE) && $currentPhase !== 'rejected_cancelled') {
-         self::showUpdateForm($ticket, $phase);
+      // Cancelar a solicitacao so faz sentido enquanto o fluxo vive no chamado.
+      // Depois que o projeto abre, 'project_opened' nao tem transicao de saida e
+      // o chamado ja foi solucionado: quem precisa ser interrompido e o projeto,
+      // pelo estado nativo do GLPI. Oferecer o botao ali fazia o Gestor escrever
+      // a justificativa para receber um erro sobre "etapa anterior".
+      if (Session::haveRight(ProjectProfile::RIGHT_FLOW_UPDATE, UPDATE)) {
+         if ($currentPhase === 'project_opened') {
+            self::showCancelUnavailable((int) $ticket->getID());
+         } elseif ($currentPhase !== 'rejected_cancelled') {
+            self::showUpdateForm($ticket, $phase);
+         }
       }
       if (Session::haveRight(ProjectProfile::RIGHT_REQUEST_DOCUMENTS, READ)) {
          self::showHistory((int) $ticket->getID());
@@ -623,6 +630,17 @@ class TicketPhase extends CommonDBTM
       echo "<div class='projectplus-phase-form__field projectplus-phase-form__field--wide'><label>" . self::escape(__('Justificativa', 'projectplus')) . '</label>';
       echo "<textarea class='form-control' name='justification' rows='4' required></textarea><small><i class='ti ti-info-circle'></i>" . self::escape(__('Obrigatória para registrar o cancelamento.', 'projectplus')) . '</small></div>';
       echo "<footer class='projectplus-phase-form__footer'><span>" . self::escape(__('A alteração ficará registrada no histórico do fluxo.', 'projectplus')) . "</span><button class='btn btn-danger' type='submit' name='update_phase' value='1'><i class='ti ti-ban'></i> " . self::escape(__('Cancelar solicitação', 'projectplus')) . '</button></footer></form></section>';
+   }
+
+   /** Explains why the cancellation is no longer available and where to act instead. */
+   private static function showCancelUnavailable(int $ticketId): void
+   {
+      $projectId = TicketProject::getProjectId($ticketId);
+      $link = $projectId > 0
+         ? ' <a href="' . self::escape(Project::getFormURLWithID($projectId)) . '">' . self::escape(__('Acessar projeto', 'projectplus')) . '</a>'
+         : '';
+      echo "<section class='projectplus-phase-card projectplus-phase-form'><div class='projectplus-phase-card__heading'><i class='ti ti-alert-triangle'></i><div><h3>" . self::escape(__('Cancelar solicitação', 'projectplus')) . '</h3><p>' . self::escape(__('Indisponível nesta fase.', 'projectplus')) . "</p></div></div>";
+      echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::escape(__('Esta solicitação já resultou em projeto aberto.', 'projectplus')) . '</strong><br>' . self::escape(__('O chamado já foi solucionado e não pode mais ser cancelado por aqui. Para interromper o trabalho, altere o estado do projeto.', 'projectplus')) . $link . '</div></section>';
    }
 
    private static function showHistory(int $ticketId): void
