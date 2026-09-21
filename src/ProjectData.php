@@ -59,6 +59,12 @@ class ProjectData extends CommonDBTM
     */
    public static function preProjectUpdate(Project $project): void
    {
+      // A trava de encerramento vem antes de qualquer gravacao: quando ela
+      // barra, zera a entrada e o GLPI aborta a atualizacao inteira, entao
+      // gravar os campos proprios aqui deixaria os dois lados divergentes.
+      if (!ProjectClosure::allowUpdate($project)) {
+         return;
+      }
       self::saveForProject($project);
    }
 
