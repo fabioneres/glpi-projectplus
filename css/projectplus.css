@@ -3158,3 +3158,21 @@
       grid-template-columns: 1fr;
    }
 }
+
+
+/* ===== Icone do plugin na tela de plug-ins =====
+   O GLPI 10 so usa imagem de logo para plugin publicado no catalogo oficial:
+   Marketplace\View::getPluginIcon() le `logo_url` vindo da API e, sem ela,
+   desenha as iniciais do nome num quadrado colorido. A chave `picture` no
+   plugin_version_() nao e lida pelo core - conferido no 10.0.25.
+   O caminho que resta e trocar o fundo do proprio span de iniciais. */
+.marketplace .plugin[data-key="projectplus"] .main .icon .icon-text {
+   overflow: hidden;
+   background-color: transparent !important;
+   background-image: url("../pics/icon.png") !important;
+   background-position: center !important;
+   background-repeat: no-repeat !important;
+   background-size: contain !important;
+   color: transparent !important;
+   font-size: 0 !important;
+}
