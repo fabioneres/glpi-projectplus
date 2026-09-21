@@ -231,6 +231,10 @@ class DocumentAcceptance extends CommonDBTM
          'date_mod' => $now,
       ], ['id' => (int) $row['id']]);
       $type = (string) $row['document_type'];
+      // O documento volta a rascunho: o conteudo fica para ser corrigido, mas a
+      // versao recusada deixa de ser enviavel. Assim "Enviar para aceite" so
+      // reaparece depois de o responsavel gerar uma nova versao.
+      DocumentDraft::reopen($item::getType(), (int) $item->getID(), $type);
       self::addFollowup($item, $type, str_replace(
          '{justificativa}',
          $justification,

@@ -28,6 +28,28 @@ class DocumentDraft extends CommonDBTM
       else $DB->insert(self::getTable(), $data+['itemtype'=>$itemtype,'items_id'=>$itemsId,'entities_id'=>$entityId,'document_type'=>$type,'version'=>0,'date_creation'=>$now]);
    }
 
+   /**
+    * Devolve o documento ao estado de rascunho, preservando o conteudo.
+    *
+    * Usado quando o cliente recusa: o texto continua la para ser corrigido, mas
+    * a versao gerada deixa de valer. Sem isso o responsavel reenviaria ao
+    * cliente exatamente o documento que acabou de ser recusado, porque o botao
+    * de envio depende apenas de existir uma versao gerada.
+    */
+   public static function reopen(string $itemtype, int $itemsId, string $type): void
+   {
+      global $DB;
+      $draft = self::get($itemtype, $itemsId, $type);
+      if (!$draft || (string) $draft['status'] !== 'generated') {
+         return;
+      }
+      $DB->update(
+         self::getTable(),
+         ['status' => 'draft', 'date_mod' => date('Y-m-d H:i:s')],
+         ['id' => (int) $draft['id']]
+      );
+   }
+
    public static function generate(string $itemtype, int $itemsId, string $type): void
    {
       global $DB; $draft = self::get($itemtype, $itemsId, $type);

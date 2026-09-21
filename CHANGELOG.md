@@ -11,6 +11,7 @@
 ### Corrigido
 
 - **A recusa do TAP pelo cliente deixava o chamado travado.** O documento voltava corretamente para edição do Gerente de Projetos, mas a fase permanecia em *Aguardando aceite do TAP* — e o reenvio exige a fase *Autorizado para abertura*. Na prática: o cliente recusava, o gerente corrigia, e não conseguia mais enviar, sem que ninguém tivesse errado. A fase passa a acompanhar a devolução, e o ciclo recusar → corrigir → reenviar pode se repetir quantas vezes for necessário. TEP e TA não eram afetados, porque vivem no projeto, que não tem fases.
+- Um documento recusado **volta ao estado de rascunho**. Antes, a versão recusada continuava marcada como gerada — e, como o botão *Enviar para aceite* depende apenas de existir uma versão gerada, o responsável conseguia reenviar ao cliente exatamente o documento que acabara de ser recusado, sem corrigir nada e sem gerar nova versão. Agora *Enviar para aceite* só reaparece depois de o documento ser gerado de novo. O conteúdo é preservado: o responsável edita o que foi apontado, gera e envia.
 - O aviso de recusa de documento (TAP, TEP e TA) passou a usar o mesmo mecanismo de acompanhamento de eventos da devolução do TIP, ficando editável em *Configuração das etapas do fluxo*. O texto padrão é o mesmo de antes.
 
 ## 0.9.14-beta
