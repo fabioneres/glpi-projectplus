@@ -3180,3 +3180,55 @@
    color: transparent !important;
    font-size: 0 !important;
 }
+
+
+/* ===== Compositor de interacoes: barra de acoes e seletor de modelo =====
+   Com o compositor aberto a barra de acoes deixa de fazer sentido - o chamado
+   nativo tambem a esconde. A barra e irma posterior do formulario no DOM,
+   entao a propria cascata resolve, sem depender de JavaScript. O compositor
+   tem o seu botao de fechar, entao ninguem fica sem saida. */
+.projectplus-followups__composer.is-open ~ .projectplus-followups__toolbar {
+   display: none !important;
+}
+
+/* O seletor de modelo e um select2, nao um `.dropdown` - a regra antiga mirava
+   uma classe que nao existe no markup e por isso nunca valeu.
+
+   Limitar so o select2 tambem nao basta: o GLPI o envolve num
+   `div.btn-group`, que o Bootstrap deixa `inline-flex` e portanto dimensionado
+   pelo conteudo. Ele estourava o pai e o `width: 100%` do select2 passava a
+   ser 100% de um pai ja maior que o painel. E preciso travar os dois. */
+.projectplus-followups__template-selector .btn-group {
+   display: flex !important;
+   width: 100% !important;
+   min-width: 0 !important;
+   max-width: 100% !important;
+}
+
+/* O btn-group tem tres filhos: o select2 e os botoes de informacao e de
+   adicionar que o GLPI acrescenta ao dropdown. Dar 100% ao select2 empurrava
+   os outros dois para fora do painel, onde a borda do compositor os cortava -
+   o campo parecia colado na margem. Quem cede espaco e o select2; os botoes
+   mantem a largura propria. E o mesmo arranjo do compositor nativo. */
+.projectplus-followups__template-selector .btn-group>.select2-container {
+   flex: 1 1 0 !important;
+   width: auto !important;
+   min-width: 0 !important;
+}
+
+.projectplus-followups__template-selector .btn-group>.btn {
+   flex: 0 0 auto !important;
+}
+
+.projectplus-followups__template-selector .select2-selection {
+   width: 100% !important;
+   max-width: 100% !important;
+}
+
+.projectplus-followups__template-selector .select2-selection__rendered {
+   overflow: hidden !important;
+   max-width: 100% !important;
+   padding-right: 20px !important;
+   text-overflow: ellipsis !important;
+   white-space: nowrap !important;
+}

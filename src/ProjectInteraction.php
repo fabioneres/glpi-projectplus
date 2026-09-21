@@ -325,6 +325,15 @@ class ProjectInteraction extends CommonDBTM
             .html(action === 'solution' ? '<i class=\"ti ti-circle-check\"></i> Solucionar e enviar o TEP' : '<i class=\"ti ti-plus\"></i> Adicionar');
             var editor = getRichTextEditor();
             if (editor) { editor.focus(); }
+            // O compositor abre no fim da linha do tempo, quase sempre fora da
+            // area visivel: sem rolar ate ele, o clique em Responder parece nao
+            // ter feito nada. O timeout deixa o foco do editor acontecer antes,
+            // senao ele desfaz a rolagem com um salto proprio.
+            window.setTimeout(function () {
+               if (composer[0] && composer[0].scrollIntoView) {
+                  composer[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+               }
+            }, 60);
          }
          $('#{$toolbarId} [data-projectplus-action=reply]').on('click', function () { openComposer('reply'); });
          $('#{$toolbarId} [data-projectplus-action=solution]').on('click', function () { openComposer('solution'); });
