@@ -93,9 +93,19 @@ class FlowStageDescription
             'label' => __('TIP devolvido para ajuste', 'projectplus'),
             'default' => __('O TIP - Termo de Intenção de Projeto foi devolvido para ajuste pelo Gerente de Projetos. Justificativa: {justificativa}', 'projectplus'),
          ],
-         'document_returned' => [
-            'label' => __('Documento devolvido pelo cliente (TAP, TEP e TA)', 'projectplus'),
-            'default' => __('Documento recusado pelo cliente. Justificativa: {justificativa}', 'projectplus'),
+         // Um texto por termo: o que o cliente recusa em cada um e diferente.
+         // No TEP, em especial, a recusa e da entrega, nao da redacao.
+         'tap_returned' => [
+            'label' => __('TAP recusado pelo cliente', 'projectplus'),
+            'default' => __('O TAP foi recusado pelo cliente e voltou para ajuste do Gerente de Projetos. Justificativa: {justificativa}', 'projectplus'),
+         ],
+         'tep_returned' => [
+            'label' => __('Entrega do projeto recusada pelo cliente', 'projectplus'),
+            'default' => __('A entrega do projeto foi recusada pelo cliente e volta para o Gerente de Projetos. Justificativa: {justificativa}', 'projectplus'),
+         ],
+         'ta_returned' => [
+            'label' => __('Termo de Aceite recusado pelo cliente', 'projectplus'),
+            'default' => __('O Termo de Aceite foi recusado pelo cliente e voltou para revisão. Justificativa: {justificativa}', 'projectplus'),
          ],
       ];
    }

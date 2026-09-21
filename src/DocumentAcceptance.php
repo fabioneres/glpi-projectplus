@@ -260,7 +260,7 @@ class DocumentAcceptance extends CommonDBTM
       self::addFollowup($item, $type, str_replace(
          '{justificativa}',
          $justification,
-         FlowStageDescription::getEventFollowup('document_returned')
+         FlowStageDescription::getEventFollowup($type . '_returned')
       ));
       // A recusa devolve o documento ao responsavel para correcao, e a fase
       // precisa acompanhar: parada em "aguardando aceite", ela impede o reenvio
@@ -664,7 +664,12 @@ class DocumentAcceptance extends CommonDBTM
    private static function addFollowup(CommonDBTM $item, string $type, string $message): void
    {
       global $DB;
-      $content = $message;
+      $content = trim($message);
+      // Texto vazio e configuracao deliberada de nao avisar; publicar um
+      // acompanhamento em branco seria pior do que nao publicar nenhum.
+      if ($content === '') {
+         return;
+      }
       // _no_reopen: aviso de andamento do fluxo nao pode reabrir um chamado ja
       // solucionado, o que o GLPI faz quando quem comenta e o requerente.
       if ($item instanceof Ticket) { $f = new ITILFollowup(); $f->add(['itemtype'=>Ticket::class,'items_id'=>(int)$item->getID(),'users_id'=>(int)Session::getLoginUserID(),'content'=>$content,'is_private'=>0,'_no_reopen'=>1]); return; }
