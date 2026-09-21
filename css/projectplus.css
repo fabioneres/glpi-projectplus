@@ -3172,7 +3172,11 @@
    background-image: url("../pics/icon.png") !important;
    background-position: center !important;
    background-repeat: no-repeat !important;
-   background-size: contain !important;
+   /* Acima de 100% de proposito: a caixa tem 50x50 e os vizinhos sao quadrados
+      preenchidos com as iniciais, enquanto este logo e redondo - um circulo
+      inscrito cobre ~78% do quadrado e parece bem menor ao lado deles. O
+      excedente corta so a borda externa do anel. */
+   background-size: 122% !important;
    color: transparent !important;
    font-size: 0 !important;
 }
