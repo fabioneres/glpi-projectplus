@@ -72,6 +72,41 @@ class FlowStageDescription
       return $result;
    }
 
+   /**
+    * Eventos do fluxo que publicam acompanhamento proprio.
+    *
+    * O acompanhamento automatico e indexado pela fase de destino, o que basta
+    * enquanto a fase identifica o que aconteceu. Nao basta quando a mesma fase
+    * e alcancada por caminhos diferentes: `awaiting_pretip` vale tanto para a
+    * primeira solicitacao de preenchimento quanto para uma devolucao, e so a
+    * segunda tem justificativa. O evento carrega o texto do que aconteceu, em
+    * vez do texto de onde se chegou.
+    *
+    * @return array<string, array{label:string, default:string}>
+    */
+   public static function getFlowEvents(): array
+   {
+      return [
+         'tip_returned' => [
+            'label' => __('TIP devolvido para ajuste', 'projectplus'),
+            'default' => __('O TIP - Termo de Intenção de Projeto foi devolvido para ajuste pelo Gerente de Projetos. Justificativa: {justificativa}', 'projectplus'),
+         ],
+      ];
+   }
+
+   public static function getEventFollowup(string $event): string
+   {
+      $events = self::getFlowEvents();
+      if (!array_key_exists($event, $events)) {
+         return '';
+      }
+      $configured = Config::getConfigurationValue(self::CONTEXT, self::eventFollowupKey($event));
+      if ($configured === null || $configured === false) {
+         return (string) $events[$event]['default'];
+      }
+      return trim((string) $configured);
+   }
+
    /** @return array<string, string> */
    public static function getDefaultPhaseFollowups(): array
    {
@@ -185,6 +220,10 @@ class FlowStageDescription
          $followup = trim((string) ($input['phase_followups'][$displayPhase] ?? ''));
          $values[self::phaseFollowupKey($displayPhase)] = substr($followup, 0, 65535);
       }
+      foreach (array_keys(self::getFlowEvents()) as $event) {
+         $followup = trim((string) ($input['event_followups'][$event] ?? ''));
+         $values[self::eventFollowupKey($event)] = substr($followup, 0, 65535);
+      }
       foreach (self::getStages() as $stage => $definition) {
          foreach (['active', 'pending'] as $state) {
             $value = trim((string) ($input['descriptions'][$stage][$state] ?? ''));
@@ -212,5 +251,10 @@ class FlowStageDescription
    private static function phaseFollowupKey(string $phase): string
    {
       return 'flow_phase_followup_' . $phase;
+   }
+
+   private static function eventFollowupKey(string $event): string
+   {
+      return 'flow_event_followup_' . $event;
    }
 }

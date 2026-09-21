@@ -269,7 +269,16 @@ class TicketIntent
       TicketPhase::setPhase($ticket, 'classification', sprintf(__('%s aceito pelo gestor.', 'projectplus'), $name));
    }
 
-   public static function rejectForTicket(Ticket $ticket, string $justification, string $documentType = 'tip'): void
+   /**
+    * Devolve o TIP ao solicitante para ajuste.
+    *
+    * A negativa do Gerente de Projetos recai sobre a formulacao da intencao, e
+    * nao sobre o merito da demanda - este e decidido na analise do portfolio.
+    * Por isso a solicitacao nao e encerrada: o chamado permanece aberto, o
+    * formulario volta a ser editavel com as respostas ja gravadas e o
+    * solicitante corrige o que foi apontado.
+    */
+   public static function returnForTicket(Ticket $ticket, string $justification, string $documentType = 'tip'): void
    {
       $documentType = self::documentType($documentType);
       $name = self::documentName($documentType);
@@ -279,21 +288,29 @@ class TicketIntent
          __('O TIP ainda não está disponível para validação.', 'projectplus')
       );
       if ($documentType === TipDocumentType::DETAIL) {
-         throw new \RuntimeException(__('O TIP - Detalhamento Técnico não pode ser recusado.', 'projectplus'));
+         throw new \RuntimeException(__('O TIP - Detalhamento Técnico não pode ser devolvido.', 'projectplus'));
       }
+      TicketRouting::assertActor($ticket, 'project', ProjectProfile::RIGHT_VALIDATE_PRETIP);
       if (!self::canReviewForTicket($ticket, $documentType)) {
          throw new \RuntimeException(sprintf(__('Você não possui permissão para validar este %s.', 'projectplus'), $name));
       }
       $justification = trim($justification);
       if ($justification === '') {
-         throw new \RuntimeException(sprintf(__('Informe a justificativa para recusar o %s.', 'projectplus'), $name));
+         throw new \RuntimeException(sprintf(__('Informe a justificativa para devolver o %s.', 'projectplus'), $name));
       }
       $intent = self::getForTicket((int) $ticket->getID(), $documentType);
       $now = date('Y-m-d H:i:s');
       global $DB;
-      $DB->update(self::getTable(), ['status' => 'rejected', 'review_users_id' => (int) Session::getLoginUserID(), 'review_justification' => $justification, 'date_reviewed' => $now, 'date_mod' => $now], ['id' => (int) $intent['id']]);
-      $ticket->update(['id' => (int) $ticket->getID(), 'status' => Ticket::SOLVED, 'solution' => $justification]);
-      TicketPhase::setPhase($ticket, 'rejected_cancelled', $justification);
+      // As respostas ficam gravadas: quem reabre o formulario edita o que ja
+      // existe. O status 'returned' e o que libera o preenchimento de novo.
+      $DB->update(self::getTable(), [
+         'status' => 'returned',
+         'review_users_id' => (int) Session::getLoginUserID(),
+         'review_justification' => $justification,
+         'date_reviewed' => $now,
+         'date_mod' => $now,
+      ], ['id' => (int) $intent['id']]);
+      TicketPhase::setPhase($ticket, 'awaiting_pretip', $justification, true, 'tip_returned');
    }
 
    public static function showForTicket(Ticket $ticket, string $documentType = 'tip'): void
@@ -375,8 +392,18 @@ class TicketIntent
       echo "<header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-file-text'></i></div><div><span class='projectplus-tip__eyebrow'>" . self::escape(__('Solicitação de projeto', 'projectplus')) . "</span><h2>" . self::escape($title) . '</h2><p>' . nl2br(self::escape((string) $config['introduction'])) . '</p></div></header>';
       echo "<section class='projectplus-tip__card'><div class='projectplus-tip__section-title'><i class='ti ti-info-circle'></i><div><h3>" . self::escape(__('Identificação do preenchimento', 'projectplus')) . '</h3><p>' . self::escape(__('Confira os dados antes de enviar o formulário.', 'projectplus')) . '</p></div></div><div class="projectplus-tip__summary"><div><span>' . self::escape(__('Ticket', 'projectplus')) . '</span><strong>#' . (int) $ticket->getID() . '</strong></div><div><span>' . self::escape(__('Nome de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(User::getFriendlyNameById($displayUserId)) . '</strong></div><div><span>' . self::escape(__('E-mail de quem preenche', 'projectplus')) . '</span><strong>' . self::escape(UserEmail::getDefaultForUser($displayUserId)) . '</strong></div></div></section>';
       echo "<section class='projectplus-tip__card projectplus-tip__fields'><div class='projectplus-tip__grid'>";
+      // Num TIP devolvido o solicitante edita o que ja respondeu, em vez de
+      // refazer: a origem so preenche campo que ainda nao tem resposta. Vale
+      // tambem para anexo, que reaparece marcado para ser mantido.
+      $stored = $intent !== null && (string) ($intent['status'] ?? '') === 'returned'
+         ? self::currentAnswers((int) $intent['id'])
+         : [];
       foreach (TipField::getForEntity((int) $ticket->getEntityID(), $documentType) as $field) {
-         self::showField($field, FieldSource::getValue($ticket, (string) ($field['source'] ?? '')));
+         $fieldId = (int) $field['id'];
+         $value = array_key_exists($fieldId, $stored)
+            ? (string) $stored[$fieldId]
+            : FieldSource::getValue($ticket, (string) ($field['source'] ?? ''));
+         self::showField($field, $value);
       }
       $isTechnicalDetail = $documentType === TipDocumentType::DETAIL;
       $action = $isTechnicalDetail ? 'generate_intent' : 'save_intent';
@@ -456,17 +483,17 @@ class TicketIntent
       echo "<section class='projectplus-tip__card projectplus-acceptance__card'><div class='projectplus-tip__section-title'><i class='ti ti-file-check'></i><div><h3>" . self::escape(sprintf(__('Validação do %s', 'projectplus'), $name)) . '</h3><p>' . self::escape(__('Revise o termo preenchido antes de aceitar ou recusar a solicitação.', 'projectplus')) . "</p></div></div><div class='projectplus-acceptance__document'><div><strong>" . self::escape($name) . " preenchido</strong><a target='_blank' rel='noopener' href='" . self::escape($pdfUrl) . "'>" . self::escape(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='Documento preenchido' src='" . self::escape($pdfUrl) . "'></iframe></div>";
       // O titulo do cartao ja diz qual documento esta em validacao: os rotulos
       // ficam curtos para a dupla nao virar dois blocos largos. A consequencia
-      // da recusa aparece por extenso no botao que a confirma.
+      // da devolucao aparece por extenso no botao que a confirma.
       DecisionFooter::render(
          $url,
          $hidden,
          ['name' => 'accept_intent', 'label' => __('Aceitar', 'projectplus')],
          [
-            'name' => 'reject_intent',
-            'label' => __('Recusar', 'projectplus'),
-            'confirm' => sprintf(__('Recusar %s e solucionar chamado', 'projectplus'), $name),
+            'name' => 'return_intent',
+            'label' => __('Devolver', 'projectplus'),
+            'confirm' => sprintf(__('Devolver %s para ajuste do solicitante', 'projectplus'), $name),
             'field' => 'justification',
-            'legend' => __('Justificativa da recusa', 'projectplus'),
+            'legend' => __('O que o solicitante precisa ajustar', 'projectplus'),
          ]
       );
       echo '</section>';

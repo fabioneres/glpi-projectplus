@@ -160,7 +160,10 @@ class TicketPhase extends CommonDBTM
       return [
          'classification' => ['awaiting_pretip', 'awaiting_tip'],
          'awaiting_pretip' => ['awaiting_pretip_review', 'rejected_cancelled'],
-         'awaiting_pretip_review' => ['classification', 'rejected_cancelled'],
+         // A negativa do Gerente de Projetos no TIP devolve para ajuste, e nao
+         // encerra a solicitacao: o solicitante edita o que ja preencheu e
+         // reenvia. O encerramento continua possivel como cancelamento.
+         'awaiting_pretip_review' => ['classification', 'awaiting_pretip', 'rejected_cancelled'],
          'awaiting_tip' => ['portfolio_analysis', 'rejected_cancelled'],
          'portfolio_analysis' => ['awaiting_authorization', 'rejected_cancelled'],
          'awaiting_authorization' => ['authorized_opening', 'rejected_cancelled'],
@@ -325,11 +328,18 @@ class TicketPhase extends CommonDBTM
    }
 
    /** Changes a phase and writes its audit history. Intended for controlled plugin actions. */
+   /**
+    * @param string|null $followupEvent Evento do fluxo que descreve o que
+    *        aconteceu. Quando informado, o acompanhamento publico usa o texto
+    *        do evento em vez do texto da fase de destino - necessario quando a
+    *        mesma fase e alcancada por caminhos com significados diferentes.
+    */
    public static function setPhase(
       Ticket $ticket,
       string $phase,
       string $justification = '',
-      bool $validateNextActorRight = true
+      bool $validateNextActorRight = true,
+      ?string $followupEvent = null
    ): bool
    {
       /** @var DBmysql $DB */
@@ -372,13 +382,20 @@ class TicketPhase extends CommonDBTM
          'justification' => $justification,
          'date_creation' => $now,
       ]);
-      self::addAutomaticFollowup($ticket, $phase, $currentPhase, $justification);
+      self::addAutomaticFollowup($ticket, $phase, $currentPhase, $justification, $followupEvent);
       return true;
    }
 
-   private static function addAutomaticFollowup(Ticket $ticket, string $phase, string $previousPhase, string $justification): void
-   {
-      $content = FlowStageDescription::getPhaseFollowup($phase);
+   private static function addAutomaticFollowup(
+      Ticket $ticket,
+      string $phase,
+      string $previousPhase,
+      string $justification,
+      ?string $followupEvent = null
+   ): void {
+      $content = $followupEvent !== null
+         ? FlowStageDescription::getEventFollowup($followupEvent)
+         : FlowStageDescription::getPhaseFollowup($phase);
       if ($content === '') {
          return;
       }

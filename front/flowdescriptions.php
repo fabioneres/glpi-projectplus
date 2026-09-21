@@ -40,6 +40,15 @@ foreach (FlowStageDescription::getDisplayPhases() as $displayPhase => $definitio
    echo "</td><td><textarea class='form-control' name='phase_followups[" . ConfigPage::escape($displayPhase) . "]' rows='3'>" . ConfigPage::escape(FlowStageDescription::getPhaseFollowup($displayPhase)) . '</textarea></td></tr>';
 }
 echo '</tbody></table>';
+echo '<h3 class="mt-4">' . ConfigPage::escape(__('Acompanhamento de eventos do fluxo', 'projectplus')) . '</h3>';
+echo '<p class="projectplus-config-help">' . ConfigPage::escape(__('Alguns acontecimentos precisam de texto próprio porque a fase de destino, sozinha, não explica o que houve. É o caso da devolução do TIP: ela leva à mesma fase da primeira solicitação de preenchimento, mas só ela tem justificativa.', 'projectplus')) . '</p>';
+echo "<table class='tab_cadre_fixe'><thead><tr class='tab_bg_2'><th>" . __('Evento', 'projectplus') . '</th><th>' . __('Acompanhamento automático', 'projectplus') . '</th></tr></thead><tbody>';
+foreach (FlowStageDescription::getFlowEvents() as $event => $definition) {
+   echo "<tr class='tab_bg_1'><td><strong>" . ConfigPage::escape($definition['label']) . "</strong></td>"
+      . "<td><textarea class='form-control' name='event_followups[" . ConfigPage::escape($event) . "]' rows='3'>"
+      . ConfigPage::escape(FlowStageDescription::getEventFollowup($event)) . '</textarea></td></tr>';
+}
+echo '</tbody></table>';
 echo '<h3 class="mt-4">' . ConfigPage::escape(__('Descrições de orientação', 'projectplus')) . '</h3>';
 echo '<p class="projectplus-config-help">' . ConfigPage::escape(__('Defina o texto exibido quando a etapa estiver disponível e o aviso apresentado enquanto ela depender da etapa anterior. Deixe um campo vazio para ocultar seu texto.', 'projectplus')) . '</p>';
 echo '<p class="projectplus-config-help"><i class="ti ti-info-circle"></i> ' . ConfigPage::escape(__('Na mensagem de encaminhamento também podem ser usadas as variáveis {chamado_id}, {entidade} e {fase}.', 'projectplus')) . '</p>';

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Alterado
+
+- A negativa do Gerente de Projetos no **TIP** deixa de encerrar a solicitação e passa a **devolvê-la ao solicitante para ajuste**. Antes, recusar solucionava o chamado e levava a solicitação para *Recusado/Cancelado*, que é um estado sem volta — o solicitante só podia recomeçar do zero em outro chamado. Agora o chamado continua aberto, a fase volta para *Aguardando preenchimento do TIP* e o formulário reabre **com tudo o que já havia sido respondido**, inclusive os anexos, que reaparecem marcados para serem mantidos. O solicitante corrige o que foi apontado e reenvia; o ciclo pode se repetir. O encerramento continua possível como cancelamento, a partir de qualquer fase.
+- Ao devolver, o solicitante recebe a justificativa como **acompanhamento público** no chamado. Esse texto é editável em *Configuração das etapas do fluxo*, num bloco novo de **acompanhamento de eventos**: alguns acontecimentos precisam de texto próprio porque a fase de destino, sozinha, não explica o que houve — a devolução leva à mesma fase da primeira solicitação de preenchimento, mas só ela tem justificativa.
+- Devolver o TIP passa a exigir a mesma verificação de responsável que aceitar já exigia. Antes, a ação que encerrava a solicitação era a menos controlada das duas.
+
 ## 0.9.14-beta
 
 ### Removido

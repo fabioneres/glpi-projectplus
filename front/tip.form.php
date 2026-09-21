@@ -37,9 +37,11 @@ try {
    } elseif (isset($_POST['accept_intent']) || isset($_POST['accept_tip'])) {
       TicketIntent::acceptForTicket($ticket, $documentType);
       Session::addMessageAfterRedirect(sprintf(__('%s aceito e encaminhado para classificação.', 'projectplus'), $documentName));
-   } elseif (isset($_POST['reject_intent']) || isset($_POST['reject_tip'])) {
-      TicketIntent::rejectForTicket($ticket, (string) ($_POST['justification'] ?? ''), $documentType);
-      Session::addMessageAfterRedirect(sprintf(__('%s recusado e chamado solucionado.', 'projectplus'), $documentName));
+   } elseif (isset($_POST['return_intent']) || isset($_POST['reject_intent']) || isset($_POST['reject_tip'])) {
+      // reject_* continua aceito porque a acao mudou de nome, nao de lugar:
+      // uma aba aberta antes da atualizacao ainda envia o nome antigo.
+      TicketIntent::returnForTicket($ticket, (string) ($_POST['justification'] ?? ''), $documentType);
+      Session::addMessageAfterRedirect(sprintf(__('%s devolvido ao solicitante para ajuste.', 'projectplus'), $documentName));
    }
 } catch (\RuntimeException $exception) {
    Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
