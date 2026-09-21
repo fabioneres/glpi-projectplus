@@ -414,6 +414,11 @@ class TicketPhase extends CommonDBTM
          'users_id' => (int) Session::getLoginUserID(),
          'content' => $content,
          'is_private' => 0,
+         // Aviso de andamento do fluxo, nao resposta do solicitante: o GLPI
+         // reabre um chamado solucionado quando quem comenta e o requerente
+         // (CommonITILObject::needReopen), e isso desfazia o encerramento da
+         // negativa no mesmo instante em que ele era registrado.
+         '_no_reopen' => 1,
       ]);
    }
 
