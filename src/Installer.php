@@ -69,6 +69,7 @@ class Installer
       self::ensureProjectFieldConfigTable();
       self::ensureTicketProjectTable();
       self::ensureProjectInteractionTable();
+      self::ensureTransferRuleTable();
       self::ensureProjectPriorityTable();
       self::ensureTicketPriorityTable();
       self::ensureTechnicalPrioritySubmission();
@@ -159,6 +160,8 @@ class Installer
          $DB->doQuery("CREATE TABLE `{$table}` (`id` int unsigned NOT NULL AUTO_INCREMENT, `tickets_id` int unsigned NOT NULL DEFAULT 0, `projects_id` int unsigned NOT NULL DEFAULT 0, `entities_id` int unsigned NOT NULL DEFAULT 0, `users_id` int unsigned NOT NULL DEFAULT 0, `date_creation` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), UNIQUE KEY `tickets_id` (`tickets_id`), KEY `projects_id` (`projects_id`), KEY `entities_id` (`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
       }
    }
+   private static function ensureTransferRuleTable(): void { global $DB; $t=TransferRule::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`entities_id` int unsigned NOT NULL DEFAULT 0,`target_entities_id` int unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `par`(`entities_id`,`target_entities_id`),KEY `entities_id`(`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
+
    private static function ensureProjectInteractionTable(): void { global $DB; $t=ProjectInteraction::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`users_id` int unsigned NOT NULL DEFAULT 0,`content` text NOT NULL,`is_internal` tinyint NOT NULL DEFAULT 0,`notify_participants` tinyint NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),KEY `projects_id`(`projects_id`),KEY `entities_id`(`entities_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
    private static function ensureProjectPriorityTable(): void { global $DB; $t=ProjectPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`projects_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `projects_id`(`projects_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
    private static function ensureTicketPriorityTable(): void { global $DB; $t=TicketPriority::getTable(); if(!$DB->tableExists($t))$DB->doQuery("CREATE TABLE `{$t}` (`id` int unsigned NOT NULL AUTO_INCREMENT,`tickets_id` int unsigned NOT NULL DEFAULT 0,`entities_id` int unsigned NOT NULL DEFAULT 0,`pdtic_risk` tinyint unsigned NOT NULL DEFAULT 0,`result_scope` tinyint unsigned NOT NULL DEFAULT 0,`project_urgency` tinyint unsigned NOT NULL DEFAULT 0,`estimated_time` tinyint unsigned NOT NULL DEFAULT 0,`team_familiarity` tinyint unsigned NOT NULL DEFAULT 0,`institutional_priority` tinyint unsigned NOT NULL DEFAULT 0,`waiting_time` tinyint unsigned NOT NULL DEFAULT 0,`ranking` tinyint unsigned NOT NULL DEFAULT 0,`date_creation` timestamp NULL DEFAULT NULL,`date_mod` timestamp NULL DEFAULT NULL,PRIMARY KEY(`id`),UNIQUE KEY `tickets_id`(`tickets_id`),KEY `entities_ranking`(`entities_id`,`ranking`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); }
@@ -737,6 +740,7 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipField::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipConfig::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');
+      $DB->doQuery('DROP TABLE IF EXISTS `' . TransferRule::getTable() . '`');
       ProjectNotification::uninstall();
       \Config::deleteConfigurationValues('plugin:projectplus', ['dbversion']);
       return true;

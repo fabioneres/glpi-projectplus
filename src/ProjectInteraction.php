@@ -153,6 +153,11 @@ class ProjectInteraction extends CommonDBTM
       if ($targetEntityId === (int) $project->getEntityID()) {
          throw new \RuntimeException(__('Selecione uma entidade diferente da entidade atual.', 'projectplus'));
       }
+      // A regra do servidor, e nao a lista da tela, e quem decide: esconder a
+      // opcao no dropdown nao impede um POST montado a mao.
+      if (!TransferRule::isAllowed((int) $project->getEntityID(), $targetEntityId)) {
+         throw new \RuntimeException(__('A entidade atual do projeto não está autorizada a transferir para o destino informado. Ajuste as regras em Configurar > Project+ > Transferência de projetos.', 'projectplus'));
+      }
 
       $targetName = Entity::getFriendlyNameById($targetEntityId);
       if (!$project->update(['id' => (int) $project->getID(), 'entities_id' => $targetEntityId])) {
@@ -293,6 +298,10 @@ class ProjectInteraction extends CommonDBTM
                // e "entidade raiz" chegariam identicos no POST. E por isso que o
                // proprio GLPI desliga a opcao vazia para Entity.
                'used' => [(int) $project->getEntityID(), 0],
+               // Alem do alcance da sessao, o destino precisa estar nas regras
+               // cadastradas para esta origem. Sem regra a lista fica vazia, e
+               // o bloco nem chega a ser renderizado.
+               'condition' => ['id' => TransferRule::getAllowedTargets((int) $project->getEntityID())],
             ]);
             echo "<button class='btn btn-warning' type='submit'><i class='ti ti-arrow-up-right'></i> " . __('Transferir projeto', 'projectplus') . '</button>';
          } else {
@@ -437,9 +446,12 @@ class ProjectInteraction extends CommonDBTM
       if (!is_array($ativas)) {
          return false;
       }
-      // Fora a entidade atual e a raiz, pelas mesmas razoes do dropdown.
-      $candidatas = array_diff(array_map('intval', $ativas), [(int) $project->getEntityID(), 0]);
-      return $candidatas !== [];
+      $origem = (int) $project->getEntityID();
+      // Os destinos saem das regras cadastradas para esta origem; sem regra,
+      // nao ha transferencia. Depois disso a sessao ainda precisa alcancar o
+      // destino - uma condicao nao substitui a outra.
+      $permitidos = array_diff(TransferRule::getAllowedTargets($origem), [$origem, 0]);
+      return array_intersect($permitidos, array_map('intval', $ativas)) !== [];
    }
 
    private static function getInitials(string $name): string

@@ -32,6 +32,14 @@ if (Session::haveRight('config', UPDATE)) {
 }
 echo '</div></article>';
 
+echo "<article class='projectplus-config-option'><div class='projectplus-config-option__icon'><i class='ti ti-arrow-up-right'></i></div><div>";
+echo '<h3>' . ConfigPage::escape(__('Transferência de projetos', 'projectplus')) . '</h3>';
+echo '<p>' . ConfigPage::escape(__('Defina, para cada entidade, quais entidades podem receber os projetos dela.', 'projectplus')) . '</p>';
+if (Session::haveRight('config', UPDATE)) {
+   echo "<a class='btn btn-primary' href='transferrules.php'>" . ConfigPage::escape(__('Configurar transferência', 'projectplus')) . '</a>';
+}
+echo '</div></article>';
+
 echo "<article class='projectplus-config-option'><div class='projectplus-config-option__icon'><i class='ti ti-file-import'></i></div><div>";
 echo '<h3>' . ConfigPage::escape(__('Importação de projetos existentes', 'projectplus')) . '</h3>';
 echo '<p>' . ConfigPage::escape(__('Importe uma planilha CSV, valide os dados e preencha os projetos existentes no GLPI.', 'projectplus')) . '</p>';
