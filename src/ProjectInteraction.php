@@ -275,9 +275,25 @@ class ProjectInteraction extends CommonDBTM
          echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
          echo Html::hidden('projects_id', ['value' => (int) $project->getID()]);
          echo '<div><strong>' . __('Transferir projeto', 'projectplus') . '</strong><p>' . __('Transfira o projeto para outra entidade.', 'projectplus') . '</p></div><div class="projectplus-followups__escalate-control">';
-         $targets = self::getEscalationTargets($project);
-         if ($targets) {
-            Dropdown::showFromArray('entities_id', $targets, ['display_emptychoice' => true, 'value' => 0]);
+         if (self::hasEscalationTargets($project)) {
+            // Dropdown nativo de Entity, e nao uma lista montada a mao: ele e o
+            // unico que mostra a arvore com o caminho completo. Com o nome da
+            // folha, "Sao Paulo" aparecia duas vezes sem nada que distinguisse
+            // uma da outra - e transferir para a entidade errada nao tem desfazer.
+            // A restricao as entidades acessiveis ja vem do proprio dropdown.
+            Dropdown::show(Entity::class, [
+               'name' => 'entities_id',
+               // -1, e nao 0: a entidade raiz existe com id 0, entao o campo
+               // nascia mostrando "UNIFESP" como se ja houvesse escolha feita.
+               'value' => -1,
+               'display_emptychoice' => true,
+               'emptylabel' => __('Selecione a entidade de destino', 'projectplus'),
+               // A entidade atual nao e destino. A raiz sai junto porque a opcao
+               // vazia do GLPI tambem vale 0: com ela na lista, "nada escolhido"
+               // e "entidade raiz" chegariam identicos no POST. E por isso que o
+               // proprio GLPI desliga a opcao vazia para Entity.
+               'used' => [(int) $project->getEntityID(), 0],
+            ]);
             echo "<button class='btn btn-warning' type='submit'><i class='ti ti-arrow-up-right'></i> " . __('Transferir projeto', 'projectplus') . '</button>';
          } else {
             echo "<span class='text-muted'>" . __('Nenhuma entidade de destino disponível.', 'projectplus') . '</span>';
@@ -407,22 +423,23 @@ class ProjectInteraction extends CommonDBTM
    }
 
    /** @return array<int, string> */
-   private static function getEscalationTargets(Project $project): array
+   /**
+    * Existe alguma entidade de destino possivel?
+    *
+    * So decide se o bloco de transferencia aparece; quem lista e restringe de
+    * fato e o dropdown nativo. A versao anterior percorria a tabela inteira de
+    * entidades e chamava `getFriendlyNameById()` linha a linha, o que e uma
+    * consulta por entidade, para montar uma lista que o nativo ja monta.
+    */
+   private static function hasEscalationTargets(Project $project): bool
    {
-      global $DB;
-      $targets = [];
-      $currentEntityId = (int) $project->getEntityID();
-      foreach ($DB->request([
-         'FROM' => Entity::getTable(),
-         'ORDER' => ['completename ASC', 'name ASC'],
-      ]) as $entity) {
-         $entityId = (int) $entity['id'];
-         if ($entityId === $currentEntityId || !Session::haveAccessToEntity($entityId)) {
-            continue;
-         }
-         $targets[$entityId] = Entity::getFriendlyNameById($entityId);
+      $ativas = $_SESSION['glpiactiveentities'] ?? [];
+      if (!is_array($ativas)) {
+         return false;
       }
-      return $targets;
+      // Fora a entidade atual e a raiz, pelas mesmas razoes do dropdown.
+      $candidatas = array_diff(array_map('intval', $ativas), [(int) $project->getEntityID(), 0]);
+      return $candidatas !== [];
    }
 
    private static function getInitials(string $name): string
