@@ -159,7 +159,9 @@ class ProjectInteraction extends CommonDBTM
          throw new \RuntimeException(__('A entidade atual do projeto não está autorizada a transferir para o destino informado. Ajuste as regras em Configurar > Project+ > Transferência de projetos.', 'projectplus'));
       }
 
-      $targetName = Entity::getFriendlyNameById($targetEntityId);
+      // Caminho completo, e nao o nome da folha: com "Sao Paulo" sozinho o
+      // registro nao diz qual das entidades com esse nome recebeu o projeto.
+      $targetName = TransferRule::entityName($targetEntityId);
       if (!$project->update(['id' => (int) $project->getID(), 'entities_id' => $targetEntityId])) {
          throw new \RuntimeException(__('Não foi possível transferir o projeto para a entidade selecionada.', 'projectplus'));
       }
@@ -280,28 +282,23 @@ class ProjectInteraction extends CommonDBTM
          echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
          echo Html::hidden('projects_id', ['value' => (int) $project->getID()]);
          echo '<div><strong>' . __('Transferir projeto', 'projectplus') . '</strong><p>' . __('Transfira o projeto para outra entidade.', 'projectplus') . '</p></div><div class="projectplus-followups__escalate-control">';
-         if (self::hasEscalationTargets($project)) {
-            // Dropdown nativo de Entity, e nao uma lista montada a mao: ele e o
-            // unico que mostra a arvore com o caminho completo. Com o nome da
-            // folha, "Sao Paulo" aparecia duas vezes sem nada que distinguisse
-            // uma da outra - e transferir para a entidade errada nao tem desfazer.
-            // A restricao as entidades acessiveis ja vem do proprio dropdown.
-            Dropdown::show(Entity::class, [
-               'name' => 'entities_id',
-               // -1, e nao 0: a entidade raiz existe com id 0, entao o campo
-               // nascia mostrando "UNIFESP" como se ja houvesse escolha feita.
-               'value' => -1,
+         $destinos = TransferRule::getAllowedTargetNames((int) $project->getEntityID());
+         if ($destinos !== []) {
+            // Lista so os destinos que a regra permite e que a sessao alcanca,
+            // cada um com o caminho completo. O dropdown de arvore do GLPI
+            // tambem desenharia os ancestrais dos permitidos, acinzentados, so
+            // para dar forma a arvore - e o que se quer aqui e a lista do que
+            // da para escolher. O caminho completo no rotulo e o que resolve a
+            // ambiguidade que existia com o nome da folha: "Sao Paulo"
+            // aparecia duas vezes sem nada que distinguisse uma da outra.
+            Dropdown::showFromArray('entities_id', $destinos, [
+               // A opcao vazia do showFromArray vale 0. Aqui isso nao e
+               // ambiguo, ao contrario do dropdown de arvore: a entidade raiz
+               // nunca entra nesta lista, entao 0 so pode significar "nada
+               // escolhido" - e o guard do servidor recusa `<= 0`.
+               'value' => 0,
                'display_emptychoice' => true,
                'emptylabel' => __('Selecione a entidade de destino', 'projectplus'),
-               // A entidade atual nao e destino. A raiz sai junto porque a opcao
-               // vazia do GLPI tambem vale 0: com ela na lista, "nada escolhido"
-               // e "entidade raiz" chegariam identicos no POST. E por isso que o
-               // proprio GLPI desliga a opcao vazia para Entity.
-               'used' => [(int) $project->getEntityID(), 0],
-               // Alem do alcance da sessao, o destino precisa estar nas regras
-               // cadastradas para esta origem. Sem regra a lista fica vazia, e
-               // o bloco nem chega a ser renderizado.
-               'condition' => ['id' => TransferRule::getAllowedTargets((int) $project->getEntityID())],
             ]);
             echo "<button class='btn btn-warning' type='submit'><i class='ti ti-arrow-up-right'></i> " . __('Transferir projeto', 'projectplus') . '</button>';
          } else {
@@ -429,29 +426,6 @@ class ProjectInteraction extends CommonDBTM
          echo "</header><div class='projectplus-followup__content rich_text_container'>{$content}</div></div></article>";
       }
       echo '</div>';
-   }
-
-   /** @return array<int, string> */
-   /**
-    * Existe alguma entidade de destino possivel?
-    *
-    * So decide se o bloco de transferencia aparece; quem lista e restringe de
-    * fato e o dropdown nativo. A versao anterior percorria a tabela inteira de
-    * entidades e chamava `getFriendlyNameById()` linha a linha, o que e uma
-    * consulta por entidade, para montar uma lista que o nativo ja monta.
-    */
-   private static function hasEscalationTargets(Project $project): bool
-   {
-      $ativas = $_SESSION['glpiactiveentities'] ?? [];
-      if (!is_array($ativas)) {
-         return false;
-      }
-      $origem = (int) $project->getEntityID();
-      // Os destinos saem das regras cadastradas para esta origem; sem regra,
-      // nao ha transferencia. Depois disso a sessao ainda precisa alcancar o
-      // destino - uma condicao nao substitui a outra.
-      $permitidos = array_diff(TransferRule::getAllowedTargets($origem), [$origem, 0]);
-      return array_intersect($permitidos, array_map('intval', $ativas)) !== [];
    }
 
    private static function getInitials(string $name): string

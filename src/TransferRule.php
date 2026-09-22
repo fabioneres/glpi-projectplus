@@ -157,6 +157,43 @@ class TransferRule extends CommonDBTM
    }
 
    /**
+    * Destinos permitidos e alcancaveis, com o caminho completo, prontos para
+    * o seletor da tela de transferencia.
+    *
+    * @return array<int, string> id => nome completo, em ordem alfabetica
+    */
+   public static function getAllowedTargetNames(int $originEntityId): array
+   {
+      /** @var \DBmysql $DB */
+      global $DB;
+
+      $permitidos = array_values(array_diff(
+         self::getAllowedTargets($originEntityId),
+         [$originEntityId, 0]
+      ));
+      if ($permitidos === []) {
+         return [];
+      }
+      $out = [];
+      foreach ($DB->request([
+         'SELECT' => ['id', 'completename', 'name'],
+         'FROM' => Entity::getTable(),
+         'WHERE' => ['id' => $permitidos],
+         'ORDER' => ['completename ASC'],
+      ]) as $row) {
+         $id = (int) $row['id'];
+         // A regra diz o que a operacao permite; a sessao ainda precisa
+         // alcancar a entidade. Uma nao substitui a outra.
+         if (!Session::haveAccessToEntity($id)) {
+            continue;
+         }
+         $nome = trim((string) $row['completename']);
+         $out[$id] = $nome !== '' ? $nome : (string) $row['name'];
+      }
+      return $out;
+   }
+
+   /**
     * Entidades que podem ser marcadas como destino de uma origem.
     *
     * Fora a propria origem e a raiz - a raiz porque, no dropdown do GLPI, a
