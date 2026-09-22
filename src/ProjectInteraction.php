@@ -282,24 +282,54 @@ class ProjectInteraction extends CommonDBTM
          echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
          echo Html::hidden('projects_id', ['value' => (int) $project->getID()]);
          echo '<div><strong>' . __('Transferir projeto', 'projectplus') . '</strong><p>' . __('Transfira o projeto para outra entidade.', 'projectplus') . '</p></div><div class="projectplus-followups__escalate-control">';
-         $destinos = TransferRule::getAllowedTargetNames((int) $project->getEntityID());
-         if ($destinos !== []) {
-            // Lista so os destinos que a regra permite e que a sessao alcanca,
-            // cada um com o caminho completo. O dropdown de arvore do GLPI
-            // tambem desenharia os ancestrais dos permitidos, acinzentados, so
-            // para dar forma a arvore - e o que se quer aqui e a lista do que
-            // da para escolher. O caminho completo no rotulo e o que resolve a
-            // ambiguidade que existia com o nome da folha: "Sao Paulo"
-            // aparecia duas vezes sem nada que distinguisse uma da outra.
-            Dropdown::showFromArray('entities_id', $destinos, [
-               // A opcao vazia do showFromArray vale 0. Aqui isso nao e
-               // ambiguo, ao contrario do dropdown de arvore: a entidade raiz
-               // nunca entra nesta lista, entao 0 so pode significar "nada
-               // escolhido" - e o guard do servidor recusa `<= 0`.
-               'value' => 0,
-               'display_emptychoice' => true,
-               'emptylabel' => __('Selecione a entidade de destino', 'projectplus'),
-            ]);
+         $grupos = TransferRule::getAllowedTargetsGrouped((int) $project->getEntityID());
+         if ($grupos !== []) {
+            // Mesmo arranjo do plugin tickettransfer: o caminho completo do pai
+            // vira rotulo do optgroup e o filho entra com o nome curto. Evita
+            // repetir o nome do pai em toda linha, e duas entidades de mesmo
+            // nome em ramos diferentes continuam distinguiveis pelo cabecalho.
+            $selectId = 'projectplus-destino-' . (int) $project->getID();
+            echo "<select name='entities_id' id='{$selectId}' class='form-select' required>";
+            echo "<option value=''>" . htmlspecialchars(__('Selecione', 'projectplus'), ENT_QUOTES, 'UTF-8') . '</option>';
+            foreach ($grupos as $grupo) {
+               echo "<optgroup label='" . htmlspecialchars((string) $grupo['name'], ENT_QUOTES, 'UTF-8') . "'>";
+               foreach ($grupo['children'] as $filho) {
+                  echo "<option value='" . (int) $filho['id'] . "'> &raquo; " . htmlspecialchars((string) $filho['name'], ENT_QUOTES, 'UTF-8') . '</option>';
+               }
+               echo '</optgroup>';
+            }
+            echo '</select>';
+
+            // Busca que casa tanto o rotulo do grupo quanto os filhos: digitar o
+            // nome do pai traz o grupo inteiro, digitar o nome da entidade traz
+            // so ela. Sem isto, procurar por "STI" nao acharia DIQS.
+            echo Html::scriptBlock("$(function () {
+   var campo = $('#{$selectId}');
+   if (!campo.length || campo.data('projectplusPronto')) { return; }
+   campo.data('projectplusPronto', true);
+   function casa(params, data) {
+      if ($.trim(params.term) === '') { return data; }
+      var termo = params.term.toLowerCase();
+      if (data.children && data.children.length) {
+         if ((data.text || '').toLowerCase().indexOf(termo) !== -1) { return data; }
+         var filhos = data.children.filter(function (f) {
+            return (f.text || '').toLowerCase().indexOf(termo) !== -1;
+         });
+         return filhos.length ? { id: data.id, text: data.text, children: filhos } : null;
+      }
+      return (data.text || '').toLowerCase().indexOf(termo) !== -1 ? data : null;
+   }
+   try {
+      campo.select2({
+         placeholder: " . json_encode(__('Selecione a entidade de destino', 'projectplus'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) . ",
+         width: '100%',
+         allowClear: true,
+         matcher: casa
+      });
+   } catch (e) {
+      // Sem select2 o select nativo continua funcionando; nada a fazer.
+   }
+});");
             echo "<button class='btn btn-warning' type='submit'><i class='ti ti-arrow-up-right'></i> " . __('Transferir projeto', 'projectplus') . '</button>';
          } else {
             echo "<span class='text-muted'>" . __('Nenhuma entidade de destino disponível.', 'projectplus') . '</span>';

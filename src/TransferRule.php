@@ -194,6 +194,68 @@ class TransferRule extends CommonDBTM
    }
 
    /**
+    * Destinos permitidos agrupados pelo caminho completo do pai.
+    *
+    * Cada grupo vira um `optgroup`, e os filhos entram com o nome curto. E o
+    * que evita repetir o nome do pai em toda linha, mantendo a leitura do
+    * seletor de entidades nativo. Duas entidades de mesmo nome em ramos
+    * diferentes continuam distinguiveis pelo cabecalho do grupo.
+    *
+    * Mesmo arranjo do plugin tickettransfer, que resolve o mesmo problema.
+    *
+    * @return array<int, array{name: string, children: array<int, array{id: int, name: string}>}>
+    */
+   public static function getAllowedTargetsGrouped(int $originEntityId): array
+   {
+      /** @var \DBmysql $DB */
+      global $DB;
+
+      $permitidos = array_values(array_diff(
+         self::getAllowedTargets($originEntityId),
+         [$originEntityId, 0]
+      ));
+      if ($permitidos === []) {
+         return [];
+      }
+
+      $tabela = Entity::getTable();
+      $grupos = [];
+      foreach ($DB->request([
+         'SELECT' => [
+            'filha.id AS id',
+            'filha.name AS name',
+            'pai.completename AS parent_completename',
+            'pai.name AS parent_name',
+         ],
+         'FROM' => $tabela . ' AS filha',
+         'LEFT JOIN' => [
+            $tabela . ' AS pai' => ['ON' => ['pai' => 'id', 'filha' => 'entities_id']],
+         ],
+         'WHERE' => ['filha.id' => $permitidos],
+         'ORDER' => ['pai.completename ASC', 'filha.name ASC'],
+      ]) as $row) {
+         $id = (int) $row['id'];
+         // A regra diz o que a operacao permite; a sessao ainda precisa
+         // alcancar a entidade. Uma nao substitui a outra.
+         if (!Session::haveAccessToEntity($id)) {
+            continue;
+         }
+         $rotulo = trim((string) ($row['parent_completename'] ?? ''));
+         if ($rotulo === '') {
+            $rotulo = trim((string) ($row['parent_name'] ?? ''));
+         }
+         if ($rotulo === '') {
+            $rotulo = __('Sem entidade superior', 'projectplus');
+         }
+         if (!isset($grupos[$rotulo])) {
+            $grupos[$rotulo] = ['name' => $rotulo, 'children' => []];
+         }
+         $grupos[$rotulo]['children'][] = ['id' => $id, 'name' => (string) $row['name']];
+      }
+      return array_values($grupos);
+   }
+
+   /**
     * Entidades que podem ser marcadas como destino de uma origem.
     *
     * Fora a propria origem e a raiz - a raiz porque, no dropdown do GLPI, a
