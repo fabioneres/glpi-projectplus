@@ -5,7 +5,7 @@
 </p>
 
 [![Licença](https://img.shields.io/badge/Licen%C3%A7a-GPLv3%2B-orange)](https://www.gnu.org/licenses/gpl-3.0.html)
-[![Versão de desenvolvimento](https://img.shields.io/badge/Desenvolvimento-0.9.14--beta-yellow)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/Versão-0.9.14-green)](CHANGELOG.md)
 [![GLPI](https://img.shields.io/badge/GLPI-10.0.x%20apenas-blue)](#compatibilidade)
 [![Repositório](https://img.shields.io/badge/Reposit%C3%B3rio-GitLab-informational)](https://git.unifesp.br/dssc/sua-unifesp/glpi/plugins/project-plus)
 
@@ -102,8 +102,8 @@ uma permissão não dispensa o acesso ao chamado, projeto ou entidade envolvidos
 
 ## Versão e histórico
 
-- Linha atual de desenvolvimento: **0.9.14-beta**.
-- Última versão marcada no repositório: **0.9.13-beta**.
+- Versão atual: **0.9.14**.
+- Tag desta versão: **v0.9.14**.
 - Histórico completo: [CHANGELOG.md](CHANGELOG.md).
 
 ## Documentação

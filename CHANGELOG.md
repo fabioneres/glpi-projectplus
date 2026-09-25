@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## 0.9.14 — 2026-09-25
 
 ### Alterado
 
@@ -28,8 +28,6 @@
 - Um documento recusado **volta ao estado de rascunho**. Antes, a versão recusada continuava marcada como gerada — e, como o botão *Enviar para aceite* depende apenas de existir uma versão gerada, o responsável conseguia reenviar ao cliente exatamente o documento que acabara de ser recusado, sem corrigir nada e sem gerar nova versão. Agora *Enviar para aceite* só reaparece depois de o documento ser gerado de novo. O conteúdo é preservado: o responsável edita o que foi apontado, gera e envia.
 - O aviso de recusa passa a ter **um texto por termo** — TAP, TEP e TA —, todos editáveis em *Configuração das etapas do fluxo*. O que o cliente recusa em cada um é diferente: no TEP a recusa é da **entrega**, não da redação do documento, e o texto agora diz isso.
 - **Cancelar solicitação era oferecido onde não funcionava.** O bloco aparecia em todas as fases, inclusive depois do projeto aberto — mas ali não há para onde ir: o chamado já foi solucionado e a fase é final. Quem tentasse escrevia a justificativa e recebia o erro *"A etapa solicitada não pode ser executada antes da conclusão da etapa anterior"*, que não descreve o problema. Nessa fase o formulário dá lugar a um aviso explicando que a interrupção agora é do **projeto**, pelo estado nativo do GLPI, com link direto para ele. Nas demais fases o cancelamento continua igual.
-
-## 0.9.14-beta
 
 ### Removido
 

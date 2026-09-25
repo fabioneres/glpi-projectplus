@@ -1,0 +1,4 @@
+# Arquivos de desenvolvimento e operação interna não fazem parte do pacote GLPI.
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/docs export-ignore
