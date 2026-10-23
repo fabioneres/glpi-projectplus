@@ -18,6 +18,7 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 - A ação em massa nativa passa a reconhecer a configuração de categoria (`glpiitemtypetables`).
 - Removido o hook `CSRF_COMPLIANT`, depreciado e ignorado pelo GLPI 11.
 - **Negativa da abertura não trava mais o fluxo.** Quando o solicitante reprova a solução que negou a abertura, o chamado reaberto volta para *Aguardando autorização de abertura* e o Gestor de Portfólio pode autorizar ou negar de novo. O acompanhamento publicado é editável em *Configuração das etapas do fluxo* (evento *Fluxo retomado após reprovação da negativa*). Cancelamento comum continua sem retomada. O texto padrão do aviso de consequência da negativa foi atualizado; instalações que o editaram mantêm o texto salvo.
+- Depois de **Gerar**, **Salvar rascunho** ou **Enviar** um termo, a página permanece onde estava e o passo da jornada continua aberto, em vez de voltar ao topo (TAP no chamado; TEP e TA no projeto).
 - A coluna **Ação** das listas de campos (TIP, TIP-DT, TAP, TEP, TA) e da configuração de categoria voltou a mostrar o botão *Editar*: o GLPI 11 prefixa o texto dos cabeçalhos com `- ` e os scripts comparavam o texto exato. O link agora também é gerado no servidor (`giveItem`), o que elimina um aviso de chave indefinida por linha no log.
 
 ## 0.9.14 — 2026-09-25

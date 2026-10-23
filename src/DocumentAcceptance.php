@@ -555,7 +555,7 @@ class DocumentAcceptance extends CommonDBTM
                ? __('Documento recusado pelo cliente. Revise, gere uma nova versão e envie novamente.', 'projectplus')
                : __('Aguardando aceite do cliente.', 'projectplus'));
       }
-      echo "<section class='projectplus-tip__card projectplus-acceptance__card'><div class='projectplus-tip__section-title'><i class='ti ti-file-description'></i><div><h3>" . self::esc($label) . '</h3><p>' . self::esc($description) . '</p></div></div>';
+      echo "<section id='projectplus-doc-" . self::esc($type) . "' class='projectplus-tip__card projectplus-acceptance__card'><div class='projectplus-tip__section-title'><i class='ti ti-file-description'></i><div><h3>" . self::esc($label) . '</h3><p>' . self::esc($description) . '</p></div></div>';
       if (!$row && self::canEditDraft($item, $type)) {
          if ($item instanceof Project && $type === 'ta' && (!(self::getForItem($item, 'tep')) || (string) (self::getForItem($item, 'tep')['status'] ?? '') !== 'accepted')) {
             echo "<div class='alert alert-info'>" . self::esc(__('O TA será liberado após o aceite do TEP.', 'projectplus')) . '</div>';
@@ -567,6 +567,99 @@ class DocumentAcceptance extends CommonDBTM
       }
       elseif ($row) { self::showAcceptance($item, $row); }
       echo '</section>';
+      self::keepScrollPosition($type);
+   }
+
+   /**
+    * Mantem a pagina onde estava depois de Salvar, Gerar, Enviar ou decidir.
+    *
+    * Cada acao do cartao e um POST seguido de redirecionamento, e o conteudo
+    * chega por AJAX numa aba: sem isto a pagina recarrega no topo, justamente
+    * quando o proximo passo (por exemplo "Enviar para aceite") esta logo abaixo.
+    * Ao enviar, guarda onde o cartao estava na tela e se o passo da jornada
+    * estava aberto; ao reaparecer, reabre o passo e rola so a diferenca para o
+    * cartao voltar ao mesmo ponto.
+    */
+   private static function keepScrollPosition(string $type): void
+   {
+      $id = 'projectplus-doc-' . $type;
+      echo Html::scriptBlock(<<<JAVASCRIPT
+(function () {
+   var section = document.getElementById('{$id}');
+   if (!section) {
+      return;
+   }
+   var key = 'projectplus-keep-scroll';
+   if (!section.dataset.projectplusKeepScroll) {
+      section.dataset.projectplusKeepScroll = '1';
+      section.addEventListener('submit', function (event) {
+         try {
+            var step = section.closest('details');
+            var sender = event.submitter || null;
+            sessionStorage.setItem(key, JSON.stringify({
+               id: section.id,
+               top: section.getBoundingClientRect().top,
+               open: !!(step && step.open),
+               label: sender ? sender.textContent.replace(/\s+/g, ' ').trim() : '',
+               labelTop: sender ? sender.getBoundingClientRect().top : null
+            }));
+         } catch (e) {}
+      }, true);
+   }
+   var saved = null;
+   try {
+      saved = JSON.parse(sessionStorage.getItem(key) || 'null');
+   } catch (e) {}
+   if (saved && saved.id === section.id) {
+      try {
+         sessionStorage.removeItem(key);
+      } catch (e) {}
+      // A jornada recarrega com os passos recolhidos: reabre o que estava aberto.
+      var step = section.closest('details');
+      if (saved.open && step && !step.open) {
+         step.open = true;
+      }
+      // O conteudo da aba chega por AJAX e a pagina cresce aos poucos: repete ate
+      // a posicao bater, e desiste se o usuario assumir a rolagem.
+      var tries = 0;
+      var timer = null;
+      var stop = function () {
+         clearInterval(timer);
+         window.removeEventListener('wheel', stop);
+         window.removeEventListener('touchstart', stop);
+         window.removeEventListener('keydown', stop);
+         window.removeEventListener('mousedown', stop);
+      };
+      window.addEventListener('wheel', stop, {passive: true});
+      window.addEventListener('touchstart', stop, {passive: true});
+      window.addEventListener('keydown', stop);
+      window.addEventListener('mousedown', stop);
+      // Alinha pelo botao que o usuario clicou (o proximo passo fica logo abaixo)
+      // e, se ele nao existir mais, pelo topo do cartao.
+      var anchor = function () {
+         if (saved.label && saved.labelTop !== null) {
+            var found = Array.prototype.filter.call(section.querySelectorAll('button'), function (b) {
+               return b.textContent.replace(/\s+/g, ' ').trim() === saved.label;
+            })[0];
+            if (found) {
+               return found.getBoundingClientRect().top - saved.labelTop;
+            }
+         }
+         return section.getBoundingClientRect().top - saved.top;
+      };
+      timer = setInterval(function () {
+         var delta = anchor();
+         if (Math.abs(delta) > 2) {
+            window.scrollBy(0, delta);
+         }
+         if (++tries >= 80) {
+            stop();
+         }
+      }, 150);
+   }
+})();
+JAVASCRIPT
+      );
    }
 
    private static function showDraftForm(CommonDBTM $item, string $type): void
