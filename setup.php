@@ -86,6 +86,7 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_PURGE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectPurge'];
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Ticket::class] = [TicketPhase::class, 'postTicketAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Ticket::class] = [TicketPhase::class, 'preTicketUpdate'];
+   $PLUGIN_HOOKS[Hooks::ITEM_UPDATE]['projectplus'][Ticket::class] = [TicketPhase::class, 'postTicketUpdate'];
    $PLUGIN_HOOKS[Hooks::CHANGE_PROFILE]['projectplus'] = [ProjectProfile::class, 'initProfile'];
 
    // GLPI caches the complete menu in the current session. Invalidate it

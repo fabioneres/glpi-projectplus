@@ -42,7 +42,7 @@ class FlowStageDescription
             'active' => __('O Gestor de Portfólio autoriza ou nega a abertura do projeto, com justificativa quando houver recusa.', 'projectplus'),
             'pending' => __('Conclua a priorização estratégica para liberar a autorização de abertura.', 'projectplus'),
             // Consequencia mostrada ao Gestor de Portfolio no momento da negativa.
-            'warning' => __('A negativa encerra a solicitação: o chamado será solucionado com o conteúdo abaixo e o fluxo não poderá ser retomado. Escolha o tipo de solução para distinguir, nos relatórios, uma abertura negada de um atendimento comum.', 'projectplus'),
+            'warning' => __('A negativa encerra a solicitação: o chamado será solucionado com o conteúdo abaixo. O fluxo só é retomado se o solicitante reprovar a solução; nesse caso a autorização de abertura volta para o Gestor de Portfólio. Escolha o tipo de solução para distinguir, nos relatórios, uma abertura negada de um atendimento comum.', 'projectplus'),
          ],
          'tap' => [
             'label' => __('TAP - Termo de Abertura do Projeto', 'projectplus'),
@@ -140,6 +140,12 @@ class FlowStageDescription
          'tep_returned' => [
             'label' => __('Entrega do projeto recusada pelo cliente', 'projectplus'),
             'default' => __('A entrega do projeto foi recusada pelo cliente e volta para o Gerente de Projetos. Justificativa: {justificativa}', 'projectplus'),
+         ],
+         // A negativa da autorizacao soluciona o chamado. Se o solicitante reprova a
+         // solucao, o GLPI reabre o chamado e o fluxo volta para onde parou.
+         'authorization_resumed' => [
+            'label' => __('Fluxo retomado após reprovação da negativa', 'projectplus'),
+            'default' => __('A solução que negava a abertura do projeto foi reprovada pelo solicitante e o chamado foi reaberto. A solicitação voltou para a autorização de abertura, e o Gestor de Portfólio pode autorizar ou negar novamente.', 'projectplus'),
          ],
          'ta_returned' => [
             'label' => __('Termo de Aceite recusado pelo cliente', 'projectplus'),

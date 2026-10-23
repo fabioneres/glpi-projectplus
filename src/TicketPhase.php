@@ -170,6 +170,9 @@ class TicketPhase extends CommonDBTM
          'awaiting_authorization' => ['authorized_opening', 'rejected_cancelled'],
          'authorized_opening' => ['awaiting_tap_acceptance', 'project_opened', 'rejected_cancelled'],
          'awaiting_tap_acceptance' => ['authorized_opening', 'rejected_cancelled'],
+         // Sai da fase final em um unico caso: a negativa de autorizacao cuja
+         // solucao o solicitante reprovou (ver resumeAfterDeniedAuthorization).
+         'rejected_cancelled' => ['awaiting_authorization'],
       ];
    }
 
@@ -235,6 +238,66 @@ class TicketPhase extends CommonDBTM
       // A request created in a child entity is immediately placed with the
       // configured project manager, when the configuration is complete.
       TicketRouting::routeInitial($ticket);
+   }
+
+   /**
+    * Retoma o fluxo quando o solicitante reprova a solucao que negou a abertura.
+    *
+    * A negativa leva a fase final `rejected_cancelled` e soluciona o chamado. Ao
+    * reprovar a solucao o GLPI reabre o chamado, mas a fase continuava final: o
+    * Gestor de Portfolio nao tinha mais onde autorizar ou negar de novo. O gancho
+    * olha qualquer saida do estado solucionado, e nao so a reprovacao, porque o
+    * efeito para o fluxo e o mesmo: o chamado voltou a estar aberto.
+    */
+   public static function postTicketUpdate(Ticket $ticket): void
+   {
+      $oldStatus = $ticket->oldvalues['status'] ?? null;
+      if ($oldStatus === null) {
+         return;
+      }
+      $finished = [Ticket::SOLVED, Ticket::CLOSED];
+      if (!in_array((int) $oldStatus, $finished, true)
+         || in_array((int) ($ticket->fields['status'] ?? 0), $finished, true)) {
+         return;
+      }
+      self::resumeAfterDeniedAuthorization($ticket);
+   }
+
+   /** @return bool true quando a fase voltou para a autorizacao de abertura */
+   public static function resumeAfterDeniedAuthorization(Ticket $ticket): bool
+   {
+      $ticketId = (int) $ticket->getID();
+      $current = self::getForTicket($ticketId);
+      if ($current === null
+         || (string) ($current['phase'] ?? '') !== 'rejected_cancelled'
+         || !self::lastCancellationWasAuthorizationDenial($ticketId)) {
+         return false;
+      }
+      return self::setPhase(
+         $ticket,
+         'awaiting_authorization',
+         __('Solução da negativa reprovada pelo solicitante.', 'projectplus'),
+         false,
+         'authorization_resumed'
+      );
+   }
+
+   /** A ultima vez que o chamado chegou a fase final foi por negativa de autorizacao? */
+   private static function lastCancellationWasAuthorizationDenial(int $ticketId): bool
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      if ($ticketId <= 0 || !$DB->tableExists(TicketPhaseHistory::getTable())) {
+         return false;
+      }
+      $row = $DB->request([
+         'FROM' => TicketPhaseHistory::getTable(),
+         'WHERE' => ['tickets_id' => $ticketId, 'new_phase' => 'rejected_cancelled'],
+         'ORDER' => ['id DESC'],
+         'LIMIT' => 1,
+      ])->current();
+      return $row !== null && (string) ($row['old_phase'] ?? '') === 'awaiting_authorization';
    }
 
    public static function preTicketUpdate(Ticket $ticket): void
