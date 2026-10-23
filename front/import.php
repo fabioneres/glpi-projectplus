@@ -2,6 +2,7 @@
 
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\ProjectImport;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 if (!defined('GLPI_ROOT')) {
    require_once dirname(__DIR__, 3) . '/inc/includes.php';
@@ -9,7 +10,7 @@ if (!defined('GLPI_ROOT')) {
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 Session::checkRight('config', UPDATE);
-Html::header(__('Importar projetos', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Importar projetos', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 ConfigPage::begin('overview');
 echo "<section class='projectplus-import'><header class='projectplus-import__header'><div class='projectplus-import__icon'><i class='ti ti-file-import'></i></div><div><h2>"
    . ConfigPage::escape(__('Importação de projetos existentes', 'projectplus'))
@@ -25,8 +26,8 @@ try {
       }
    }
 } catch (Throwable $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
-   Html::redirect($_SERVER['PHP_SELF']);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
+   Html::redirect(FrontUrl::to(basename(__FILE__)));
 }
 
 ProjectImport::renderUploadForm();

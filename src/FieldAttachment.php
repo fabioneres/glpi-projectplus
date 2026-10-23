@@ -223,7 +223,7 @@ final class FieldAttachment
       $input = [
          'entities_id'             => (int) $item->getEntityID(),
          'is_recursive'            => 0,
-         'name'                    => addslashes($documentName),
+         'name'                    => $documentName,
          '_filename'               => [$filename],
          '_prefix_filename'        => [$filePrefix],
          '_only_if_upload_succeed' => 1,

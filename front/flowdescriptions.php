@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\FlowStageDescription;
 use GlpiPlugin\Projectplus\TicketPhase;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 
@@ -16,9 +17,9 @@ if (isset($_POST['save_flow_descriptions'])) {
       FlowStageDescription::save($_POST);
       Session::addMessageAfterRedirect(__('Etapas do fluxo atualizadas.', 'projectplus'));
    } catch (RuntimeException $exception) {
-      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
    }
-   Html::redirect($_SERVER['PHP_SELF']);
+   Html::redirect(FrontUrl::to(basename(__FILE__)));
 }
 
 /** Cabecalho de secao, no mesmo padrao das demais telas de configuracao. */
@@ -43,7 +44,7 @@ $field = static function (string $label, string $help, string $control, string $
       . ConfigPage::escape($label) . '</label><small>' . ConfigPage::escape($help) . '</small>' . $control . '</div>';
 };
 
-Html::header(__('Configuração das etapas do fluxo', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Configuração das etapas do fluxo', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 ConfigPage::begin('overview');
 
 echo "<section class='projectplus-tip projectplus-flowcfg'>";
@@ -53,7 +54,7 @@ echo "<header class='projectplus-tip__hero'><div class='projectplus-tip__hero-ic
    . ConfigPage::escape(__('Defina o nome que aparece em Fase atual, escolha os estados internos que ativam cada nome e escreva os textos que o plugin publica sozinho no chamado.', 'projectplus'))
    . '</p></div></header>';
 
-echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo "<form method='post' action='" . htmlescape(FrontUrl::to(basename(__FILE__))) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo "<div class='projectplus-tip__card projectplus-flowcfg__body'>";
 
 // Legenda das variaveis: um administrador precisa dela a mao enquanto escreve

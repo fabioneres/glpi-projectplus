@@ -18,7 +18,7 @@ try {
    ProjectInteraction::escalate($project, $_POST);
    Session::addMessageAfterRedirect(__('Projeto transferido para a entidade selecionada.', 'projectplus'), true, INFO);
 } catch (\Throwable $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 
 Html::redirect(ProjectWorkspace::getProjectRedirectUrl($projectId, (string) ($_POST['projectplus_workspace_tab'] ?? 'interactions')));

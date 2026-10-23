@@ -9,6 +9,7 @@ use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\TipConfig;
 use GlpiPlugin\Projectplus\TipDocumentType;
 use GlpiPlugin\Projectplus\TipField;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 
@@ -30,17 +31,17 @@ if (isset($_POST['save_tip_config'])) {
    } else {
       Session::addMessageAfterRedirect(__('Informe o título do modelo TIP.', 'projectplus'), false, ERROR);
    }
-   Html::redirect($_SERVER['PHP_SELF'] . '?document_type=' . $documentType);
+   Html::redirect(FrontUrl::to(basename(__FILE__)) . '?document_type=' . $documentType);
 }
 
 $config = TipConfig::getForEntity($entityId, $documentType);
-Html::header($documentLabel, $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header($documentLabel, FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 ConfigPage::begin($documentType === TipDocumentType::TIP ? 'pretipmodel' : 'tipmodel');
 echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-forms'></i> "
    . ConfigPage::escape(sprintf(__('Modelo do %s', 'projectplus'), $documentLabel))
    . '</header><div class="projectplus-config-card__body">';
 
-echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>"
+echo "<form method='post' action='" . htmlescape(FrontUrl::to(basename(__FILE__))) . "'>"
    . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()])
    . Html::hidden('entities_id', ['value' => $entityId])
    . Html::hidden('document_type', ['value' => $documentType]);
@@ -99,14 +100,19 @@ document.addEventListener('DOMContentLoaded', function () {
    const renderProjectplusActions = function () {
       document.querySelectorAll('.search-container table').forEach(function (table) {
       const headers = Array.from(table.querySelectorAll('thead th'));
+      // GLPI 11 renders each header as "- <label>" followed by the sort
+      // indicator, so the raw text never equals the label.
+      const headerLabel = function (cell) {
+         return cell.textContent.replace(/^\s*-\s*/, '').trim();
+      };
       const idIndex = headers.findIndex(function (cell) {
-         return cell.textContent.trim().indexOf('ID') === 0;
+         return headerLabel(cell).indexOf('ID') === 0;
       });
       const actionIndex = headers.findIndex(function (cell) {
-         return cell.textContent.trim() === 'Ação';
+         return headerLabel(cell) === 'Ação';
       });
       const documentTypeIndex = headers.findIndex(function (cell) {
-         return cell.textContent.trim() === 'Tipo de documento';
+         return headerLabel(cell) === 'Tipo de documento';
       });
       // This criterion is an internal scope guard for TIP/TIP-DT. Search
       // adds every active criterion to the result set, so hide its technical

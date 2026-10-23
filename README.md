@@ -6,18 +6,18 @@
 
 [![Licença](https://img.shields.io/badge/Licen%C3%A7a-GPLv3%2B-orange)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![Versão](https://img.shields.io/badge/Versão-0.9.14-green)](CHANGELOG.md)
-[![GLPI](https://img.shields.io/badge/GLPI-10.0.x%20apenas-blue)](#compatibilidade)
+[![GLPI](https://img.shields.io/badge/GLPI-11.0.x%20apenas-blue)](#compatibilidade)
 [![Repositório](https://img.shields.io/badge/Reposit%C3%B3rio-GitLab-informational)](https://git.unifesp.br/dssc/sua-unifesp/glpi/plugins/project-plus)
 
-Plugin para GLPI 10 que organiza a solicitação, avaliação, priorização,
+Plugin para GLPI 11 que organiza a solicitação, avaliação, priorização,
 autorização e abertura de projetos a partir de chamados. O Project+ preserva o
 chamado como registro da demanda e cria o projeto nativo do GLPI somente depois
 da conclusão sequencial das etapas exigidas.
 
-> ### ⚠️ Compatibilidade: somente GLPI 10.0.x
+> ### ⚠️ Compatibilidade: somente GLPI 11.0.x
 >
-> Esta linha funciona exclusivamente em **GLPI 10.0.20 a 10.0.99**, com
-> **PHP 7.4 ou superior**. Não instale em GLPI 11.
+> Esta linha funciona exclusivamente em **GLPI 11.0.0 a 11.0.99**, com
+> **PHP 8.2 ou superior**. Não instale em GLPI 10: para ele existe a linha `0.x`.
 
 ## Funcionalidades
 
@@ -77,9 +77,9 @@ Project+ criar o projeto nativo vinculado e solucionar o chamado.
 
 ## Compatibilidade
 
-- GLPI: **10.0.20 a 10.0.99**.
-- PHP: **7.4 ou superior**.
-- Banco de dados: MySQL ou MariaDB compatíveis com o GLPI 10.
+- GLPI: **11.0.0 a 11.0.99**.
+- PHP: **8.2 ou superior**.
+- Banco de dados: MySQL ou MariaDB compatíveis com o GLPI 11.
 
 ## Instalação
 

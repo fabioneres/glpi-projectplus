@@ -26,6 +26,6 @@ try {
       Session::addMessageAfterRedirect(__('Abertura negada e chamado solucionado.', 'projectplus'));
    }
 } catch (\RuntimeException $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 Html::redirect(RoutingNotice::getRedirectUrl($ticket));

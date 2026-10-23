@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\DocumentField;
 use GlpiPlugin\Projectplus\FieldSource;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 
@@ -48,14 +49,14 @@ $field['source'] = (string) ($field['source'] ?? '');
 
 Html::header(
    (int) $field['id'] ? __('Editar campo do documento', 'projectplus') : __('Adicionar campo ao documento', 'projectplus'),
-   $_SERVER['PHP_SELF'],
+   FrontUrl::to(basename(__FILE__)),
    'config',
    'plugins'
 );
 ConfigPage::begin($documentType . 'model');
 
 echo "<section class='projectplus-config-card'><div class='projectplus-config-card__body'>";
-echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
+echo "<form method='post' action='" . htmlescape(FrontUrl::to(basename(__FILE__))) . "'>";
 echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo Html::hidden('entities_id', ['value' => $entityId]);
 echo Html::hidden('document_type', ['value' => $documentType]);

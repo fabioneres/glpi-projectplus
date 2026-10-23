@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\RoutingNotice;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkLoginUser();
 $notice = RoutingNotice::consume();
@@ -14,7 +15,7 @@ if ($notice === null) {
    Html::redirect(Ticket::getSearchURL());
 }
 
-Html::header(__('Solicitação encaminhada', 'projectplus'), $_SERVER['PHP_SELF'], 'helpdesk', 'ticket');
+Html::header(__('Solicitação encaminhada', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'helpdesk', 'ticket');
 echo "<div class='container-xl'><div class='card'><div class='card-header'><h3 class='card-title'><i class='ti ti-route'></i> "
    . ConfigPage::escape(__('Solicitação encaminhada', 'projectplus'))
    . "</h3></div><div class='card-body'><div class='alert alert-info mb-3'>"

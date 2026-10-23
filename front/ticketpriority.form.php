@@ -24,6 +24,6 @@ try {
          : __('Priorização da solicitação salva.', 'projectplus')
    );
 } catch (\Throwable $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 Html::redirect(RoutingNotice::getRedirectUrl($ticket));

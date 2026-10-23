@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\FieldSource;
 use GlpiPlugin\Projectplus\ProjectFieldConfig;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 $entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
@@ -23,11 +24,11 @@ if (isset($_POST['save'])) {
 
 $configured = ProjectFieldConfig::getForEntity($entityId);
 $sources = FieldSource::getProjectDocumentOptions($entityId);
-Html::header(__('Campos do Projeto', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Campos do Projeto', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 ConfigPage::begin('projectfields');
 echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-arrows-exchange'></i> " . ConfigPage::escape(__('Origem dos campos do Projeto', 'projectplus')) . '</header><div class="projectplus-config-card__body">';
 echo '<p class="projectplus-config-help">' . ConfigPage::escape(__('Defina de onde cada campo do formulário nativo de Projeto será sugerido. O Project+ usa automaticamente a entidade do chamado de origem e aplica o mapeamento ao projeto vinculado. Sem origem configurada, o GLPI mantém seu preenchimento normal.', 'projectplus')) . '</p>';
-echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo "<form method='post' action='" . htmlescape(FrontUrl::to(basename(__FILE__))) . "'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo Html::hidden('entities_id', ['value' => $entityId]);
 echo '<table class="tab_cadre_fixe projectplus-project-fields-table"><colgroup><col class="projectplus-project-fields-table__name"><col class="projectplus-project-fields-table__source"></colgroup><tr class="tab_bg_2"><th>' . __('Campo do Projeto', 'projectplus') . '</th><th>' . __('Preencher com origem', 'projectplus') . '</th></tr>';
 foreach (ProjectFieldConfig::getTargets() as $field => $label) {

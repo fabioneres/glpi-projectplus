@@ -24,7 +24,7 @@ try {
       : __('Interação publicada.', 'projectplus');
    Session::addMessageAfterRedirect($message, true, INFO);
 } catch (\Throwable $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 
 if (Session::getCurrentInterface() === 'helpdesk') {

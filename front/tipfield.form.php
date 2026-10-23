@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use GlpiPlugin\Projectplus\TipField;
 use GlpiPlugin\Projectplus\FieldSource;
 use GlpiPlugin\Projectplus\TipDocumentType;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 $documentType = (string) ($_REQUEST['document_type'] ?? 'tip');
@@ -23,8 +24,8 @@ if (isset($_POST['save_tip_field'])) {
 }
 $field = TipField::getForEntityById((int) ($_GET['id'] ?? 0), $entityId, $documentType) ?? ['id'=>0,'label'=>'','description'=>'','field_type'=>'text','values'=>'','source'=>'','is_required'=>0,'is_active'=>1,'is_recursive'=>0,'sort_order'=>0];
 $field['source'] = (string) ($field['source'] ?? '');
-Html::header((int) $field['id'] ? __('Editar campo TIP', 'projectplus') : __('Adicionar campo TIP', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
-echo "<div class='projectplus-question-editor'><form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>" . Html::hidden('_glpi_csrf_token', ['value'=>Session::getNewCSRFToken()]) . Html::hidden('entities_id',['value'=>$entityId]) . Html::hidden('document_type',['value'=>$documentType]) . Html::hidden('id',['value'=>(int)$field['id']]);
+Html::header((int) $field['id'] ? __('Editar campo TIP', 'projectplus') : __('Adicionar campo TIP', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
+echo "<div class='projectplus-question-editor'><form method='post' action='" . htmlescape(FrontUrl::to(basename(__FILE__))) . "'>" . Html::hidden('_glpi_csrf_token', ['value'=>Session::getNewCSRFToken()]) . Html::hidden('entities_id',['value'=>$entityId]) . Html::hidden('document_type',['value'=>$documentType]) . Html::hidden('id',['value'=>(int)$field['id']]);
 echo "<table class='tab_cadre_fixe'><tr class='tab_bg_2'><th colspan='2'>" . ((int)$field['id'] ? __('Editar campo', 'projectplus') : __('Novo campo', 'projectplus')) . '</th></tr>';
 echo "<tr class='tab_bg_1'><td>" . __('Rótulo', 'projectplus') . "</td><td><input class='form-control' required name='label' value='" . htmlspecialchars((string)$field['label'], ENT_QUOTES, 'UTF-8') . "'></td></tr>";
 echo "<tr class='tab_bg_1'><td>" . __('Tipo', 'projectplus') . '</td><td>'; Dropdown::showFromArray('field_type', TipField::getTypes(), ['value'=>(string)$field['field_type']]); echo '</td></tr>';

@@ -46,7 +46,7 @@ class ProjectClosure
          return true;
       }
 
-      Session::addMessageAfterRedirect($motivo, false, ERROR);
+      Session::addMessageAfterRedirect(htmlescape($motivo), false, ERROR);
       // O GLPI aborta a atualizacao inteira quando o hook zera a entrada.
       $project->input = false;
       return false;

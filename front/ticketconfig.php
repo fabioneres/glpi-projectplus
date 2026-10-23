@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\TicketCategoryConfig;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 
@@ -15,7 +16,7 @@ Session::checkRight('config', UPDATE);
 // engine while preserving every existing activation choice.
 TicketCategoryConfig::synchronizeAvailableCategories();
 
-Html::header(__('Fluxo de solicitação de projeto', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Fluxo de solicitação de projeto', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 ConfigPage::begin('ticketflow');
 
 echo "<section class='projectplus-config-card'><header class='projectplus-config-card__header'><i class='ti ti-git-branch'></i> "
@@ -91,8 +92,10 @@ echo <<<HTML
          return;
       }
 
+      // GLPI 11 renders each header as "- <label>" followed by the sort
+      // indicator, so the raw text never equals the label.
       let actionHeader = Array.from(headerRow.querySelectorAll('th')).find(function (cell) {
-         return cell.textContent.trim() === actionLabel;
+         return cell.textContent.replace(/^\s*-\s*/, '').trim() === actionLabel;
       });
       let actionIndex = actionHeader
          ? Array.from(headerRow.children).indexOf(actionHeader)

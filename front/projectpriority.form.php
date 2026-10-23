@@ -16,6 +16,6 @@ try {
    ProjectPriority::saveForProject($project, $_POST);
    Session::addMessageAfterRedirect(__('Priorização institucional salva.', 'projectplus'));
 } catch (Throwable $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 Html::redirect(ProjectWorkspace::getProjectRedirectUrl($projectId, (string) ($_POST['projectplus_workspace_tab'] ?? 'priority')));

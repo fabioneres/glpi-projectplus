@@ -39,6 +39,6 @@ class ConfigPage
    private static function navLink(string $key, string $url, string $icon, string $label, string $active): void
    {
       $class = $key === $active ? ' is-active' : '';
-      echo "<a class='projectplus-config-nav__link{$class}' href='" . Html::clean($url) . "'><i class='" . self::escape($icon) . "'></i> " . self::escape($label) . '</a>';
+      echo "<a class='projectplus-config-nav__link{$class}' href='" . htmlescape($url) . "'><i class='" . self::escape($icon) . "'></i> " . self::escape($label) . '</a>';
    }
 }

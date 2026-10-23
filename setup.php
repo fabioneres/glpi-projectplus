@@ -23,14 +23,20 @@ require_once __DIR__ . '/bootstrap.php';
 
 function plugin_init_projectplus(): void
 {
-   global $PLUGIN_HOOKS;
+   global $CFG_GLPI, $PLUGIN_HOOKS;
 
-   $PLUGIN_HOOKS[Hooks::CSRF_COMPLIANT]['projectplus'] = true;
    Plugin::loadLang('projectplus');
 
    if (!Plugin::isPluginActive('projectplus')) {
       return;
    }
+
+   // GLPI 11 derives the itemtype of a table from the class name, which does
+   // not match this table (it is shared with TicketConfig). Without the map,
+   // getItemTypeForTable() returns null and the native "Modify" mass action
+   // fails with a TypeError.
+   $CFG_GLPI['glpiitemtypetables'][TicketCategoryConfig::getTable()] = TicketCategoryConfig::class;
+   $CFG_GLPI['glpitablesitemtype'][TicketCategoryConfig::class] = TicketCategoryConfig::getTable();
 
    // The Project+ interaction composer uses the same rich-text editor as
    // native ticket followups.  It must be queued before GLPI renders the
@@ -108,6 +114,9 @@ function plugin_version_projectplus(): array
       'license'      => 'GPLv3+',
       'homepage'     => '',
       'requirements' => [
+         'php' => [
+            'min' => '8.2',
+         ],
          'glpi' => [
             'min' => PLUGIN_PROJECTPLUS_MIN_GLPI_VERSION,
             'max' => PLUGIN_PROJECTPLUS_MAX_GLPI_VERSION,

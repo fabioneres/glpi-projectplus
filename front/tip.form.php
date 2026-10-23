@@ -27,24 +27,24 @@ if ($ticketId <= 0 || !$ticket->getFromDB($ticketId) || !ItemAccess::canAct($tic
 try {
    if (isset($_POST['request_intent']) || isset($_POST['request_tip'])) {
       TicketIntent::requestForTicket($ticket, $documentType);
-      Session::addMessageAfterRedirect(sprintf(__('%s solicitado ao solicitante.', 'projectplus'), $documentName));
+      Session::addMessageAfterRedirect(htmlescape(sprintf(__('%s solicitado ao solicitante.', 'projectplus'), $documentName)));
    } elseif (isset($_POST['generate_intent'])) {
       TicketIntent::saveForTicket($ticket, $_POST, $documentType, true);
-      Session::addMessageAfterRedirect(sprintf(__('%s gerado e disponibilizado para consulta.', 'projectplus'), $documentName));
+      Session::addMessageAfterRedirect(htmlescape(sprintf(__('%s gerado e disponibilizado para consulta.', 'projectplus'), $documentName)));
    } elseif (isset($_POST['save_intent']) || isset($_POST['save_tip'])) {
       TicketIntent::saveForTicket($ticket, $_POST, $documentType);
-      Session::addMessageAfterRedirect(sprintf(__('%s enviado para análise do gerente de projetos.', 'projectplus'), $documentName));
+      Session::addMessageAfterRedirect(htmlescape(sprintf(__('%s enviado para análise do gerente de projetos.', 'projectplus'), $documentName)));
    } elseif (isset($_POST['accept_intent']) || isset($_POST['accept_tip'])) {
       TicketIntent::acceptForTicket($ticket, $documentType);
-      Session::addMessageAfterRedirect(sprintf(__('%s aceito e encaminhado para classificação.', 'projectplus'), $documentName));
+      Session::addMessageAfterRedirect(htmlescape(sprintf(__('%s aceito e encaminhado para classificação.', 'projectplus'), $documentName)));
    } elseif (isset($_POST['return_intent']) || isset($_POST['reject_intent']) || isset($_POST['reject_tip'])) {
       // reject_* continua aceito porque a acao mudou de nome, nao de lugar:
       // uma aba aberta antes da atualizacao ainda envia o nome antigo.
       TicketIntent::returnForTicket($ticket, (string) ($_POST['justification'] ?? ''), $documentType);
-      Session::addMessageAfterRedirect(sprintf(__('%s devolvido ao solicitante para ajuste.', 'projectplus'), $documentName));
+      Session::addMessageAfterRedirect(htmlescape(sprintf(__('%s devolvido ao solicitante para ajuste.', 'projectplus'), $documentName)));
    }
 } catch (\RuntimeException $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 
 Html::redirect(RoutingNotice::getRedirectUrl($ticket));

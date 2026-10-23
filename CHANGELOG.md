@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.0-alpha.1 - Unreleased (linha GLPI 11)
+
+Primeira versão da linha **GLPI 11**, equivalente funcional à `0.9.14` (linha GLPI 10). Sem funcionalidade nova.
+Candidata interna: ainda não validada em navegação nem em fluxo completo.
+
+### Alterado
+
+- Compatível com **GLPI 11.0.0 a 11.0.99** e **PHP 8.2** ou superior. Não instala em GLPI 10.
+- `css/`, `js/` e `pics/` passam a ficar em `public/`: o GLPI 11 só serve essa pasta em `/plugins/<chave>/`. Os caminhos nos hooks não mudam.
+- As páginas de configuração passam a montar a própria URL (`FrontUrl`) em vez de `$_SERVER['PHP_SELF']`, que no GLPI 11 vale sempre `/index.php`.
+- Consultas SQL em texto deixam de passar por `$DB->request()` (proibido no GLPI 11): `doQuery()` para `SHOW INDEX` e critérios em array para a contagem.
+- `Html::clean()` (removido no GLPI 11) substituído por `htmlescape()`.
+- `Html::displayNotFoundError()` e `Html::displayRightError()` (depreciados) substituídos pelas exceções `NotFoundHttpException` e `AccessDeniedHttpException`.
+- Mensagens de aviso que carregam texto dinâmico (exceções, justificativas, nomes de documento) passam por `htmlescape()`: no GLPI 11 elas são exibidas sem codificação.
+- Deixa de aplicar `addslashes`, `Toolbox::addslashes_deep` e `Sanitizer::sanitize` na criação de projeto, de anexo e de solução: o GLPI 11 espera valores crus em `add()`, e o escape antigo gravaria barras literais ou texto codificado.
+- A ação em massa nativa passa a reconhecer a configuração de categoria (`glpiitemtypetables`).
+- Removido o hook `CSRF_COMPLIANT`, depreciado e ignorado pelo GLPI 11.
+- A coluna **Ação** das listas de campos (TIP, TIP-DT, TAP, TEP, TA) e da configuração de categoria voltou a mostrar o botão *Editar*: o GLPI 11 prefixa o texto dos cabeçalhos com `- ` e os scripts comparavam o texto exato. O link agora também é gerado no servidor (`giveItem`), o que elimina um aviso de chave indefinida por linha no log.
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado

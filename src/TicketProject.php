@@ -120,7 +120,8 @@ class TicketProject
          throw new \RuntimeException(__('O chamado ainda não está autorizado para abertura ou você não possui permissão.', 'projectplus'));
       }
 
-      $solutionContent = \Glpi\Toolbox\Sanitizer::sanitize(trim((string) ($solutionInput['content'] ?? '')));
+      // GLPI 11 no longer sanitizes input: CommonDBTM::add() takes the raw rich text.
+      $solutionContent = trim((string) ($solutionInput['content'] ?? ''));
       if (trim(html_entity_decode(strip_tags($solutionContent), ENT_QUOTES, 'UTF-8')) === '') {
          throw new \RuntimeException(__('Informe uma mensagem para o solicitante antes de abrir o projeto.', 'projectplus'));
       }
@@ -140,10 +141,9 @@ class TicketProject
          // keeps the flow working and leaves the project visible for renaming.
          $projectInput['name'] = self::resolveProjectName($projectInput['name'] ?? '');
          $project = new Project();
-         // Values loaded from the database do not pass through GLPI's normal
-         // request escaping. Escape the complete programmatic input before
-         // handing it to CommonDBTM, including rich-text CSS with apostrophes.
-         $projectId = (int) $project->add(\Toolbox::addslashes_deep($projectInput));
+         // GLPI 11 expects raw values in add(): escaping here (as GLPI 10 required
+         // for programmatic input) would store literal backslashes.
+         $projectId = (int) $project->add($projectInput);
          if ($projectId <= 0 || !$project->getFromDB($projectId)) {
             throw new \RuntimeException(__('Não foi possível criar o projeto.', 'projectplus'));
          }

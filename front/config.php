@@ -7,9 +7,10 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\ProjectImport;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', READ);
-Html::header(__('Project+', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Project+', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 
 ConfigPage::begin('overview');
 echo "<section class='projectplus-tip projectplus-config-overview'>";
@@ -44,7 +45,7 @@ echo "<article class='projectplus-config-option'><div class='projectplus-config-
 echo '<h3>' . ConfigPage::escape(__('Importação de projetos existentes', 'projectplus')) . '</h3>';
 echo '<p>' . ConfigPage::escape(__('Importe uma planilha CSV, valide os dados e preencha os projetos existentes no GLPI.', 'projectplus')) . '</p>';
 if (Session::haveRight('config', UPDATE)) {
-   echo "<a class='btn btn-primary' href='" . Html::clean(ProjectImport::getFormURL()) . "'>" . ConfigPage::escape(__('Abrir importação', 'projectplus')) . '</a>';
+   echo "<a class='btn btn-primary' href='" . htmlescape(ProjectImport::getFormURL()) . "'>" . ConfigPage::escape(__('Abrir importação', 'projectplus')) . '</a>';
 }
 echo '</div></article>';
 

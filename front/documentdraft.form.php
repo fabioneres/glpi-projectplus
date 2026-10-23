@@ -59,7 +59,7 @@ foreach (DocumentField::get((int) $item->getEntityID(), $type, true) as $field) 
    try {
       $value = FieldValue::normalize($field, $answers[(int) $field['id']] ?? '');
    } catch (\RuntimeException $exception) {
-      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
       Html::redirect($redirectUrl);
    }
    if ((int) $field['is_required'] && $value === '') {
@@ -78,7 +78,7 @@ foreach ($fileFields as $field) {
          $item
       );
    } catch (\RuntimeException $exception) {
-      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
       Html::redirect($redirectUrl);
    }
    if ((int) $field['is_required'] && $value === '') {

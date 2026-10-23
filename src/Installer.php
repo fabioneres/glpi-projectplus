@@ -331,7 +331,7 @@ class Installer
          $entityCategoryKeyExists = false;
          $entityActiveKeyExists = false;
          $entityParticipantKeyExists = false;
-         foreach ($DB->request("SHOW INDEX FROM `{$table}`") as $index) {
+         foreach ($DB->doQuery("SHOW INDEX FROM `{$table}`") as $index) {
             $key = (string) ($index['Key_name'] ?? '');
             $legacyKeyExists = $legacyKeyExists || $key === 'entities_id';
             $entityCategoryKeyExists = $entityCategoryKeyExists || $key === 'entity_category';
@@ -513,7 +513,7 @@ class Installer
       if ($DB->fieldExists($table, 'document_type')) {
          $legacyKeyExists = false;
          $newKeyExists = false;
-         foreach ($DB->request("SHOW INDEX FROM `{$table}`") as $index) {
+         foreach ($DB->doQuery("SHOW INDEX FROM `{$table}`") as $index) {
             $legacyKeyExists = $legacyKeyExists || (string) ($index['Key_name'] ?? '') === 'tickets_id';
             $newKeyExists = $newKeyExists || (string) ($index['Key_name'] ?? '') === 'ticket_document';
          }
@@ -620,7 +620,7 @@ class Installer
       global $DB;
 
       $keys = [];
-      foreach ($DB->request("SHOW INDEX FROM `{$table}`") as $index) {
+      foreach ($DB->doQuery("SHOW INDEX FROM `{$table}`") as $index) {
          $keys[(string) ($index['Key_name'] ?? '')] = true;
       }
       if ($legacyUnique !== '' && isset($keys[$legacyUnique])) {

@@ -4,9 +4,9 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
-define('PLUGIN_PROJECTPLUS_VERSION', '0.9.14');
-define('PLUGIN_PROJECTPLUS_MIN_GLPI_VERSION', '10.0.20');
-define('PLUGIN_PROJECTPLUS_MAX_GLPI_VERSION', '10.0.99');
+define('PLUGIN_PROJECTPLUS_VERSION', '1.0.0-alpha.1');
+define('PLUGIN_PROJECTPLUS_MIN_GLPI_VERSION', '11.0.0');
+define('PLUGIN_PROJECTPLUS_MAX_GLPI_VERSION', '11.0.99');
 define('PLUGIN_PROJECTPLUS_DIR', __DIR__);
 
 spl_autoload_register(static function (string $class): void {

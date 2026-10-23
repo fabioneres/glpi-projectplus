@@ -3,12 +3,13 @@
 include('../../../inc/includes.php');
 
 use GlpiPlugin\Projectplus\ProjectPortal;
+use Glpi\Exception\Http\NotFoundHttpException;
 
 Session::checkLoginUser();
 Session::checkHelpdeskAccess();
 
 if (!ProjectPortal::hasProjectsForCurrentUser()) {
-   Html::displayNotFoundError();
+   throw new NotFoundHttpException();
 }
 
 Html::helpHeader(__('Meus projetos', 'projectplus'), 'projectplus_myprojects', 'myprojects.php');

@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\DocumentField;
 use GlpiPlugin\Projectplus\TipConfig;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 
@@ -22,18 +23,18 @@ if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
 
 if (isset($_POST['save_document_config'])) {
    if (TipConfig::saveForEntity($entityId, $documentType, $_POST)) {
-      Session::addMessageAfterRedirect(sprintf(__('Modelo %s salvo.', 'projectplus'), strtoupper($documentType)));
+      Session::addMessageAfterRedirect(htmlescape(sprintf(__('Modelo %s salvo.', 'projectplus'), strtoupper($documentType))));
    } else {
       Session::addMessageAfterRedirect(__('Informe o título do modelo.', 'projectplus'), false, ERROR);
    }
-   Html::redirect($_SERVER['PHP_SELF'] . '?document_type=' . rawurlencode($documentType));
+   Html::redirect(FrontUrl::to(basename(__FILE__)) . '?document_type=' . rawurlencode($documentType));
 }
 
 $config = TipConfig::getForEntity($entityId, $documentType);
 
 Html::header(
    sprintf(__('Modelo %s', 'projectplus'), strtoupper($documentType)),
-   $_SERVER['PHP_SELF'],
+   FrontUrl::to(basename(__FILE__)),
    'config',
    'plugins'
 );
@@ -43,7 +44,7 @@ echo "<section class='projectplus-config-card'><header class='projectplus-config
    . ConfigPage::escape(sprintf(__('Campos do modelo %s', 'projectplus'), strtoupper($documentType)))
    . "</header><div class='projectplus-config-card__body'>";
 
-echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>"
+echo "<form method='post' action='" . htmlescape(FrontUrl::to(basename(__FILE__))) . "'>"
    . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()])
    . Html::hidden('entities_id', ['value' => $entityId])
    . Html::hidden('document_type', ['value' => $documentType]);
@@ -103,14 +104,19 @@ document.addEventListener('DOMContentLoaded', function () {
    const renderProjectplusActions = function () {
       document.querySelectorAll('.search-container table').forEach(function (table) {
       const headers = Array.from(table.querySelectorAll('thead th'));
+      // GLPI 11 renders each header as "- <label>" followed by the sort
+      // indicator, so the raw text never equals the label.
+      const headerLabel = function (cell) {
+         return cell.textContent.replace(/^\s*-\s*/, '').trim();
+      };
       const idIndex = headers.findIndex(function (cell) {
-         return cell.textContent.trim().indexOf('ID') === 0;
+         return headerLabel(cell).indexOf('ID') === 0;
       });
       const actionIndex = headers.findIndex(function (cell) {
-         return cell.textContent.trim() === 'Ação';
+         return headerLabel(cell) === 'Ação';
       });
       const documentTypeIndex = headers.findIndex(function (cell) {
-         return cell.textContent.trim() === 'Tipo de documento';
+         return headerLabel(cell) === 'Tipo de documento';
       });
       // The document type limits this native table internally. It is not a
       // field the administrator needs to see in the model's default view.

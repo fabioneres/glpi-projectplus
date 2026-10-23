@@ -48,7 +48,11 @@ final class TipDocumentType
          if (!$DB->tableExists($table) || !$DB->fieldExists($table, 'source')) {
             continue;
          }
-         $legacy = $DB->request("SELECT COUNT(*) AS `total` FROM `{$table}` WHERE `source` LIKE 'document:pretip:%'")->current();
+         $legacy = $DB->request([
+            'COUNT' => 'total',
+            'FROM'  => $table,
+            'WHERE' => ['source' => ['LIKE', 'document:pretip:%']],
+         ])->current();
          if ((int) ($legacy['total'] ?? 0) === 0) {
             continue;
          }

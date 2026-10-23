@@ -26,6 +26,6 @@ try {
    }
    Html::redirect(Project::getFormURLWithID($projectId));
 } catch (\Throwable $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
    Html::redirect(RoutingNotice::getRedirectUrl($ticket));
 }

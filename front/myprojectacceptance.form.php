@@ -4,6 +4,7 @@ include('../../../inc/includes.php');
 
 use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectPortal;
+use Glpi\Exception\Http\NotFoundHttpException;
 
 Session::checkLoginUser();
 Session::checkHelpdeskAccess();
@@ -11,12 +12,12 @@ Session::checkHelpdeskAccess();
 $projectId = (int) ($_POST['projects_id'] ?? $_POST['items_id'] ?? 0);
 $portalProject = ProjectPortal::getProjectForCurrentUser($projectId);
 if ($portalProject === null) {
-   Html::displayNotFoundError();
+   throw new NotFoundHttpException();
 }
 
 $project = new Project();
 if (!$project->getFromDB($projectId)) {
-   Html::displayNotFoundError();
+   throw new NotFoundHttpException();
 }
 
 try {
@@ -30,7 +31,7 @@ try {
       throw new RuntimeException(__('Ação documental inválida.', 'projectplus'));
    }
 } catch (Throwable $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 
 Html::redirect(rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/myproject.php?id=' . $projectId . '&projectplus_portal_tab=documents');

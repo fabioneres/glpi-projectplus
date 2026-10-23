@@ -171,11 +171,11 @@ class ProjectImport
       echo "<section class='projectplus-import__upload'><div class='projectplus-import__section-title'><i class='ti ti-file-spreadsheet'></i><div><h3>"
          . __('Enviar planilha CSV', 'projectplus') . '</h3><p>'
          . __('Use o modelo oficial para manter os campos e cabeçalhos esperados pela importação.', 'projectplus')
-         . "</p></div></div><form method='post' enctype='multipart/form-data' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
+         . "</p></div></div><form method='post' enctype='multipart/form-data' action='" . htmlescape(FrontUrl::to('import.php')) . "'>";
       echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
       echo "<table class='projectplus-import__legacy-table'><tr><th colspan='2'>" . __('Importar projetos existentes', 'projectplus') . '</th></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Planilha modelo', 'projectplus') . "</td><td><a class='btn btn-outline-secondary' href='"
-         . Html::clean(self::getTemplateURL()) . "'>" . __('Baixar modelo CSV', 'projectplus') . '</a></td></tr>';
+         . htmlescape(self::getTemplateURL()) . "'>" . __('Baixar modelo CSV', 'projectplus') . '</a></td></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Arquivo CSV UTF-8', 'projectplus') . "</td><td><input type='file' name='import_file' accept='.csv,text/csv' required></td></tr>";
       echo "<tr class='tab_bg_1'><td colspan='2' class='text-muted'>" . __('Use o modelo oficial. Informe o ID da entidade e seu nome curto ou caminho completo (por exemplo, Entidade pai > Entidade filha). A operação primeiro mostra uma pré-validação; nenhum projeto é criado nesta etapa.', 'projectplus') . '</td></tr>';
       echo "<tr class='tab_bg_2'><td colspan='2' class='center'><button class='btn btn-primary' type='submit' name='action' value='preview'>" . __('Validar arquivo', 'projectplus') . '</button></td></tr>';
@@ -194,13 +194,13 @@ class ProjectImport
       echo "<tr class='tab_bg_1'><td>" . __('Linhas válidas', 'projectplus') . "</td><td>$valid</td><td>" . __('Linhas com erro', 'projectplus') . "</td><td>$invalid</td></tr>";
       echo "<tr><th>" . __('Linha', 'projectplus') . '</th><th>' . __('Projeto', 'projectplus') . '</th><th colspan="2">' . __('Resultado', 'projectplus') . '</th></tr>';
       foreach ($preview['rows'] as $row) {
-         $messages = $row['errors'] ? implode('<br>', array_map([Html::class, 'clean'], $row['errors'])) : __('Pronto para importar', 'projectplus');
+         $messages = $row['errors'] ? implode('<br>', array_map('htmlescape', $row['errors'])) : __('Pronto para importar', 'projectplus');
          echo "<tr class='tab_bg_" . ($row['valid'] ? '1' : '2') . "'><td>" . $row['line'] . '</td><td>'
-            . Html::clean($row['record']['Nome*']) . '</td><td colspan="2">' . $messages . '</td></tr>';
+            . htmlescape($row['record']['Nome*']) . '</td><td colspan="2">' . $messages . '</td></tr>';
       }
       echo '</table>';
       if ($valid) {
-         echo "<form method='post' action='" . Html::clean($_SERVER['PHP_SELF']) . "'>";
+         echo "<form method='post' action='" . htmlescape(FrontUrl::to('import.php')) . "'>";
          echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
          echo "<button class='btn btn-success' type='submit' name='action' value='import'>" . __('Confirmar importação das linhas válidas', 'projectplus') . '</button></form>';
       }
@@ -216,7 +216,7 @@ class ProjectImport
       echo "<div class='center'><table class='tab_cadre_fixe'><tr><th colspan='2'>" . __('Resultado da importação', 'projectplus') . '</th></tr>';
       echo "<tr class='tab_bg_1'><td>" . __('Projetos criados', 'projectplus') . '</td><td>' . count($result['created']) . '</td></tr>';
       foreach ($result['errors'] as $error) {
-         echo "<tr class='tab_bg_2'><td>" . sprintf(__('Linha %s', 'projectplus'), $error['line']) . '</td><td>' . Html::clean($error['message']) . '</td></tr>';
+         echo "<tr class='tab_bg_2'><td>" . sprintf(__('Linha %s', 'projectplus'), $error['line']) . '</td><td>' . htmlescape($error['message']) . '</td></tr>';
       }
       echo '</table></div></section>';
    }

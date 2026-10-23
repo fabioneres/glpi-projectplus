@@ -42,6 +42,6 @@ try {
       Session::addMessageAfterRedirect(__('Documento recusado e devolvido para revisão.', 'projectplus'));
    }
 } catch (\RuntimeException $exception) {
-   Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+   Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
 Html::redirect($item instanceof Ticket ? RoutingNotice::getRedirectUrl($item) : $redirectUrl);

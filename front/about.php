@@ -6,9 +6,10 @@ if (!defined('GLPI_ROOT')) {
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\ConfigPage;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', READ);
-Html::header(__('Project+', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Project+', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 
 ConfigPage::begin('about');
 echo "<section class='projectplus-tip projectplus-about'>";

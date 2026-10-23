@@ -128,7 +128,40 @@ function plugin_projectplus_giveItem($type, $id, $data, $num): string
       $url = \GlpiPlugin\Projectplus\TicketCategoryConfig::getFormURL(true)
          . '?id=' . $rowId;
       return "<a class='btn btn-sm btn-outline-secondary' href='"
-         . \Html::clean($url) . "'>" . __('Editar') . '</a>';
+         . \htmlescape($url) . "'>" . __('Editar') . '</a>';
+   }
+
+   // Fixed "Edit" action of the TIP/TIP-DT and TAP/TEP/TA field lists (option 7).
+   // The option is virtual: GLPI 11 does not select it, so without this hook the
+   // core falls back to the generic "text" rendering and logs an undefined key
+   // for every row. The pages also rewrite the cell in the browser, but the
+   // server-side link keeps the column filled when that script cannot run.
+   $isDocumentField = $type === \GlpiPlugin\Projectplus\DocumentField::class
+      || $type === 'PluginProjectplusDocumentField';
+   $isTipField = $type === \GlpiPlugin\Projectplus\TipField::class
+      || $type === 'PluginProjectplusTipField';
+   if (($isDocumentField || $isTipField) && (int) $id === 7) {
+      $rowId = (int) ($data['id'] ?? 0);
+      if ($rowId <= 0 || !\Session::haveRight('config', UPDATE)) {
+         return '';
+      }
+
+      if ($isDocumentField) {
+         $entityId = (int) ($_REQUEST['entities_id'] ?? \Session::getActiveEntity());
+         $documentType = (string) ($_REQUEST['document_type'] ?? 'tap');
+         $page = 'documentfield.form.php';
+      } else {
+         $entityId = (int) \Session::getActiveEntity();
+         $documentType = (string) ($_REQUEST['document_type'] ?? 'tip');
+         $page = 'tipfield.form.php';
+      }
+      $url = \GlpiPlugin\Projectplus\FrontUrl::to($page, [
+         'entities_id'   => $entityId,
+         'document_type' => $documentType,
+         'id'            => $rowId,
+      ]);
+      return "<a class='btn btn-sm btn-outline-secondary' href='"
+         . \htmlescape($url) . "'>" . __('Editar') . '</a>';
    }
 
    if (($type !== \Ticket::class && $type !== 'Ticket') || (int) $id !== 9523) {

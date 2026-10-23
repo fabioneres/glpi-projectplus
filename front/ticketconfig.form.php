@@ -4,19 +4,22 @@ include('../../../inc/includes.php');
 
 use GlpiPlugin\Projectplus\ProjectProfile;
 use GlpiPlugin\Projectplus\TicketCategoryConfig;
+use GlpiPlugin\Projectplus\FrontUrl;
+use Glpi\Exception\Http\NotFoundHttpException;
+use Glpi\Exception\Http\AccessDeniedHttpException;
 
 Session::checkRight('config', UPDATE);
 
 $id = (int) ($_REQUEST['id'] ?? 0);
 $config = new TicketCategoryConfig();
 if ($id <= 0 || !$config->getFromDB($id)) {
-   Html::displayNotFoundError();
+   throw new NotFoundHttpException();
 }
 
 $entityId = (int) $config->fields['entities_id'];
 $configId = (int) $config->getID();
 if (!Session::haveAccessToEntity($entityId)) {
-   Html::displayRightError();
+   throw new AccessDeniedHttpException();
 }
 
 /** Validate the submitted actor against the same right used by the GLPI dropdown. */
@@ -61,7 +64,7 @@ $validateActor = static function (int $userId, string $right, string $label) use
 
    if (!$allowed) {
       Session::addMessageAfterRedirect(
-         sprintf(__('O usuário selecionado não possui a permissão Project+ necessária para atuar como %s.', 'projectplus'), $label),
+         htmlescape(sprintf(__('O usuário selecionado não possui a permissão Project+ necessária para atuar como %s.', 'projectplus'), $label)),
          false,
          ERROR
       );
@@ -90,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
    Html::redirect('ticketconfig.php');
 }
 
-Html::header(__('Configuração do fluxo de projeto', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Configuração do fluxo de projeto', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 
 $escapeDropdownName = static function (string $value): string {
    // GLPI returns hierarchical dropdown names with the separator already

@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use GlpiPlugin\Projectplus\ConfigPage;
 use GlpiPlugin\Projectplus\TransferRule;
+use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 
@@ -17,9 +18,9 @@ if (isset($_POST['save_transfer_rule'])) {
       TransferRule::saveForOrigin($origem, is_array($alvos) ? array_keys($alvos) : []);
       Session::addMessageAfterRedirect(__('Destinos atualizados.', 'projectplus'));
    } catch (RuntimeException $exception) {
-      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
    }
-   Html::redirect($_SERVER['PHP_SELF'] . '?entities_id=' . $origem);
+   Html::redirect(FrontUrl::to(basename(__FILE__)) . '?entities_id=' . $origem);
 }
 
 if (isset($_POST['remove_transfer_rule'])) {
@@ -27,9 +28,9 @@ if (isset($_POST['remove_transfer_rule'])) {
       TransferRule::removeOrigin((int) ($_POST['entities_id'] ?? -1));
       Session::addMessageAfterRedirect(__('Regra de transferência removida.', 'projectplus'));
    } catch (RuntimeException $exception) {
-      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
    }
-   Html::redirect($_SERVER['PHP_SELF']);
+   Html::redirect(FrontUrl::to(basename(__FILE__)));
 }
 
 $origemSelecionada = isset($_GET['entities_id']) ? (int) $_GET['entities_id'] : -1;
@@ -37,11 +38,11 @@ if ($origemSelecionada >= 0 && !Session::haveAccessToEntity($origemSelecionada))
    $origemSelecionada = -1;
 }
 
-Html::header(__('Transferência de projetos', 'projectplus'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Transferência de projetos', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 ConfigPage::begin('overview');
 
 $regras = TransferRule::getRulesByOrigin();
-$url = Html::clean($_SERVER['PHP_SELF']);
+$url = htmlescape(FrontUrl::to(basename(__FILE__)));
 
 echo "<section class='projectplus-tip projectplus-flowcfg'>";
 echo "<header class='projectplus-tip__hero'><div class='projectplus-tip__hero-icon'><i class='ti ti-arrow-up-right'></i></div><div><span class='projectplus-tip__eyebrow'>"

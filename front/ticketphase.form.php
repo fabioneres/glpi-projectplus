@@ -25,7 +25,7 @@ if (isset($_POST['update_phase'])) {
          Session::addMessageAfterRedirect(__('Fase da solicitação de projeto atualizada.', 'projectplus'));
       }
    } catch (\Throwable $exception) {
-      Session::addMessageAfterRedirect($exception->getMessage(), false, ERROR);
+      Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
    }
 }
 
