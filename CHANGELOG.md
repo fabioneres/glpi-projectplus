@@ -33,6 +33,8 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 
 - **O `php-errors.log` deixa de receber avisos do plugin a cada abertura das listas.** A coluna *Ação* das listas de campos (TIP, TIP-DT, TAP, TEP, TA) usava um campo virtual que o GLPI 11 não seleciona (`Undefined array key "…TipField_7"`, um aviso por linha); passa a usar uma coluna real, com o mesmo botão *Editar*. As quatro listas de cadastro (modelos de acompanhamento, modelos de solução, ações PDTIC e cestas) deixam de incluir o arquivo legado `dropdown.common*.php`, depreciado, e devolvem a resposta do controlador nativo: mesma tela e mesma URL, sem os avisos de saída inesperada.
 
+- **Depois da recusa de um termo (TAP, TEP, TA) o quadro do documento deixa de mostrar uma página de erro do GLPI.** O PDF só existe enquanto o rascunho está gerado; recusado, o termo mostra a justificativa e um aviso para gerar nova versão (no chamado e no portal do solicitante).
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado

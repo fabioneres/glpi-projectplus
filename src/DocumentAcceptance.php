@@ -722,7 +722,15 @@ JAVASCRIPT
       $actionUrl = $actionUrl ?? self::url();
       if ((int)$row['documents_id'] === 0) {
          $src = rtrim((string)$CFG_GLPI['root_doc'],'/') . '/plugins/projectplus/front/documentdraft.pdf.php?itemtype=' . rawurlencode($item::getType()) . '&items_id=' . (int)$item->getID() . '&document_type=' . rawurlencode((string)$row['document_type']);
-         echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc(strtoupper((string)$row['document_type'])) . "</strong><a target='_blank' rel='noopener' href='" . self::esc($src) . "'>" . self::esc(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='Documento gerado' src='" . self::esc($src) . "'></iframe></div>";
+         // O PDF so existe enquanto o rascunho esta gerado. Depois da recusa o rascunho volta a
+         // ser editavel e o endpoint do PDF recusa o pedido: embutir o quadro mostrava uma pagina
+         // de erro do GLPI no lugar do documento.
+         $draft = DocumentDraft::get($item::getType(), (int) $item->getID(), (string) $row['document_type']);
+         if ($draft && (string) $draft['status'] === 'generated') {
+            echo "<div class='projectplus-acceptance__document'><div><strong>" . self::esc(strtoupper((string)$row['document_type'])) . "</strong><a target='_blank' rel='noopener' href='" . self::esc($src) . "'>" . self::esc(__('Abrir documento', 'projectplus')) . "</a></div><iframe title='Documento gerado' src='" . self::esc($src) . "'></iframe></div>";
+         } elseif ((string) $row['status'] === 'rejected') {
+            echo "<div class='alert alert-secondary'><i class='ti ti-file-off'></i> " . self::esc(__('O PDF da versão recusada não está mais disponível. Corrija o documento e gere uma nova versão.', 'projectplus')) . '</div>';
+         }
          if ((string)$row['status'] === 'accepted') { echo "<div class='projectplus-acceptance__accepted'>" . self::esc(__('Aceite registrado.', 'projectplus')) . '</div>'; return; }
          if ((string)$row['status'] === 'rejected') { self::showRejection($row); return; }
          if (self::canAccept($item, (string) $row['document_type'])) { self::showDecisionForms($item, $row, $actionUrl); }
