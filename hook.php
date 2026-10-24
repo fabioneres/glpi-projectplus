@@ -169,7 +169,9 @@ function plugin_projectplus_giveItem($type, $id, $data, $num): string
    }
 
    $value = (string) ($data[$num][0]['name'] ?? '');
-   return \GlpiPlugin\Projectplus\TicketPhase::getPhaseLabel($value);
+   // O Search do GLPI imprime o retorno de giveItem() como HTML: o nome da fase e
+   // configuravel (flowdescriptions.php) e precisa ser escapado aqui.
+   return \htmlescape(\GlpiPlugin\Projectplus\TicketPhase::getPhaseLabel($value));
 }
 
 function plugin_projectplus_install(): bool
