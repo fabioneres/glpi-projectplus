@@ -39,6 +39,8 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 
 - **A desinstalação remove todas as tabelas do plugin.** Seis tabelas (rascunhos, campos dos termos, origem dos campos do Projeto, interações, priorização e vínculo chamado-projeto) ficavam para trás; agora a desinstalação apaga qualquer tabela `glpi_plugin_projectplus_*`.
 
+- **A origem *Descrição do chamado* pré-preenche o formulário com texto puro**, e não mais com o HTML do editor (`<p>`, `<b>`, `&amp;` apareciam literais ao solicitante).
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado

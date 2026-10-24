@@ -2,6 +2,7 @@
 
 namespace GlpiPlugin\Projectplus;
 
+use Glpi\RichText\RichText;
 use CommonDBTM;
 use CommonITILActor;
 use Entity;
@@ -89,12 +90,26 @@ class FieldSource
          if ($fieldType === 'section' || FieldValue::isFileType($fieldType)) {
             continue;
          }
-         $value = self::getValue($item, (string) ($field['source'] ?? ''));
+         $value = self::getPrefillValue($item, (string) ($field['source'] ?? ''));
          if ($value !== '') {
             $values[(int) $field['id']] = ['label' => (string) $field['label'], 'value' => $value];
          }
       }
       return $values;
+   }
+
+   /**
+    * Valor para pre-preencher um campo de formulario: igual a getValue(), mas a descricao do
+    * chamado (HTML do editor de texto) vira texto puro, porque o campo e texto e as tags e
+    * entidades apareciam literais para o solicitante. O Projeto converte por conta propria.
+    */
+   public static function getPrefillValue(CommonDBTM $item, string $source): string
+   {
+      $value = self::getValue($item, $source);
+      if ($value !== '' && $source === 'ticket:content') {
+         $value = trim(RichText::getTextFromHtml($value, false, false, false, false, true));
+      }
+      return $value;
    }
 
    /** @param array<string,mixed> $field */

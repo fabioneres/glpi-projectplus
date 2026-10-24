@@ -402,7 +402,7 @@ class TicketIntent
          $fieldId = (int) $field['id'];
          $value = array_key_exists($fieldId, $stored)
             ? (string) $stored[$fieldId]
-            : FieldSource::getValue($ticket, (string) ($field['source'] ?? ''));
+            : FieldSource::getPrefillValue($ticket, (string) ($field['source'] ?? ''));
          self::showField($field, $value);
       }
       $isTechnicalDetail = $documentType === TipDocumentType::DETAIL;
