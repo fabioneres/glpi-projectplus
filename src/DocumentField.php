@@ -92,6 +92,14 @@ class DocumentField extends CommonDBTM
       if (!in_array($action, ['set_required', 'set_optional', 'activate', 'deactivate', 'set_recursive', 'unset_recursive', 'delete_field'], true)) {
          return;
       }
+      // O estagio "process" do MassiveAction aceita processor/action/items vindos do
+      // cliente: esconder a acao na lista nao a protege. O direito e conferido aqui.
+      if (!Session::haveRight('config', UPDATE)) {
+         foreach (array_keys($ids) as $id) {
+            $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_NORIGHT);
+         }
+         return;
+      }
       foreach (array_keys($ids) as $id) {
          if (!$item->getFromDB((int) $id) || !Session::haveAccessToEntity((int) $item->fields['entities_id'])) {
             $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_NORIGHT);
