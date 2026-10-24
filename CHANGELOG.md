@@ -41,6 +41,13 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 
 - **A origem *Descrição do chamado* pré-preenche o formulário com texto puro**, e não mais com o HTML do editor (`<p>`, `<b>`, `&amp;` apareciam literais ao solicitante).
 
+### Segurança (Security Release Gate de 2026-10-24)
+
+- **Ações em massa dos campos do TIP e dos modelos de termos passam a exigir o direito de configuração na própria execução**, e não só na tela que as oferece.
+- **Termo já aceito pelo cliente não pode ser enviado de novo** (TAP, TEP e TA), inclusive pelo botão de solução do projeto; o aceite deixa de ser apagado sem registro.
+- **O nome configurável das fases é escapado na lista de chamados.**
+- README corrigido para a versão 1.0.0-alpha.1 (logo, instalação e histórico).
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado

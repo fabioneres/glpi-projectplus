@@ -1,11 +1,11 @@
 # Project+ — Portfólio de Projetos
 
 <p align="center">
-  <img src="pics/logo.png" alt="Logo do plugin Project+" width="180">
+  <img src="public/pics/logo.png" alt="Logo do plugin Project+" width="180">
 </p>
 
 [![Licença](https://img.shields.io/badge/Licen%C3%A7a-GPLv3%2B-orange)](https://www.gnu.org/licenses/gpl-3.0.html)
-[![Versão](https://img.shields.io/badge/Versão-0.9.14-green)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/Versão-1.0.0--alpha.1-green)](CHANGELOG.md)
 [![GLPI](https://img.shields.io/badge/GLPI-11.0.x%20apenas-blue)](#compatibilidade)
 [![Repositório](https://img.shields.io/badge/Reposit%C3%B3rio-GitLab-informational)](https://git.unifesp.br/dssc/sua-unifesp/glpi/plugins/project-plus)
 
@@ -83,7 +83,8 @@ Project+ criar o projeto nativo vinculado e solucionar o chamado.
 
 ## Instalação
 
-1. Copie a pasta `projectplus` para `GLPI_ROOT/plugins/`.
+1. Copie o conteúdo do pacote para `GLPI_ROOT/plugins/projectplus/` (o
+   diretório do plugin deve se chamar exatamente `projectplus`).
 2. Em **Configurar > Plugins**, instale e ative **Project+**.
 3. Em **Administração > Perfis**, conceda os direitos do Project+ aos perfis
    que atuarão no fluxo.
@@ -102,15 +103,14 @@ uma permissão não dispensa o acesso ao chamado, projeto ou entidade envolvidos
 
 ## Versão e histórico
 
-- Versão atual: **0.9.14**.
-- Tag desta versão: **v0.9.14**.
+- Versão atual: **1.0.0-alpha.1** (linha para GLPI 11, em validação; ainda sem
+  tag nem release publicada).
+- Para GLPI 10 existe a linha `0.x`, última versão `0.9.14`.
 - Histórico completo: [CHANGELOG.md](CHANGELOG.md).
 
 ## Documentação
 
 - [Histórico de alterações](CHANGELOG.md)
-- [Roadmap técnico e de melhorias](../../../docs/projectplus/ROADMAP_MELHORIAS_TECNICAS_CSS_E_RELEASE.md)
-- [Validações do plugin](../../../docs/projectplus/validacoes/)
 
 ## Suporte e contato
 
