@@ -22,6 +22,12 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 - Depois de **Gerar**, **Salvar rascunho** ou **Enviar** um termo, a página permanece onde estava e o passo da jornada continua aberto, em vez de voltar ao topo (TAP no chamado; TEP e TA no projeto).
 - A coluna **Ação** das listas de campos (TIP, TIP-DT, TAP, TEP, TA) e da configuração de categoria voltou a mostrar o botão *Editar*: o GLPI 11 prefixa o texto dos cabeçalhos com `- ` e os scripts comparavam o texto exato. O link agora também é gerado no servidor (`giveItem`), o que elimina um aviso de chave indefinida por linha no log.
 
+### Corrigido (validação funcional de 2026-10-24)
+
+- **Abertura do projeto com o Tipo mapeado para texto não falha mais.** A busca por nome nas listas sem coluna de entidade (`glpi_projecttypes`) montava um `ORDER BY entities_id` inexistente e o projeto não era criado.
+- **E-mail inválido num campo mapeado não derruba mais os dados do Project+.** O valor inválido de *E-mail do solicitante* ou *E-mail do ponto focal* é ignorado, com aviso; antes o registro inteiro deixava de ser gravado e o projeto ficava sem solicitante e fora do portal do solicitante.
+- **Cancelar a solicitação na fase *Classificação da necessidade* funciona.** A tela já oferecia o botão, mas a transição era recusada.
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado

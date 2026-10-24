@@ -164,7 +164,25 @@ class ProjectFieldConfig
       if (in_array($field, ['content', 'objective', 'comment', 'expected_result'], true)) {
          return RichText::getTextFromHtml($value, false, false, false, false, true);
       }
-      if (in_array($field, ['name', 'code', 'requester_area', 'requester_email', 'focal_point_email'], true)) {
+      if (in_array($field, ['requester_email', 'focal_point_email'], true)) {
+         // Um valor que nao e e-mail faria o ProjectData recusar o registro
+         // inteiro do Project+ (solicitante e ponto focal incluidos): o projeto
+         // seria criado, mas sem os dados e fora do portal do solicitante.
+         $email = trim(RichText::getTextFromHtml($value, false, false, false));
+         if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            Session::addMessageAfterRedirect(
+               sprintf(
+                  __('O valor mapeado para "%1$s" não é um e-mail válido e foi ignorado ao criar o projeto.', 'projectplus'),
+                  (string) (self::getTargets()[$field] ?? $field)
+               ),
+               false,
+               WARNING
+            );
+            return null;
+         }
+         return $email;
+      }
+      if (in_array($field, ['name', 'code', 'requester_area'], true)) {
          return RichText::getTextFromHtml($value, false, false, false);
       }
       return $value;
@@ -176,7 +194,13 @@ class ProjectFieldConfig
       if (ctype_digit($value)) { return (int) $value; }
       $where = ['name' => $value];
       if ($DB->fieldExists($table, 'entities_id')) { $where['entities_id'] = [0, $entityId]; }
-      $row = $DB->request(['FROM' => $table, 'WHERE' => $where, 'ORDER' => ['entities_id DESC'], 'LIMIT' => 1])->current();
+      $criteria = ['FROM' => $table, 'WHERE' => $where, 'LIMIT' => 1];
+      // Tabelas sem entities_id (glpi_projecttypes, glpi_projectstates) nao
+      // aceitam a ordenacao: o ORDER BY gerava erro de SQL e o projeto nao abria.
+      if (isset($where['entities_id'])) {
+         $criteria['ORDER'] = ['entities_id DESC'];
+      }
+      $row = $DB->request($criteria)->current();
       return $row ? (int) $row['id'] : null;
    }
 

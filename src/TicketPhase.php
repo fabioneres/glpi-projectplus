@@ -159,7 +159,9 @@ class TicketPhase extends CommonDBTM
    private static function getAllowedTransitions(): array
    {
       return [
-         'classification' => ['awaiting_pretip', 'awaiting_tip'],
+         // O cancelamento tambem vale na classificacao: a tela oferece o botao
+         // nessa fase, e sem esta saida a acao era recusada.
+         'classification' => ['awaiting_pretip', 'awaiting_tip', 'rejected_cancelled'],
          'awaiting_pretip' => ['awaiting_pretip_review', 'rejected_cancelled'],
          // A negativa do Gerente de Projetos no TIP devolve para ajuste, e nao
          // encerra a solicitacao: o solicitante edita o que ja preencheu e
