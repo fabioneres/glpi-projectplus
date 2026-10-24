@@ -35,6 +35,8 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 
 - **Depois da recusa de um termo (TAP, TEP, TA) o quadro do documento deixa de mostrar uma página de erro do GLPI.** O PDF só existe enquanto o rascunho está gerado; recusado, o termo mostra a justificativa e um aviso para gerar nova versão (no chamado e no portal do solicitante).
 
+- **Uma Ação PDTIC ou Cesta do portfólio em uso por projetos não pode mais ser excluída.** A exclusão é recusada com a mensagem de quantos projetos a usam; antes o projeto ficava apontando para um item que não existia mais.
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado

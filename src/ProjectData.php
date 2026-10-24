@@ -45,6 +45,18 @@ class ProjectData extends CommonDBTM
       return array_fill_keys(self::FIELDS, '');
    }
 
+   /** Quantos projetos usam o item de uma lista (Acao PDTIC, Cesta do portfolio). */
+   public static function countUsage(string $column, int $itemId): int
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      if (!in_array($column, ['plugin_projectplus_portfoliobaskets_id', 'plugin_projectplus_pdticactions_id'], true) || $itemId <= 0) {
+         return 0;
+      }
+      return (int) ($DB->request(['COUNT' => 'cpt', 'FROM' => self::getTable(), 'WHERE' => [$column => $itemId]])->current()['cpt'] ?? 0);
+   }
+
    public static function postProjectAdd(Project $project): void
    {
       self::saveForProject($project);
