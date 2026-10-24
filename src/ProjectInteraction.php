@@ -4,6 +4,7 @@ namespace GlpiPlugin\Projectplus;
 
 use CommonDBTM;
 use CommonGLPI;
+use Document;
 use Dropdown;
 use Entity;
 use Glpi\RichText\RichText;
@@ -96,6 +97,7 @@ class ProjectInteraction extends CommonDBTM
          if (!self::canAction($project, ProjectProfile::RIGHT_INTERACTION_SOLUTION, true)) {
             throw new \RuntimeException(__('Sem permissão para solucionar este projeto.', 'projectplus'));
          }
+         DocumentAcceptance::assertProjectNotClosed($project);
          $tep = DocumentDraft::get(Project::class, (int) $project->getID(), 'tep');
          if (!$tep || (string) $tep['status'] !== 'generated') {
             throw new \RuntimeException(__('Configure, preencha e gere o TEP antes de solucionar e enviá-lo ao cliente.', 'projectplus'));
@@ -110,6 +112,20 @@ class ProjectInteraction extends CommonDBTM
       $isInternal = (int) ($input['is_internal'] ?? 0);
       if ($isInternal && !self::canViewInternal($project)) {
          throw new \RuntimeException(__('Apenas gerentes podem criar interações internas.', 'projectplus'));
+      }
+
+      // Anexos enviados no composer: viram documentos do projeto (aba Documentos) e
+      // os nomes ficam registrados na propria interacao.
+      $attached = FieldAttachment::attachPostedUploads($project, $input, __('Anexo da interação', 'projectplus'));
+      if ($attached !== []) {
+         $names = [];
+         foreach ($attached as $documentId) {
+            $document = new Document();
+            if ($document->getFromDB($documentId)) {
+               $names[] = htmlspecialchars((string) ($document->fields['filename'] ?? $document->fields['name'] ?? ''), ENT_QUOTES, 'UTF-8');
+            }
+         }
+         $content .= '<p>' . __('Anexos:', 'projectplus') . ' ' . implode('; ', $names) . '</p>';
       }
 
       self::insertInteraction($project, $content, $isInternal, (int) ($input['notify_participants'] ?? 0));

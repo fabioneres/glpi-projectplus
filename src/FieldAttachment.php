@@ -139,6 +139,47 @@ final class FieldAttachment
       return implode(',', array_merge($kept, $added));
    }
 
+   /**
+    * Anexa ao item os arquivos enviados pelo envio nativo de uma tela (`_filename`,
+    * `_prefix_filename`, `_tag_filename`), fora de um campo de modelo.
+    *
+    * O composer de interacoes do projeto mostrava o envio e o descartava: a interacao
+    * era gravada sem o anexo e sem aviso. O limite e conferido antes de criar qualquer
+    * documento, como nos campos de anexo.
+    *
+    * @param array<string,mixed> $post
+    * @return int[] ids dos documentos criados
+    */
+   public static function attachPostedUploads(CommonDBTM $item, array $post, string $label): array
+   {
+      $uploads = $post['_filename'] ?? [];
+      $uploads = is_array($uploads) ? array_values($uploads) : [];
+      $prefixes = $post['_prefix_filename'] ?? [];
+      $prefixes = is_array($prefixes) ? array_values($prefixes) : [];
+      $tags = $post['_tag_filename'] ?? [];
+      $tags = is_array($tags) ? array_values($tags) : [];
+
+      $pending = count(array_filter($uploads, static fn($upload): bool => trim((string) $upload) !== ''));
+      if ($pending === 0) {
+         return [];
+      }
+      if ($pending > self::MAX_FILES) {
+         throw new \RuntimeException(sprintf(__('São aceitos no máximo %d arquivos por envio.', 'projectplus'), self::MAX_FILES));
+      }
+
+      $ids = [];
+      foreach ($uploads as $index => $filename) {
+         if (trim((string) $filename) === '') {
+            continue;
+         }
+         $documentId = self::createDocument((string) $filename, (string) ($prefixes[$index] ?? ''), (string) ($tags[$index] ?? ''), $label, $item);
+         if ($documentId > 0) {
+            $ids[] = $documentId;
+         }
+      }
+      return $ids;
+   }
+
    /** @return array<int, array{id:int, name:string, url:string}> */
    public static function documents(string $value): array
    {

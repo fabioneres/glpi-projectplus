@@ -28,6 +28,9 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 - **E-mail inválido num campo mapeado não derruba mais os dados do Project+.** O valor inválido de *E-mail do solicitante* ou *E-mail do ponto focal* é ignorado, com aviso; antes o registro inteiro deixava de ser gravado e o projeto ficava sem solicitante e fora do portal do solicitante.
 - **Cancelar a solicitação na fase *Classificação da necessidade* funciona.** A tela já oferecia o botão, mas a transição era recusada.
 
+- **Registrar uma solução ou reenviar o TEP em projeto já encerrado é recusado.** Antes, o aceite do TEP voltava para *publicado* depois de o TA ter sido aceito e o projeto finalizado.
+- **Anexos do composer de interações passam a ser gravados.** O envio era aceito e descartado sem aviso; agora os arquivos viram documentos do projeto (aba *Documentos*), com o limite de 10 por envio, e os nomes aparecem na própria interação.
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado

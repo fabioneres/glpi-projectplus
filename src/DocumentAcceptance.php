@@ -148,6 +148,23 @@ class DocumentAcceptance extends CommonDBTM
    }
 
    /**
+    * Projeto encerrado pelo aceite do TA nao reabre termos.
+    *
+    * Enviar de novo o TEP (por exemplo, ao registrar uma solucao) devolvia o aceite
+    * do TEP para "publicado" depois de o projeto ja ter sido finalizado.
+    */
+   public static function assertProjectNotClosed(CommonDBTM $item): void
+   {
+      if (!$item instanceof Project) {
+         return;
+      }
+      $ta = self::getForItem($item, 'ta');
+      if ($ta && (string) ($ta['status'] ?? '') === 'accepted') {
+         throw new \RuntimeException(__('O projeto já foi encerrado com o aceite do TA: os termos não podem ser enviados de novo.', 'projectplus'));
+      }
+   }
+
+   /**
     * Impede enviar um documento para aceite antes do aceite do anterior.
     *
     * A ordem dos termos estava declarada apenas na tela, que esconde o
@@ -159,6 +176,7 @@ class DocumentAcceptance extends CommonDBTM
     */
    private static function assertPredecessorAccepted(CommonDBTM $item, string $type): void
    {
+      self::assertProjectNotClosed($item);
       if (!$item instanceof Project || $type !== 'ta') {
          return;
       }
