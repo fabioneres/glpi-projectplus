@@ -41,7 +41,7 @@ if ($origemSelecionada >= 0 && !Session::haveAccessToEntity($origemSelecionada))
 Html::header(__('Transferência de projetos', 'projectplus'), FrontUrl::to(basename(__FILE__)), 'config', 'plugins');
 ConfigPage::begin('overview');
 
-$regras = TransferRule::getRulesByOrigin();
+$regras = TransferRule::getRulesByOrigin(true);
 $url = htmlescape(FrontUrl::to(basename(__FILE__)));
 
 echo "<section class='projectplus-tip projectplus-flowcfg'>";

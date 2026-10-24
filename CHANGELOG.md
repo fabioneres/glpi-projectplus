@@ -55,6 +55,9 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 - A visão do portfólio respeita a visibilidade nativa de cada projeto; o formulário de campos de termos confere o acesso à entidade; o chamado de origem só preenche campos para quem o enxerga.
 - Salvar ou remover uma regra de transferência só apaga destinos que o administrador alcança.
 - Desinstalar remove também os nomes e textos de etapa gravados na configuração do GLPI.
+- As ações em massa dos campos do TIP, dos modelos de termos e da configuração de categoria só atuam em registros da própria classe; a configuração de categoria valida o responsável também pela rota genérica de formulário do GLPI.
+- Purgar um chamado mantém o vínculo com o projeto filho, para o projeto continuar sob a trava de encerramento sem TA.
+- Aceitar ou recusar um termo só vale uma vez (duas decisões simultâneas não repetem os efeitos); a tela de regras de transferência lista só o que o administrador alcança; a jornada documental do projeto só mostra o chamado a quem o enxerga.
 
 ## 0.9.14 — 2026-09-25
 

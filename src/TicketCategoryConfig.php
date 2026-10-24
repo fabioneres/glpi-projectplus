@@ -367,6 +367,68 @@ class TicketCategoryConfig extends CommonDBTM
       return true;
    }
 
+   /**
+    * O responsavel gravado precisa ter o direito do Project+ na entidade, qualquer que seja
+    * o caminho de escrita (tela do plugin, acao em massa ou a rota generica de formulario
+    * do GLPI, que chama update() sem passar pela validacao da tela).
+    */
+   public function prepareInputForUpdate($input)
+   {
+      $entityId = (int) ($this->fields['entities_id'] ?? 0);
+      foreach ([
+         'project_manager_users_id' => [ProjectProfile::RIGHT_FILL_TIP, __('Gerente de projetos', 'projectplus')],
+         'portfolio_manager_users_id' => [ProjectProfile::RIGHT_PRIORITY_STRATEGIC, __('Gestor de portfólio', 'projectplus')],
+      ] as $field => [$right, $label]) {
+         $userId = (int) ($input[$field] ?? 0);
+         if (!array_key_exists($field, $input) || $userId <= 0) {
+            continue;
+         }
+         if ($userId === (int) ($this->fields[$field] ?? 0)) {
+            continue;
+         }
+         if (!self::userHasRightInEntity($userId, $right, $entityId)) {
+            Session::addMessageAfterRedirect(
+               htmlescape(sprintf(__('O usuário selecionado não possui a permissão Project+ necessária para atuar como %s.', 'projectplus'), $label)),
+               false,
+               ERROR
+            );
+            return false;
+         }
+      }
+      return $input;
+   }
+
+   private static function userHasRightInEntity(int $userId, string $right, int $entityId): bool
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $user = new User();
+      if (!$user->getFromDB($userId)) {
+         return false;
+      }
+      $targets = array_flip(array_map('intval', getAncestorsOf(Entity::getTable(), $entityId)));
+      $targets[$entityId] = true;
+      foreach ($DB->request([
+         'SELECT' => ['glpi_profiles_users.entities_id', 'glpi_profiles_users.is_recursive'],
+         'FROM' => 'glpi_profiles_users',
+         'INNER JOIN' => [
+            'glpi_profilerights' => ['ON' => ['glpi_profiles_users' => 'profiles_id', 'glpi_profilerights' => 'profiles_id']],
+         ],
+         'WHERE' => [
+            'glpi_profiles_users.users_id' => $userId,
+            'glpi_profilerights.name' => $right,
+            ['glpi_profilerights.rights' => ['>=', READ]],
+         ],
+      ]) as $profile) {
+         $profileEntity = (int) $profile['entities_id'];
+         if ($profileEntity === $entityId || ((int) $profile['is_recursive'] === 1 && isset($targets[$profileEntity]))) {
+            return true;
+         }
+      }
+      return false;
+   }
+
    public static function processMassiveActionsForOneItemtype(
       MassiveAction $ma,
       CommonDBTM $item,
@@ -374,6 +436,13 @@ class TicketCategoryConfig extends CommonDBTM
    ) {
       $action = $ma->getAction();
       if (!in_array($action, ['activate', 'deactivate', 'configure_responsibilities'], true)) {
+         return;
+      }
+      // processor e itemtype chegam separados: o item precisa ser desta classe.
+      if (!$item instanceof self) {
+         foreach (array_keys($ids) as $id) {
+            $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_NORIGHT);
+         }
          return;
       }
 

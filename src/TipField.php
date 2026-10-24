@@ -85,7 +85,9 @@ class TipField extends CommonDBTM
       }
       // O estagio "process" do MassiveAction aceita processor/action/items vindos do
       // cliente: esconder a acao na lista nao a protege. O direito e conferido aqui.
-      if (!Session::haveRight('config', UPDATE)) {
+      // processor e itemtype chegam separados: o item precisa ser desta classe, senao
+      // o update() abaixo atingiria registros de outro tipo sem o direito dele.
+      if (!$item instanceof self || !Session::haveRight('config', UPDATE)) {
          foreach (array_keys($ids) as $id) {
             $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_NORIGHT);
          }

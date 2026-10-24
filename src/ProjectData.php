@@ -105,7 +105,9 @@ class ProjectData extends CommonDBTM
       foreach ($DB->request(['SELECT' => ['id'], 'FROM' => TicketIntent::getTable(), 'WHERE' => ['tickets_id' => $ticketId]]) as $intent) {
          $DB->delete(TicketIntentAnswer::getTable(), ['plugin_projectplus_ticketintents_id' => (int) $intent['id']]);
       }
-      foreach ([TicketIntent::getTable(), TicketPhase::getTable(), TicketPhaseHistory::getTable(), TicketPriority::getTable(), TicketProject::getTable()] as $table) {
+      // O vinculo chamado-projeto (TicketProject) fica: e ele que faz o projeto filho
+      // continuar sob a trava de encerramento sem TA; apagar o chamado nao pode liberar o projeto.
+      foreach ([TicketIntent::getTable(), TicketPhase::getTable(), TicketPhaseHistory::getTable(), TicketPriority::getTable()] as $table) {
          $DB->delete($table, ['tickets_id' => $ticketId]);
       }
       self::purgeTerms('Ticket', $ticketId);

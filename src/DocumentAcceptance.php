@@ -237,7 +237,11 @@ class DocumentAcceptance extends CommonDBTM
          );
       }
       $now = date('Y-m-d H:i:s');
-      $DB->update(self::getTable(),['status'=>'accepted','accepted_users_id'=>(int)Session::getLoginUserID(),'date_accepted'=>$now,'date_mod'=>$now],['id'=>(int)$row['id']]);
+      $DB->update(self::getTable(),['status'=>'accepted','accepted_users_id'=>(int)Session::getLoginUserID(),'date_accepted'=>$now,'date_mod'=>$now],['id'=>(int)$row['id'],'status'=>'published']);
+      // Duas decisoes simultaneas: so a que encontrou o termo ainda publicado segue adiante.
+      if ($DB->affectedRows() < 1) {
+         throw new RuntimeException(__('Este documento já foi decidido.', 'projectplus'));
+      }
       if (!$item instanceof Ticket || (string) $row['document_type'] !== 'tap') {
          self::addFollowup($item, (string)$row['document_type'], __('Aceite do documento registrado.', 'projectplus'));
       }
@@ -294,7 +298,10 @@ class DocumentAcceptance extends CommonDBTM
          'rejection_justification' => $justification,
          'date_rejected' => $now,
          'date_mod' => $now,
-      ], ['id' => (int) $row['id']]);
+      ], ['id' => (int) $row['id'], 'status' => 'published']);
+      if ($DB->affectedRows() < 1) {
+         throw new RuntimeException(__('Este documento já foi decidido.', 'projectplus'));
+      }
       $type = (string) $row['document_type'];
       // O documento volta a rascunho: o conteudo fica para ser corrigido, mas a
       // versao recusada deixa de ser enviavel. Assim "Enviar para aceite" so
@@ -412,7 +419,8 @@ class DocumentAcceptance extends CommonDBTM
       echo '<div class="projectplus-document-journey">';
 
       $ticket = new Ticket();
-      $hasTicket = $ticketId > 0 && $ticket->getFromDB($ticketId);
+      // O projeto pode ter mudado de entidade depois do chamado: so mostra o chamado a quem o enxerga.
+      $hasTicket = $ticketId > 0 && $ticket->getFromDB($ticketId) && ItemAccess::canView($ticket);
        $preTip = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::TIP) : null;
        $preTipState = (string) ($preTip['status'] ?? '') === 'accepted' ? 'accepted' : ((string) ($preTip['status'] ?? '') === 'rejected' ? 'rejected' : ($preTip ? 'released' : 'disabled'));
        $intent = $hasTicket ? TicketIntent::getForTicket((int) $ticket->getID(), TipDocumentType::DETAIL) : null;

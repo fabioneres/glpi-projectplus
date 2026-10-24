@@ -75,7 +75,7 @@ class TransferRule extends CommonDBTM
     *
     * @return array<int, array<int, int>> origem => ids de destino
     */
-   public static function getRulesByOrigin(): array
+   public static function getRulesByOrigin(bool $onlyReachable = false): array
    {
       /** @var \DBmysql $DB */
       global $DB;
@@ -88,6 +88,13 @@ class TransferRule extends CommonDBTM
          'FROM' => self::getTable(),
          'ORDER' => ['entities_id ASC', 'target_entities_id ASC'],
       ]) as $row) {
+         // A tela de configuracao so mostra o que o administrador alcanca: a lista nao
+         // pode revelar origens e destinos de entidades fora do escopo dele.
+         if ($onlyReachable
+            && (!Session::haveAccessToEntity((int) $row['entities_id'])
+               || !Session::haveAccessToEntity((int) $row['target_entities_id']))) {
+            continue;
+         }
          $out[(int) $row['entities_id']][] = (int) $row['target_entities_id'];
       }
       return $out;
