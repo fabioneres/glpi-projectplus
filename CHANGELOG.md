@@ -46,7 +46,15 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 - **Ações em massa dos campos do TIP e dos modelos de termos passam a exigir o direito de configuração na própria execução**, e não só na tela que as oferece.
 - **Termo já aceito pelo cliente não pode ser enviado de novo** (TAP, TEP e TA), inclusive pelo botão de solução do projeto; o aceite deixa de ser apagado sem registro.
 - **O nome configurável das fases é escapado na lista de chamados.**
-- README corrigido para a versão 1.0.0-alpha.1 (logo, instalação e histórico).
+- README corrigido para a versão 1.0.0-alpha.1 (logo, instalação e histórico); arquivo `LICENSE` (GPLv3) incluído.
+- **Purge de projeto ou de chamado remove todos os dados do plugin** (vínculo chamado-projeto, priorização, interações, rascunhos, aceites, respostas do TIP, fases e histórico). O vínculo que sobrava impedia o chamado de abrir novo projeto.
+- **Instalar ou atualizar não reescreve mais a prioridade nativa**: ranking incompleto mantém a prioridade do chamado/projeto (antes ia para 0) e linhas já normalizadas não têm `date_mod` alterado.
+- **Recusar um TAP só é possível enquanto ele aguarda aceite** (antes, num chamado cancelado, a recusa gravava o banco e falhava depois).
+- O botão de solução do projeto confere o direito de envio do TEP antes de gravar interação, anexos ou e-mail.
+- O filtro de fase e de ranking na busca de chamados respeita o operador "NOT" do critério.
+- A visão do portfólio respeita a visibilidade nativa de cada projeto; o formulário de campos de termos confere o acesso à entidade; o chamado de origem só preenche campos para quem o enxerga.
+- Salvar ou remover uma regra de transferência só apaga destinos que o administrador alcança.
+- Desinstalar remove também os nomes e textos de etapa gravados na configuração do GLPI.
 
 ## 0.9.14 — 2026-09-25
 

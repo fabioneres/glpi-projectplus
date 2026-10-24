@@ -278,6 +278,15 @@ class DocumentAcceptance extends CommonDBTM
       if (!$row || !self::canAccept($item, (string) $row['document_type'])) {
          throw new \RuntimeException(__('Você não possui permissão para recusar este documento.', 'projectplus'));
       }
+      // Igual ao aceite: so ha o que recusar enquanto o TAP aguarda aceite. Sem isto, num
+      // chamado cancelado a recusa gravava o banco e so depois a troca de fase falhava.
+      if ($item instanceof Ticket && (string) $row['document_type'] === 'tap') {
+         TicketPhase::assertCurrentPhase(
+            $item,
+            'awaiting_tap_acceptance',
+            __('O TAP ainda não foi enviado para aceite.', 'projectplus')
+         );
+      }
       $now = date('Y-m-d H:i:s');
       $DB->update(self::getTable(), [
          'status' => 'rejected',

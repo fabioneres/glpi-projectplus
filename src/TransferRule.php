@@ -120,7 +120,7 @@ class TransferRule extends CommonDBTM
          $limpos[$target] = $target;
       }
 
-      $DB->delete(self::getTable(), ['entities_id' => $originEntityId]);
+      self::deleteReachableTargets($originEntityId);
       foreach ($limpos as $target) {
          $DB->insert(self::getTable(), [
             'entities_id' => $originEntityId,
@@ -140,7 +140,23 @@ class TransferRule extends CommonDBTM
          return;
       }
       self::assertEntityReachable($originEntityId, __('Você não possui acesso à entidade de origem informada.', 'projectplus'));
-      $DB->delete(self::getTable(), ['entities_id' => $originEntityId]);
+      self::deleteReachableTargets($originEntityId);
+   }
+
+   /**
+    * Apaga so os destinos que o usuario alcanca: um administrador restrito a uma
+    * subentidade nao pode destruir destinos configurados em entidades que ele nao ve.
+    */
+   private static function deleteReachableTargets(int $originEntityId): void
+   {
+      /** @var \DBmysql $DB */
+      global $DB;
+
+      foreach ($DB->request(['FROM' => self::getTable(), 'WHERE' => ['entities_id' => $originEntityId]]) as $row) {
+         if (Session::haveAccessToEntity((int) $row['target_entities_id'])) {
+            $DB->delete(self::getTable(), ['id' => (int) $row['id']]);
+         }
+      }
    }
 
    /**

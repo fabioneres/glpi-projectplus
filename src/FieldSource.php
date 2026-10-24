@@ -174,7 +174,12 @@ class FieldSource
          return null;
       }
       $ticket = new Ticket();
-      return $ticket->getFromDB($ticketId) ? $ticket : null;
+      // O projeto pode ter mudado de entidade depois do chamado: o texto do chamado so
+      // preenche o campo para quem tem acesso a ele.
+      if (!$ticket->getFromDB($ticketId) || !ItemAccess::canView($ticket)) {
+         return null;
+      }
+      return $ticket;
    }
 
    private static function getTicketValue(Ticket $ticket, string $key): string

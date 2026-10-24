@@ -85,7 +85,40 @@ class ProjectData extends CommonDBTM
       /** @var DBmysql $DB */
       global $DB;
 
-      $DB->delete(self::getTable(), ['projects_id' => (int) $project->getID()]);
+      $projectId = (int) $project->getID();
+      $DB->delete(self::getTable(), ['projects_id' => $projectId]);
+      // O vinculo com o chamado tem UNIQUE em tickets_id: se sobrasse, o chamado
+      // nunca mais conseguiria abrir um projeto.
+      $DB->delete(TicketProject::getTable(), ['projects_id' => $projectId]);
+      $DB->delete(ProjectPriority::getTable(), ['projects_id' => $projectId]);
+      $DB->delete(ProjectInteraction::getTable(), ['projects_id' => $projectId]);
+      self::purgeTerms('Project', $projectId);
+   }
+
+   /** Remove os dados do plugin de um chamado purgado (sem deixar linhas orfas). */
+   public static function preTicketPurge(\Ticket $ticket): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      $ticketId = (int) $ticket->getID();
+      foreach ($DB->request(['SELECT' => ['id'], 'FROM' => TicketIntent::getTable(), 'WHERE' => ['tickets_id' => $ticketId]]) as $intent) {
+         $DB->delete(TicketIntentAnswer::getTable(), ['plugin_projectplus_ticketintents_id' => (int) $intent['id']]);
+      }
+      foreach ([TicketIntent::getTable(), TicketPhase::getTable(), TicketPhaseHistory::getTable(), TicketPriority::getTable(), TicketProject::getTable()] as $table) {
+         $DB->delete($table, ['tickets_id' => $ticketId]);
+      }
+      self::purgeTerms('Ticket', $ticketId);
+   }
+
+   private static function purgeTerms(string $itemtype, int $itemId): void
+   {
+      /** @var DBmysql $DB */
+      global $DB;
+
+      foreach ([DocumentAcceptance::getTable(), DocumentDraft::getTable()] as $table) {
+         $DB->delete($table, ['itemtype' => $itemtype, 'items_id' => $itemId]);
+      }
    }
 
    private static function saveForProject(Project $project): void

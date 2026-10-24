@@ -58,7 +58,7 @@ function plugin_projectplus_addWhere($link, $nott, $itemtype, $id, $value, $sear
       }
 
       $operator = $searchtype === 'notequals' ? '<>' : '=';
-      return $link . ' (`' . \GlpiPlugin\Projectplus\TicketPhase::getTable() . '`.`phase` '
+      return $link . ($nott ? ' NOT' : '') . ' (`' . \GlpiPlugin\Projectplus\TicketPhase::getTable() . '`.`phase` '
          . $operator . ' ' . \DBmysql::quoteValue($value) . ') ';
    }
 
@@ -85,7 +85,7 @@ function plugin_projectplus_addWhere($link, $nott, $itemtype, $id, $value, $sear
       ? \GlpiPlugin\Projectplus\TicketPriority::getTable()
       : \GlpiPlugin\Projectplus\ProjectPriority::getTable();
 
-   return $link . ' (`' . $rankingTable . '`.`ranking` '
+   return $link . ($nott ? ' NOT' : '') . ' (`' . $rankingTable . '`.`ranking` '
       . $operator . ' ' . (int) $value . ') ';
 }
 

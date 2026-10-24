@@ -239,8 +239,21 @@ class Installer
                $complete = $complete && $value > 0;
             }
             $ranking = $complete ? array_sum($values) : 0;
+            // So grava o que mudou: reescrever date_mod de todas as linhas a cada
+            // instalacao/atualizacao apagava a data real da ultima alteracao.
+            $changed = (int) ($row['ranking'] ?? 0) !== $ranking;
+            foreach ($values as $field => $value) {
+               $changed = $changed || (int) ($row[$field] ?? 0) !== $value;
+            }
+            if (!$changed) {
+               continue;
+            }
             $DB->update($table, $values + ['ranking' => $ranking, 'date_mod' => date('Y-m-d H:i:s')], ['id' => (int) $row['id']]);
-            $DB->update($itemClass::getTable(), ['priority' => ProjectPriority::getNativePriorityForRanking($ranking)], ['id' => (int) $row[$itemField]]);
+            // Ranking incompleto nao tem prioridade nativa: mantem a que o item ja
+            // tinha (gravar 0 deixava o chamado/projeto fora da faixa 1-6).
+            if ($ranking > 0) {
+               $DB->update($itemClass::getTable(), ['priority' => ProjectPriority::getNativePriorityForRanking($ranking)], ['id' => (int) $row[$itemField]]);
+            }
          }
       }
    }
@@ -756,7 +769,8 @@ class Installer
          $DB->doQuery('DROP TABLE IF EXISTS `' . $table . '`');
       }
       ProjectNotification::uninstall();
-      \Config::deleteConfigurationValues('plugin:projectplus', ['dbversion']);
+      // Todo o contexto: alem de dbversion ficavam os nomes e textos das etapas (flow_*).
+      $DB->delete('glpi_configs', ['context' => 'plugin:projectplus']);
       return true;
    }
 }

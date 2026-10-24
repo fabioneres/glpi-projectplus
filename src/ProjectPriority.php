@@ -303,7 +303,15 @@ class ProjectPriority extends CommonDBTM
          'WHERE' => [$projectTable . '.is_deleted' => 0],
          'ORDER' => [$priorityTable . '.ranking DESC', $projectTable . '.date_mod DESC'],
       ]) as $project) {
-         if (Session::haveAccessToEntity((int) $project['entities_id'])) $projects[] = $project;
+         if (!Session::haveAccessToEntity((int) $project['entities_id'])) {
+            continue;
+         }
+         // O direito de priorizacao nao dispensa a visibilidade nativa de cada projeto
+         // (equipe, gerente, grupos): sem isto a lista revelava projetos que o usuario nao ve.
+         $native = new Project();
+         if ($native->getFromDB((int) $project['id']) && ItemAccess::canAct($native)) {
+            $projects[] = $project;
+         }
       }
       return $projects;
    }

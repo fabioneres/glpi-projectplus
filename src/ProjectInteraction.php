@@ -98,6 +98,11 @@ class ProjectInteraction extends CommonDBTM
             throw new \RuntimeException(__('Sem permissão para solucionar este projeto.', 'projectplus'));
          }
          DocumentAcceptance::assertProjectNotClosed($project);
+         // O envio do TEP e conferido por publishGenerated() so depois da interacao, dos
+         // anexos e do e-mail: sem o direito de envio nada disso pode sair antes.
+         if (!DocumentAcceptance::canManageDocument($project, 'tep', 'send')) {
+            throw new \RuntimeException(__('Sem permissão para enviar este documento.', 'projectplus'));
+         }
          // Antes de gravar a interacao: publishGenerated() recusaria so depois dela.
          DocumentAcceptance::assertNotAccepted($project, 'tep');
          $tep =DocumentDraft::get(Project::class, (int) $project->getID(), 'tep');

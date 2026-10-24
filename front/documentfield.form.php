@@ -13,6 +13,10 @@ use GlpiPlugin\Projectplus\FrontUrl;
 Session::checkRight('config', UPDATE);
 
 $entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
+// A entidade vem do cliente: sem esta conferencia o GET lia o campo de outra entidade.
+if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
+   Html::displayErrorAndDie(__('Entidade inválida.', 'projectplus'));
+}
 $documentType = (string) ($_REQUEST['document_type'] ?? '');
 if (!in_array($documentType, ['tap', 'tep', 'ta'], true)) {
    Html::displayErrorAndDie(__('Tipo de documento inválido.', 'projectplus'));

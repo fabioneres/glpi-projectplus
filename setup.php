@@ -84,6 +84,7 @@ function plugin_init_projectplus(): void
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Project::class] = [ProjectData::class, 'postProjectAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectUpdate'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_PURGE]['projectplus'][Project::class] = [ProjectData::class, 'preProjectPurge'];
+   $PLUGIN_HOOKS[Hooks::PRE_ITEM_PURGE]['projectplus'][Ticket::class] = [ProjectData::class, 'preTicketPurge'];
    $PLUGIN_HOOKS[Hooks::ITEM_ADD]['projectplus'][Ticket::class] = [TicketPhase::class, 'postTicketAdd'];
    $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['projectplus'][Ticket::class] = [TicketPhase::class, 'preTicketUpdate'];
    $PLUGIN_HOOKS[Hooks::ITEM_UPDATE]['projectplus'][Ticket::class] = [TicketPhase::class, 'postTicketUpdate'];
