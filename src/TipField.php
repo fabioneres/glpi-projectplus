@@ -47,7 +47,10 @@ class TipField extends CommonDBTM
          ['id' => 5, 'table' => $table, 'field' => 'is_required', 'name' => __('Obrigatório', 'projectplus'), 'datatype' => 'bool'],
          ['id' => 6, 'table' => $table, 'field' => 'is_active', 'name' => __('Ativo', 'projectplus'), 'datatype' => 'bool'],
          ['id' => 9, 'table' => $table, 'field' => 'is_recursive', 'name' => __('Entidades filhas', 'projectplus'), 'datatype' => 'bool'],
-         ['id' => 7, 'table' => $table, 'field' => '_virtual_action', 'name' => __('Ação', 'projectplus'), 'datatype' => 'text', 'nosearch' => true, 'massiveaction' => false],
+         // Reaproveita o id da linha como fonte de dados (como a opcao 31 da configuracao de categoria):
+         // uma coluna real e selecionada pelo GLPI 11, e plugin_projectplus_giveItem() a troca pelo botao Editar.
+         // Com um campo virtual o nucleo nao selecionava a coluna e registrava um aviso por linha.
+         ['id' => 7, 'table' => $table, 'field' => 'id', 'name' => __('Ação', 'projectplus'), 'datatype' => 'number', 'nosearch' => true, 'nosort' => true, 'massiveaction' => false],
          ['id' => 8, 'table' => $table, 'field' => 'document_type', 'name' => __('Tipo de documento', 'projectplus'), 'datatype' => 'text'],
          ['id' => 80, 'table' => Entity::getTable(), 'field' => 'completename', 'name' => Entity::getTypeName(1), 'datatype' => 'itemlink', 'itemtype' => Entity::class, 'joinparams' => ['jointype' => '', 'linkfield' => 'entities_id'], 'forcegroupby' => true],
       ];

@@ -31,6 +31,8 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 - **Registrar uma solução ou reenviar o TEP em projeto já encerrado é recusado.** Antes, o aceite do TEP voltava para *publicado* depois de o TA ter sido aceito e o projeto finalizado.
 - **Anexos do composer de interações passam a ser gravados.** O envio era aceito e descartado sem aviso; agora os arquivos viram documentos do projeto (aba *Documentos*), com o limite de 10 por envio, e os nomes aparecem na própria interação.
 
+- **O `php-errors.log` deixa de receber avisos do plugin a cada abertura das listas.** A coluna *Ação* das listas de campos (TIP, TIP-DT, TAP, TEP, TA) usava um campo virtual que o GLPI 11 não seleciona (`Undefined array key "…TipField_7"`, um aviso por linha); passa a usar uma coluna real, com o mesmo botão *Editar*. As quatro listas de cadastro (modelos de acompanhamento, modelos de solução, ações PDTIC e cestas) deixam de incluir o arquivo legado `dropdown.common*.php`, depreciado, e devolvem a resposta do controlador nativo: mesma tela e mesma URL, sem os avisos de saída inesperada.
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado
