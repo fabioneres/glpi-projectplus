@@ -741,6 +741,20 @@ class Installer
       $DB->doQuery('DROP TABLE IF EXISTS `' . TipConfig::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TicketConfig::getTable() . '`');
       $DB->doQuery('DROP TABLE IF EXISTS `' . TransferRule::getTable() . '`');
+      // Remove tambem qualquer tabela do plugin que a lista acima nao cite: a lista ficava
+      // para tras a cada tabela nova e a desinstalacao deixava seis tabelas orfas
+      // (rascunhos, campos dos termos, origem dos campos do Projeto, interacoes,
+      // priorizacao e vinculo chamado-projeto).
+      $remaining = $DB->doQuery("SHOW TABLES LIKE 'glpi\_plugin\_projectplus\_%'");
+      $tables = [];
+      if ($remaining) {
+         while ($row = $remaining->fetch_row()) {
+            $tables[] = (string) $row[0];
+         }
+      }
+      foreach ($tables as $table) {
+         $DB->doQuery('DROP TABLE IF EXISTS `' . $table . '`');
+      }
       ProjectNotification::uninstall();
       \Config::deleteConfigurationValues('plugin:projectplus', ['dbversion']);
       return true;

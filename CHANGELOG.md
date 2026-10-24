@@ -37,6 +37,8 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 
 - **Uma Ação PDTIC ou Cesta do portfólio em uso por projetos não pode mais ser excluída.** A exclusão é recusada com a mensagem de quantos projetos a usam; antes o projeto ficava apontando para um item que não existia mais.
 
+- **A desinstalação remove todas as tabelas do plugin.** Seis tabelas (rascunhos, campos dos termos, origem dos campos do Projeto, interações, priorização e vínculo chamado-projeto) ficavam para trás; agora a desinstalação apaga qualquer tabela `glpi_plugin_projectplus_*`.
+
 ## 0.9.14 — 2026-09-25
 
 ### Alterado
