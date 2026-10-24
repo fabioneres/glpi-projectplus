@@ -101,6 +101,13 @@ As permissões ficam em **Administração > Perfis > Project+** e são separadas
 Documentos, Priorização, Fluxo, Projetos, Interações e Configurar. A posse de
 uma permissão não dispensa o acesso ao chamado, projeto ou entidade envolvidos.
 
+Quem pode atuar em cada etapa é definido **pelos direitos do perfil**, e não por
+uma pessoa específica: qualquer usuário cujo perfil tenha o direito da etapa, com
+acesso ao chamado e à entidade, pode executá-la. O Gerente de Projetos e o Gestor
+de Portfólio configurados por categoria servem apenas para **direcionar o chamado
+entre as entidades** (a do gerente e a do gestor) e para as notificações; eles não
+restringem quem pode atuar.
+
 ## Versão e histórico
 
 - Versão atual: **1.0.0-alpha.1** (linha para GLPI 11, em validação; ainda sem
