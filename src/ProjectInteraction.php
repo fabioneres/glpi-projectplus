@@ -98,7 +98,9 @@ class ProjectInteraction extends CommonDBTM
             throw new \RuntimeException(__('Sem permissão para solucionar este projeto.', 'projectplus'));
          }
          DocumentAcceptance::assertProjectNotClosed($project);
-         $tep = DocumentDraft::get(Project::class, (int) $project->getID(), 'tep');
+         // Antes de gravar a interacao: publishGenerated() recusaria so depois dela.
+         DocumentAcceptance::assertNotAccepted($project, 'tep');
+         $tep =DocumentDraft::get(Project::class, (int) $project->getID(), 'tep');
          if (!$tep || (string) $tep['status'] !== 'generated') {
             throw new \RuntimeException(__('Configure, preencha e gere o TEP antes de solucionar e enviá-lo ao cliente.', 'projectplus'));
          }

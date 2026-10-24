@@ -165,6 +165,21 @@ class DocumentAcceptance extends CommonDBTM
    }
 
    /**
+    * Termo ja aceito pelo cliente nao volta a "publicado".
+    *
+    * Reenviar um TAP/TEP aceito apagava o aceite sem registro; com o TA publicado,
+    * o aceite do TA encerrava o projeto com um TEP que deixara de estar aceito.
+    * Para mudar um termo aceito nao ha caminho: so um termo recusado volta a ser editado.
+    */
+   public static function assertNotAccepted(CommonDBTM $item, string $type): void
+   {
+      $current = self::getForItem($item, $type);
+      if ($current && (string) ($current['status'] ?? '') === 'accepted') {
+         throw new \RuntimeException(__('Este documento já foi aceito pelo cliente: não pode ser enviado de novo.', 'projectplus'));
+      }
+   }
+
+   /**
     * Impede enviar um documento para aceite antes do aceite do anterior.
     *
     * A ordem dos termos estava declarada apenas na tela, que esconde o
@@ -197,6 +212,7 @@ class DocumentAcceptance extends CommonDBTM
       }
       if (!self::canManageDocument($item, $type, 'send')) throw new \RuntimeException(__('Sem permissão para enviar este documento.', 'projectplus'));
       self::assertPredecessorAccepted($item, $type);
+      self::assertNotAccepted($item, $type);
       $draft = DocumentDraft::get($item::getType(), (int)$item->getID(), $type);
       if (!$draft || (string)$draft['status'] !== 'generated') throw new \RuntimeException(__('Gere o documento antes de enviá-lo para aceite.', 'projectplus'));
       global $DB; $now=date('Y-m-d H:i:s'); $current=self::getForItem($item,$type);
