@@ -484,8 +484,9 @@ class TicketCategoryConfig extends CommonDBTM
                   continue;
                }
                if (isset($rights[$field]) && $value > 0) {
-                  $user = new User();
-                  if (!$user->getFromDB($value) || !$user->hasRight($rights[$field], READ, (int) $item->fields['entities_id'])) {
+                  // Mesma regra da tela individual (direito >= READ no perfil, na entidade ou acima):
+                  // User::hasRight(READ) exige o bit 1 e recusava perfis gravados como UPDATE (2).
+                  if (!self::userHasRightInEntity((int) $value, $rights[$field], (int) $item->fields['entities_id'])) {
                      $valid = false;
                      break;
                   }

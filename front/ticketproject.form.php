@@ -16,16 +16,21 @@ if ($ticketId <= 0
    Html::displayErrorAndDie(__('Chamado inválido ou sem permissão.', 'projectplus'));
 }
 
+// O redirect lanca RedirectException no GLPI 11: dentro do try ele cairia no catch e o usuario
+// seria devolvido ao chamado mesmo com o projeto criado (LA-111, AP-028). Decide-se o destino
+// dentro do try e redireciona-se fora dele.
+$target = '';
 try {
    $projectId = TicketProject::createFromTicket($ticket, $_POST);
    Session::addMessageAfterRedirect(__('Projeto criado e chamado solucionado.', 'projectplus'), true, INFO);
    if (!empty($_POST['_sol_to_kb'])) {
-      $knowledgeBaseUrl = KnowbaseItem::getFormURLWithParam(['_sol_to_kb' => 1]);
-      $knowledgeBaseUrl .= '&item_itemtype=' . rawurlencode(Ticket::class) . '&item_items_id=' . $ticketId;
-      Html::redirect($knowledgeBaseUrl);
+      $target = KnowbaseItem::getFormURLWithParam(['_sol_to_kb' => 1])
+         . '&item_itemtype=' . rawurlencode(Ticket::class) . '&item_items_id=' . $ticketId;
+   } else {
+      $target = Project::getFormURLWithID($projectId);
    }
-   Html::redirect(Project::getFormURLWithID($projectId));
-} catch (\Throwable $exception) {
+} catch (Throwable $exception) {
    Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
-   Html::redirect(RoutingNotice::getRedirectUrl($ticket));
+   $target = RoutingNotice::getRedirectUrl($ticket);
 }
+Html::redirect($target);

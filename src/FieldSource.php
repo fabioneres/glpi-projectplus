@@ -112,7 +112,7 @@ class FieldSource
       return $value;
    }
 
-   /** @param array<string,mixed> $field */
+   /** Valor da origem (`ticket:*` ou `document:*`) para o item informado, sem conversao de HTML. */
    public static function getValue(CommonDBTM $item, string $source): string
    {
       if ($source === '') {
@@ -201,6 +201,10 @@ class FieldSource
       }
       if ($key === 'entity') {
          return Entity::getFriendlyNameById((int) $ticket->getEntityID());
+      }
+      // Chave desconhecida nao cai no requerente: so as duas chaves do requerente chegam aqui.
+      if ($key !== 'requester_name' && $key !== 'requester_email') {
+         return '';
       }
       $requester = $GLOBALS['DB']->request([
          'SELECT' => ['users_id'], 'FROM' => Ticket_User::getTable(),

@@ -221,39 +221,6 @@ JAVASCRIPT
       ]);
    }
 
-   private static function renderRequesterRows(array $data): void
-   {
-      echo '<tr class="projectplus-requester-data"><td colspan="4" class="subheader">'
-         . __('Dados do solicitante (Cliente)', 'projectplus') . '</td></tr>';
-      self::row(
-         'projectplus-requester-data',
-         __('Área do Solicitante', 'projectplus'),
-         Html::input('requester_area', [
-            'value'       => $data['requester_area'],
-            'placeholder' => __('Pró-reitoria, campus, diretoria, departamento ou grande área', 'projectplus'),
-         ]),
-         __('Nome do Solicitante', 'projectplus'),
-         Html::input('requester_name', ['value' => $data['requester_name']])
-      );
-      self::row(
-         'projectplus-requester-data',
-         __('E-mail do Solicitante', 'projectplus'),
-         Html::input('requester_email', ['value' => $data['requester_email'], 'type' => 'email']),
-         __('Ponto focal', 'projectplus'),
-         Html::input('focal_point', [
-            'value' => $data['focal_point'],
-            'title' => __('Indique um ponto focal para acompanhar tecnicamente a execução do projeto.', 'projectplus'),
-         ])
-      );
-      self::row(
-         'projectplus-requester-data',
-         __('E-mail do Ponto focal', 'projectplus'),
-         Html::input('focal_point_email', ['value' => $data['focal_point_email'], 'type' => 'email']),
-         '',
-         ''
-      );
-   }
-
    private static function renderPlanningRows(array $data): void
    {
       self::row(

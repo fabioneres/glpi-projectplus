@@ -20,7 +20,7 @@ class PdticAction extends CommonDropdown
       $used = ProjectData::countUsage('plugin_projectplus_pdticactions_id', (int) $this->getID());
       if ($used > 0) {
          Session::addMessageAfterRedirect(
-            sprintf(__('Não é possível excluir "%1$s": o item está em uso por %2$d projeto(s).', 'projectplus'), (string) ($this->fields['name'] ?? ''), $used),
+            sprintf(__('Não é possível excluir "%1$s": o item está em uso por %2$d projeto(s).', 'projectplus'), htmlescape((string) ($this->fields['name'] ?? '')), $used),
             false,
             ERROR
          );

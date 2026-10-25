@@ -132,7 +132,28 @@ final class FieldValue
       if ($value !== '' && $type === 'email' && filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
          throw new \RuntimeException(__('Informe um endereço de e-mail válido.', 'projectplus'));
       }
+      if ($value !== '' && in_array($type, ['date', 'time', 'datetime'], true) && !self::isValidDateTime($type, $value)) {
+         throw new \RuntimeException(__('Informe uma data ou hora válida.', 'projectplus'));
+      }
       return substr($value, 0, 65535);
+   }
+
+   /** O navegador valida date/time, mas o servidor recebia qualquer texto (2026-13-45, 99:99). */
+   private static function isValidDateTime(string $type, string $value): bool
+   {
+      $formats = [
+         'date' => ['Y-m-d'],
+         'time' => ['H:i', 'H:i:s'],
+         'datetime' => ['Y-m-d\TH:i', 'Y-m-d\TH:i:s', 'Y-m-d H:i', 'Y-m-d H:i:s'],
+      ][$type];
+      foreach ($formats as $format) {
+         $parsed = \DateTime::createFromFormat('!' . $format, $value);
+         $errors = \DateTime::getLastErrors();
+         if ($parsed !== false && $parsed->format($format) === $value && (!$errors || ($errors['warning_count'] + $errors['error_count']) === 0)) {
+            return true;
+         }
+      }
+      return false;
    }
 
    public static function render(string $prefix, array $field, string $value): string

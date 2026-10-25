@@ -116,6 +116,9 @@ class TicketPhase extends CommonDBTM
          'datatype' => 'string',
          'searchtype' => ['equals', 'notequals', 'lessthan', 'morethan'],
          'name' => __('Ranking', 'projectplus'),
+         // Sem itemtype o Search resolve a classe pela tabela, nao acha (TicketPriority nao e
+         // CommonDBTM) e getItemForItemtype(null) lanca TypeError quando ha resultado.
+         'itemtype' => self::class,
          'forcegroupby' => true,
          'massiveaction' => false,
          'joinparams' => ['jointype' => 'child'],
@@ -138,7 +141,9 @@ class TicketPhase extends CommonDBTM
             'joinparams' => [
                'beforejoin' => [
                   'table' => self::getTable(),
-                  'joinparams' => ['jointype' => 'child'],
+                  // O subselect do filtro usa este campo (padrao users_id = ultimo ator da fase):
+                  // sem ele Gerente/Gestor filtravam pela coluna errada e devolviam vazio.
+                  'joinparams' => ['jointype' => 'child', 'linkfield' => $definition[0]],
                ],
             ],
          ];
@@ -731,11 +736,6 @@ class TicketPhase extends CommonDBTM
    private static function showPhaseSectionsAccordionScript(): void
    {
       echo "<script>(function () { document.querySelectorAll('.projectplus-phase-shell').forEach(function (shell) { if (shell.dataset.projectplusPhaseAccordionReady) { return; } shell.dataset.projectplusPhaseAccordionReady = '1'; var cards = shell.querySelectorAll('.projectplus-phase-form, .projectplus-phase-history'); cards.forEach(function (card) { var heading = card.querySelector('.projectplus-phase-card__heading'); if (!heading) { return; } var content = document.createElement('div'); content.className = 'projectplus-phase-collapsible__content'; while (heading.nextSibling) { content.appendChild(heading.nextSibling); } card.appendChild(content); content.hidden = true; card.classList.add('projectplus-phase-collapsible'); heading.setAttribute('role', 'button'); heading.setAttribute('tabindex', '0'); heading.setAttribute('aria-expanded', 'false'); var chevron = document.createElement('i'); chevron.className = 'ti ti-chevron-down projectplus-phase-collapsible__chevron'; heading.appendChild(chevron); function toggle() { var open = !card.classList.contains('is-open'); cards.forEach(function (other) { other.classList.remove('is-open'); var otherContent = other.querySelector('.projectplus-phase-collapsible__content'); var otherHeading = other.querySelector('.projectplus-phase-card__heading'); if (otherContent) { otherContent.hidden = true; } if (otherHeading) { otherHeading.setAttribute('aria-expanded', 'false'); } }); if (open) { card.classList.add('is-open'); content.hidden = false; heading.setAttribute('aria-expanded', 'true'); } } heading.addEventListener('click', toggle); heading.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } }); }); }); })();</script>";
-   }
-
-   private static function showPhaseSelectScript(): void
-   {
-      echo "<script>(function () { document.querySelectorAll('.projectplus-phase-select').forEach(function (container) { if (container.dataset.projectplusPhaseSelectReady) { return; } var select = container.querySelector('select[name=phase]'); if (!select) { return; } container.dataset.projectplusPhaseSelectReady = '1'; function updateColor() { container.dataset.phase = select.value || 'classification'; } select.addEventListener('change', updateColor); updateColor(); }); })();</script>";
    }
 
    /** @param callable():void $content */

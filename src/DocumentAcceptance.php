@@ -240,7 +240,7 @@ class DocumentAcceptance extends CommonDBTM
       $DB->update(self::getTable(),['status'=>'accepted','accepted_users_id'=>(int)Session::getLoginUserID(),'date_accepted'=>$now,'date_mod'=>$now],['id'=>(int)$row['id'],'status'=>'published']);
       // Duas decisoes simultaneas: so a que encontrou o termo ainda publicado segue adiante.
       if ($DB->affectedRows() < 1) {
-         throw new RuntimeException(__('Este documento já foi decidido.', 'projectplus'));
+         throw new \RuntimeException(__('Este documento já foi decidido.', 'projectplus'));
       }
       if (!$item instanceof Ticket || (string) $row['document_type'] !== 'tap') {
          self::addFollowup($item, (string)$row['document_type'], __('Aceite do documento registrado.', 'projectplus'));
@@ -300,7 +300,7 @@ class DocumentAcceptance extends CommonDBTM
          'date_mod' => $now,
       ], ['id' => (int) $row['id'], 'status' => 'published']);
       if ($DB->affectedRows() < 1) {
-         throw new RuntimeException(__('Este documento já foi decidido.', 'projectplus'));
+         throw new \RuntimeException(__('Este documento já foi decidido.', 'projectplus'));
       }
       $type = (string) $row['document_type'];
       // O documento volta a rascunho: o conteudo fica para ser corrigido, mas a
@@ -393,18 +393,6 @@ class DocumentAcceptance extends CommonDBTM
          throw new \RuntimeException(__('Você não possui permissão para preencher o TAP.', 'projectplus'));
       }
       TicketRouting::assertActor($ticket, 'project', ProjectProfile::RIGHT_FILL_TAP);
-   }
-
-   private static function showStartTapForm(Ticket $ticket): void
-   {
-      if (!self::canManageDocument($ticket, 'tap', 'fill')) {
-         echo "<div class='alert alert-info'>" . self::esc(__('O TAP aguarda o Gerente de Projetos responsável.', 'projectplus')) . '</div>';
-         return;
-      }
-      global $CFG_GLPI;
-      $url = rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/documentacceptance.form.php';
-      echo "<div class='projectplus-flow-alert projectplus-flow-alert--warning'><strong>" . self::esc(__('Abertura autorizada.', 'projectplus')) . '</strong><br>' . self::esc(FlowStageDescription::get('tap')) . '</div>';
-      echo "<form method='post' action='" . self::esc($url) . "' class='center'>" . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . Html::hidden('itemtype', ['value' => Ticket::class]) . Html::hidden('items_id', ['value' => (int) $ticket->getID()]) . "<button class='btn btn-primary' type='submit' name='start_tap' value='1'><i class='ti ti-pencil'></i> " . self::esc(__('Preencher TAP', 'projectplus')) . '</button></form>';
    }
 
    /**
@@ -745,7 +733,7 @@ JAVASCRIPT
       }
       $generated = $draft && (string)$draft['status'] === 'generated';
       echo "<div class='projectplus-tip__footer'><span>" . self::esc($generated ? __('Versão gerada. Edite e gere novamente caso necessário.', 'projectplus') : __('Salve o rascunho antes de gerar o documento.', 'projectplus')) . "</span><button class='btn btn-secondary' type='submit'>" . self::esc(__('Salvar rascunho', 'projectplus')) . "</button><button class='btn btn-primary' type='submit' name='generate_document' value='1'>" . self::esc(__('Gerar ', 'projectplus') . strtoupper($type)) . '</button></div></form>';
-      if ($generated) echo "<form method='post' action='" . self::esc(self::url()) . "' class='projectplus-tip__footer'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]) . "<a target='_blank' href='" . self::esc(rtrim((string)$CFG_GLPI['root_doc'],'/') . '/plugins/projectplus/front/documentdraft.pdf.php?itemtype=' . rawurlencode($item::getType()) . '&items_id=' . (int)$item->getID() . '&document_type=' . $type) . "'>" . self::esc(__('Visualizar PDF gerado','projectplus')) . "</a><button class='btn btn-primary' name='publish_generated' value='1'>" . self::esc(__('Enviar para aceite','projectplus')) . '</button></form>';
+      if ($generated && self::canManageDocument($item, $type, 'send')) echo "<form method='post' action='" . self::esc(self::url()) . "' class='projectplus-tip__footer'>" . Html::hidden('_glpi_csrf_token',['value'=>Session::getNewCSRFToken()]) . Html::hidden('itemtype',['value'=>$item::getType()]) . Html::hidden('items_id',['value'=>(int)$item->getID()]) . Html::hidden('document_type',['value'=>$type]) . "<a target='_blank' href='" . self::esc(rtrim((string)$CFG_GLPI['root_doc'],'/') . '/plugins/projectplus/front/documentdraft.pdf.php?itemtype=' . rawurlencode($item::getType()) . '&items_id=' . (int)$item->getID() . '&document_type=' . $type) . "'>" . self::esc(__('Visualizar PDF gerado','projectplus')) . "</a><button class='btn btn-primary' name='publish_generated' value='1'>" . self::esc(__('Enviar para aceite','projectplus')) . '</button></form>';
    }
 
    /** @param array<string,mixed> $row */

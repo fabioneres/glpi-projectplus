@@ -75,6 +75,14 @@ Gerente de Projetos analisa e libera o Detalhamento Técnico; as priorizações 
 a autorização de abertura são concluídas; por fim, o TAP é aceito antes de o
 Project+ criar o projeto nativo vinculado e solucionar o chamado.
 
+## Telas
+
+| Configuração do fluxo | TIP no chamado | Visão do portfólio |
+|---|---|---|
+| ![Configuração do fluxo por categoria](docs/screenshots/01-configuracao.png) | ![Formulário do TIP](docs/screenshots/02-tip.png) | ![Visão do portfólio](docs/screenshots/03-portfolio.png) |
+
+Capturas feitas em ambiente de teste, com dados fictícios.
+
 ## Compatibilidade
 
 - GLPI: **11.0.0 a 11.0.99**.

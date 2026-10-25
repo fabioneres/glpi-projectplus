@@ -1,0 +1,63 @@
+<root>
+   <name>Project+</name>
+   <key>projectplus</key>
+   <state>alpha</state>
+   <logo>https://raw.githubusercontent.com/fabioneres/glpi-projectplus/glpi11/docs/logo-40.png</logo>
+   <description>
+      <short>
+         <en>Project portfolio for GLPI 11: requests become native projects after sequential documents, prioritization and authorization.</en>
+         <pt_BR>Portfólio de projetos para o GLPI 11: a solicitação vira projeto nativo após documentos, priorização e autorização em sequência.</pt_BR>
+      </short>
+      <long>
+         <en>
+Project+ organizes the request, evaluation, prioritization, authorization and opening of projects from tickets. The ticket remains the record of the demand, and the native GLPI project is created only after the required stages are completed.
+
+* Sequential stages: TIP, TIP - Technical Detail, technical and strategic prioritization, opening authorization, TAP and project creation.
+* Independent templates for TIP, TIP-DT, TAP, TEP and TA, with fields configurable per entity, generation, sending, acceptance, refusal, history and PDF.
+* Routing between entities by ITIL category, project manager and portfolio manager.
+* Granular profile rights for documents, prioritization, flow, projects and interactions.
+* Project interactions, notifications, transfer between entities and a portal for requesters and focal points.
+
+Requires GLPI 11.0.x and PHP 8.2 or later.
+         </en>
+         <pt_BR>
+O Project+ organiza a solicitação, avaliação, priorização, autorização e abertura de projetos a partir de chamados. O chamado continua sendo o registro da demanda, e o projeto nativo do GLPI só é criado depois de concluídas as etapas exigidas.
+
+* Etapas sequenciais: TIP, TIP - Detalhamento Técnico, priorizações técnica e estratégica, autorização de abertura, TAP e criação do projeto.
+* Modelos independentes de TIP, TIP-DT, TAP, TEP e TA, com campos configuráveis por entidade, geração, envio, aceite, recusa, histórico e PDF.
+* Roteamento entre entidades por categoria ITIL, Gerente de Projetos e Gestor de Portfólio.
+* Direitos de perfil granulares para documentos, priorizações, fluxo, projetos e interações.
+* Interações de projeto, notificações, transferência entre entidades e portal para solicitantes e pontos focais.
+
+Requer GLPI 11.0.x e PHP 8.2 ou superior.
+         </pt_BR>
+      </long>
+   </description>
+   <homepage>https://github.com/fabioneres/glpi-projectplus</homepage>
+   <download>https://github.com/fabioneres/glpi-projectplus/releases</download>
+   <issues>https://github.com/fabioneres/glpi-projectplus/issues</issues>
+   <readme>https://github.com/fabioneres/glpi-projectplus/blob/glpi11/README.md</readme>
+   <license>GPL v3+</license>
+   <authors>
+      <author>Fabio Neres</author>
+   </authors>
+   <versions>
+      <version>
+         <num>1.0.0-alpha.1</num>
+         <compatibility>~11.0.0</compatibility>
+      </version>
+   </versions>
+   <langs>
+      <lang>pt_BR</lang>
+   </langs>
+   <tags>
+      <pt_BR>
+         <tag>projetos</tag>
+         <tag>portfólio</tag>
+      </pt_BR>
+      <en>
+         <tag>projects</tag>
+         <tag>portfolio</tag>
+      </en>
+   </tags>
+</root>

@@ -527,9 +527,7 @@ class TicketIntent
 
    private static function documentType(string $documentType): string { return $documentType === TipDocumentType::DETAIL ? TipDocumentType::DETAIL : TipDocumentType::TIP; }
    private static function documentName(string $documentType): string { return $documentType === TipDocumentType::TIP ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
-   private static function documentLongName(string $documentType): string { return $documentType === TipDocumentType::TIP ? __('TIP - Termo de Intenção de Projeto', 'projectplus') : __('TIP - Detalhamento Técnico', 'projectplus'); }
    private static function phaseFor(string $documentType, string $status): string { return $documentType === TipDocumentType::TIP ? ($status === 'requested' ? 'awaiting_pretip' : 'awaiting_pretip_review') : ($status === 'requested' ? 'awaiting_tip' : 'portfolio_analysis'); }
    private static function getActionUrl(): string { global $CFG_GLPI; return rtrim((string) $CFG_GLPI['root_doc'], '/') . '/plugins/projectplus/front/tip.form.php'; }
-   private static function text($value): string { $value = trim((string) $value); if (strlen($value) > 65535) { throw new \RuntimeException(__('Um dos campos do documento excede o tamanho permitido.', 'projectplus')); } return $value; }
    private static function escape(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
 }

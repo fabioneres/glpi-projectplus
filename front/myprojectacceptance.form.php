@@ -6,6 +6,10 @@ use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ProjectPortal;
 use Glpi\Exception\Http\NotFoundHttpException;
 
+// O GLPI 11 inclui o arquivo dentro de um metodo do controlador: sem global, $CFG_GLPI
+// fica indefinido e o redirecionamento perde o root_doc (quebra em instalacao em subpasta).
+global $CFG_GLPI;
+
 Session::checkLoginUser();
 Session::checkHelpdeskAccess();
 
