@@ -14,7 +14,7 @@ use GlpiPlugin\Projectplus\RoutingNotice;
 Session::checkLoginUser();
 
 $ticketId = (int) ($_POST['tickets_id'] ?? 0);
-$documentType = (string) ($_POST['document_type'] ?? 'tip');
+$documentType = projectplus_param($_POST, 'document_type', 'tip');
 if ($documentType !== TipDocumentType::DETAIL) {
    $documentType = TipDocumentType::TIP;
 }
@@ -40,7 +40,7 @@ try {
    } elseif (isset($_POST['return_intent']) || isset($_POST['reject_intent']) || isset($_POST['reject_tip'])) {
       // reject_* continua aceito porque a acao mudou de nome, nao de lugar:
       // uma aba aberta antes da atualizacao ainda envia o nome antigo.
-      TicketIntent::returnForTicket($ticket, (string) ($_POST['justification'] ?? ''), $documentType);
+      TicketIntent::returnForTicket($ticket, projectplus_param($_POST, 'justification', ''), $documentType);
       Session::addMessageAfterRedirect(htmlescape(sprintf(__('%s devolvido ao solicitante para ajuste.', 'projectplus'), $documentName)));
    }
 } catch (\RuntimeException $exception) {

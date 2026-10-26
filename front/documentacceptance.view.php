@@ -9,7 +9,7 @@ use GlpiPlugin\Projectplus\DocumentAcceptance;
 use GlpiPlugin\Projectplus\ItemAccess;
 
 Session::checkLoginUser();
-$itemtype = (string) ($_GET['itemtype'] ?? '');
+$itemtype = projectplus_param($_GET, 'itemtype', '');
 $itemsId = (int) ($_GET['items_id'] ?? 0);
 $acceptanceId = (int) ($_GET['acceptance_id'] ?? 0);
 if (!in_array($itemtype, [Ticket::class, Project::class], true) || $itemsId <= 0 || $acceptanceId <= 0) { Html::displayErrorAndDie(__('Documento inválido.', 'projectplus')); }

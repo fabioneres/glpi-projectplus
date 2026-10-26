@@ -16,9 +16,9 @@ use GlpiPlugin\Projectplus\RoutingNotice;
 
 Session::checkLoginUser();
 
-$itemtype = (string) ($_POST['itemtype'] ?? '');
+$itemtype = projectplus_param($_POST, 'itemtype', '');
 $id = (int) ($_POST['items_id'] ?? 0);
-$type = (string) ($_POST['document_type'] ?? '');
+$type = projectplus_param($_POST, 'document_type', '');
 if (!in_array($itemtype, [Ticket::class, Project::class], true)
    || !in_array($type, ['tap', 'tep', 'ta'], true)) {
    Html::displayErrorAndDie(__('Documento inválido.', 'projectplus'));
@@ -36,7 +36,7 @@ if (isset($_POST['generate_document']) && !DocumentAcceptance::canManageDocument
 }
 
 $redirectUrl = $item instanceof Project
-   ? ProjectWorkspace::getProjectRedirectUrl($id, (string) ($_POST['projectplus_workspace_tab'] ?? 'documents'))
+   ? ProjectWorkspace::getProjectRedirectUrl($id, projectplus_param($_POST, 'projectplus_workspace_tab', 'documents'))
    : $itemtype::getFormURLWithID($id);
 $answers = is_array($_POST['document_fields'] ?? null) ? $_POST['document_fields'] : [];
 $draft = DocumentDraft::get($itemtype, $id, $type);

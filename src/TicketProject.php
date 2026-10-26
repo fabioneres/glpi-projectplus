@@ -159,13 +159,19 @@ class TicketProject
             throw new \RuntimeException(__('Não foi possível vincular o projeto ao chamado.', 'projectplus'));
          }
 
-         $DB->insert(self::getTable(), [
-            'tickets_id' => (int) $ticket->getID(),
-            'projects_id' => $projectId,
-            'entities_id' => (int) $ticket->getEntityID(),
-            'users_id' => (int) Session::getLoginUserID(),
-            'date_creation' => date('Y-m-d H:i:s'),
-         ]);
+         try {
+            $DB->insert(self::getTable(), [
+               'tickets_id' => (int) $ticket->getID(),
+               'projects_id' => $projectId,
+               'entities_id' => (int) $ticket->getEntityID(),
+               'users_id' => (int) Session::getLoginUserID(),
+               'date_creation' => date('Y-m-d H:i:s'),
+            ]);
+         } catch (\Throwable $exception) {
+            // UNIQUE em tickets_id: duas aberturas simultaneas do mesmo chamado. A que perde
+            // desfaz tudo (rollback abaixo) e recebe uma mensagem clara em vez do erro de SQL.
+            throw new \RuntimeException(__('O projeto deste chamado já foi aberto por outra requisição.', 'projectplus'));
+         }
 
          $solution = new ITILSolution();
          $nativeSolutionInput = [

@@ -13,7 +13,7 @@ use GlpiPlugin\Projectplus\FrontUrl;
 Session::checkRight('config', UPDATE);
 
 $entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
-$documentType = (string) ($_REQUEST['document_type'] ?? 'tap');
+$documentType = projectplus_param($_REQUEST, 'document_type', 'tap');
 if (!in_array($documentType, ['tap', 'tep', 'ta'], true)) {
    $documentType = 'tap';
 }
@@ -27,7 +27,7 @@ if (isset($_POST['save_document_config'])) {
    } else {
       Session::addMessageAfterRedirect(__('Informe o título do modelo.', 'projectplus'), false, ERROR);
    }
-   Html::redirect(FrontUrl::to(basename(__FILE__)) . '?document_type=' . rawurlencode($documentType));
+   Html::redirect(FrontUrl::to(basename(__FILE__)) . '?entities_id=' . $entityId . '&document_type=' . rawurlencode($documentType));
 }
 
 $config = TipConfig::getForEntity($entityId, $documentType);

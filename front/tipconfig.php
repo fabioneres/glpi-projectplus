@@ -13,7 +13,7 @@ use GlpiPlugin\Projectplus\FrontUrl;
 
 Session::checkRight('config', UPDATE);
 
-$documentType = (string) ($_REQUEST['document_type'] ?? 'tip');
+$documentType = projectplus_param($_REQUEST, 'document_type', 'tip');
 if ($documentType !== TipDocumentType::DETAIL) {
    $documentType = TipDocumentType::TIP;
 }

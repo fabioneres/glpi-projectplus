@@ -29,7 +29,7 @@ try {
       DocumentAcceptance::accept($project, (int) ($_POST['acceptance_id'] ?? 0));
       Session::addMessageAfterRedirect(__('Aceite registrado com sucesso.', 'projectplus'), true, INFO);
    } elseif (isset($_POST['reject_document'])) {
-      DocumentAcceptance::reject($project, (int) ($_POST['acceptance_id'] ?? 0), (string) ($_POST['rejection_justification'] ?? ''));
+      DocumentAcceptance::reject($project, (int) ($_POST['acceptance_id'] ?? 0), projectplus_param($_POST, 'rejection_justification', ''));
       Session::addMessageAfterRedirect(__('Documento recusado e devolvido para revisão.', 'projectplus'), true, INFO);
    } else {
       throw new RuntimeException(__('Ação documental inválida.', 'projectplus'));

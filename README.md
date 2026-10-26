@@ -81,7 +81,7 @@ Project+ criar o projeto nativo vinculado e solucionar o chamado.
 |---|---|---|
 | ![Configuração do fluxo por categoria](docs/screenshots/01-configuracao.png) | ![Formulário do TIP](docs/screenshots/02-tip.png) | ![Visão do portfólio](docs/screenshots/03-portfolio.png) |
 
-Capturas feitas em ambiente de teste, com dados fictícios.
+Capturas feitas em ambiente de teste; os logins de usuários foram substituídos por rótulos genéricos.
 
 ## Compatibilidade
 

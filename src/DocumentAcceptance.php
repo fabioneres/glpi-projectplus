@@ -201,7 +201,31 @@ class DocumentAcceptance extends CommonDBTM
       }
    }
 
+   /**
+    * Grava o termo e a troca de fase do chamado na mesma transacao: se a fase recusar (ex.: o titular
+    * perdeu o direito), o termo nao fica decidido com a fase parada.
+    */
+   private static function atomic(callable $operation): void
+   {
+      /** @var DBmysql $DB */ global $DB;
+      $DB->beginTransaction();
+      try {
+         $operation();
+         $DB->commit();
+      } catch (\Throwable $exception) {
+         $DB->rollBack();
+         throw $exception;
+      }
+   }
+
    public static function publishGenerated(CommonDBTM $item, string $type): void
+   {
+      self::atomic(static function () use ($item, $type): void {
+         self::doPublishGenerated($item, $type);
+      });
+   }
+
+   private static function doPublishGenerated(CommonDBTM $item, string $type): void
    {
       if ($item instanceof Ticket && $type === 'tap') {
          TicketPhase::assertCurrentPhase(
@@ -225,6 +249,13 @@ class DocumentAcceptance extends CommonDBTM
    }
 
    public static function accept(CommonDBTM $item, int $acceptanceId): void
+   {
+      self::atomic(static function () use ($item, $acceptanceId): void {
+         self::doAccept($item, $acceptanceId);
+      });
+   }
+
+   private static function doAccept(CommonDBTM $item, int $acceptanceId): void
    {
       /** @var DBmysql $DB */ global $DB;
       $row = $DB->request(['FROM'=>self::getTable(),'WHERE'=>['id'=>$acceptanceId,'itemtype'=>$item::getType(),'items_id'=>(int)$item->getID(),'status'=>'published'],'LIMIT'=>1])->current();
@@ -263,6 +294,13 @@ class DocumentAcceptance extends CommonDBTM
 
    /** Refuses a published TAP, TEP or TA and returns it to the manager for correction. */
    public static function reject(CommonDBTM $item, int $acceptanceId, string $justification): void
+   {
+      self::atomic(static function () use ($item, $acceptanceId, $justification): void {
+         self::doReject($item, $acceptanceId, $justification);
+      });
+   }
+
+   private static function doReject(CommonDBTM $item, int $acceptanceId, string $justification): void
    {
       $justification = trim($justification);
       if ($justification === '') {
@@ -585,6 +623,11 @@ class DocumentAcceptance extends CommonDBTM
 
    private static function showDocument(CommonDBTM $item, string $type, string $label): void
    {
+      // Defesa em profundidade: os chamadores ja filtram, mas o cartao mostra o estado e a
+      // justificativa de recusa, entao ele mesmo confere o acesso ao item.
+      if (!ItemAccess::canView($item)) {
+         return;
+      }
       $row = self::getForItem($item, $type);
       $description = __('Documento ainda não publicado.', 'projectplus');
       if ($row) {

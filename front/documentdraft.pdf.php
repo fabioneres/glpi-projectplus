@@ -12,9 +12,9 @@ use GlpiPlugin\Projectplus\FieldAttachment;
 use GlpiPlugin\Projectplus\ItemAccess;
 
 Session::checkLoginUser();
-$itemtype = (string) ($_GET['itemtype'] ?? '');
+$itemtype = projectplus_param($_GET, 'itemtype', '');
 $id = (int) ($_GET['items_id'] ?? 0);
-$type = (string) ($_GET['document_type'] ?? '');
+$type = projectplus_param($_GET, 'document_type', '');
 if (!in_array($itemtype, [Ticket::class, Project::class], true) || !in_array($type, ['tap', 'tep', 'ta'], true)) {
    Html::displayErrorAndDie(__('Documento inválido.', 'projectplus'));
 }

@@ -17,7 +17,7 @@ $entityId = (int) ($_REQUEST['entities_id'] ?? Session::getActiveEntity());
 if ($entityId < 0 || !Session::haveAccessToEntity($entityId)) {
    Html::displayErrorAndDie(__('Entidade inválida.', 'projectplus'));
 }
-$documentType = (string) ($_REQUEST['document_type'] ?? '');
+$documentType = projectplus_param($_REQUEST, 'document_type', '');
 if (!in_array($documentType, ['tap', 'tep', 'ta'], true)) {
    Html::displayErrorAndDie(__('Tipo de documento inválido.', 'projectplus'));
 }

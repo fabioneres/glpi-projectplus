@@ -15,7 +15,7 @@ use GlpiPlugin\Projectplus\TipField;
 Session::checkLoginUser();
 $ticket = new Ticket();
 $ticketId = (int) ($_GET['tickets_id'] ?? 0);
-$documentType = (string) ($_GET['document_type'] ?? 'tip');
+$documentType = projectplus_param($_GET, 'document_type', 'tip');
 if ($documentType !== TipDocumentType::DETAIL) {
    $documentType = TipDocumentType::TIP;
 }

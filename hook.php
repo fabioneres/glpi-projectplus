@@ -50,6 +50,20 @@ function plugin_projectplus_addWhere($link, $nott, $itemtype, $id, $value, $sear
    $isProjectRanking = ($itemtype === \Project::class || $itemtype === 'Project') && (int) $id === 9520;
    $isTicketRanking = ($itemtype === \Ticket::class || $itemtype === 'Ticket') && (int) $id === 9524;
    $isTicketPhase = ($itemtype === \Ticket::class || $itemtype === 'Ticket') && (int) $id === 9523;
+   $isTicketManager = ($itemtype === \Ticket::class || $itemtype === 'Ticket') && in_array((int) $id, [9521, 9522], true);
+
+   // Gerente de Projetos (9521) e Gestor de Portfolio (9522): o filtro padrao do nucleo compara
+   // o usuario com a coluna users_id (ultimo ator da fase). O responsavel fica em outra coluna.
+   if ($isTicketManager) {
+      $userId = $value === 'myself' ? (int) \Session::getLoginUserID() : (int) $value;
+      if (!in_array($searchtype, ['equals', 'notequals'], true) || $userId <= 0) {
+         return $link . ' (1 = 0) ';
+      }
+      $column = (int) $id === 9521 ? 'project_manager_users_id' : 'portfolio_manager_users_id';
+      $operator = $searchtype === 'notequals' ? 'NOT IN' : 'IN';
+      return $link . ($nott ? ' NOT' : '') . ' (`glpi_tickets`.`id` ' . $operator . ' (SELECT `tickets_id` FROM `'
+         . \GlpiPlugin\Projectplus\TicketPhase::getTable() . '` WHERE `' . $column . '` = ' . $userId . ')) ';
+   }
 
    if ($isTicketPhase) {
       $phases = \GlpiPlugin\Projectplus\TicketPhase::getPhases();
@@ -148,11 +162,11 @@ function plugin_projectplus_giveItem($type, $id, $data, $num): string
 
       if ($isDocumentField) {
          $entityId = (int) ($_REQUEST['entities_id'] ?? \Session::getActiveEntity());
-         $documentType = (string) ($_REQUEST['document_type'] ?? 'tap');
+         $documentType = projectplus_param($_REQUEST, 'document_type', 'tap');
          $page = 'documentfield.form.php';
       } else {
          $entityId = (int) \Session::getActiveEntity();
-         $documentType = (string) ($_REQUEST['document_type'] ?? 'tip');
+         $documentType = projectplus_param($_REQUEST, 'document_type', 'tip');
          $page = 'tipfield.form.php';
       }
       $url = \GlpiPlugin\Projectplus\FrontUrl::to($page, [
@@ -162,6 +176,13 @@ function plugin_projectplus_giveItem($type, $id, $data, $num): string
       ]);
       return "<a class='btn btn-sm btn-outline-secondary' href='"
          . \htmlescape($url) . "'>" . __('Editar') . '</a>';
+   }
+
+   // Colunas Gerente de Projetos (9521) e Gestor de Portfolio (9522): o valor e o id do usuario
+   // gravado na fase; o nome e escapado porque o Search imprime o retorno como HTML.
+   if (($type === \Ticket::class || $type === 'Ticket') && in_array((int) $id, [9521, 9522], true)) {
+      $userId = (int) ($data[$num][0]['name'] ?? 0);
+      return $userId > 0 ? \htmlescape(\User::getFriendlyNameById($userId)) : '';
    }
 
    if (($type !== \Ticket::class && $type !== 'Ticket') || (int) $id !== 9523) {

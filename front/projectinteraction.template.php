@@ -18,7 +18,7 @@ try {
       'success' => true,
       'content' => ProjectInteraction::getTemplateContent(
          $project,
-         (string) ($_GET['template_type'] ?? ''),
+         projectplus_param($_GET, 'template_type', ''),
          (int) ($_GET['template_id'] ?? 0)
       ),
    ], JSON_UNESCAPED_UNICODE);

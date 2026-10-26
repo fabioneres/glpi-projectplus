@@ -88,7 +88,7 @@ class ProjectWorkspace extends CommonDBTM
    /** Returns the requested tab, or an empty string when none was asked for. */
    private static function getRequestedTab(): string
    {
-      $tab = (string) ($_REQUEST['projectplus_workspace_tab'] ?? '');
+      $tab = projectplus_param($_REQUEST, 'projectplus_workspace_tab', '');
       return in_array($tab, ['documents', 'interactions', 'priority'], true) ? $tab : '';
    }
 

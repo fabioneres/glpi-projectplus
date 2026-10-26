@@ -374,6 +374,9 @@ class TicketCategoryConfig extends CommonDBTM
     */
    public function prepareInputForUpdate($input)
    {
+      // Entidade e categoria identificam a configuracao e a tela do plugin nunca as altera: a rota
+      // generica de formulario do GLPI aceitaria mover a linha para outra entidade/categoria.
+      unset($input['entities_id'], $input['itilcategories_id']);
       $entityId = (int) ($this->fields['entities_id'] ?? 0);
       foreach ([
          'project_manager_users_id' => [ProjectProfile::RIGHT_FILL_TIP, __('Gerente de projetos', 'projectplus')],

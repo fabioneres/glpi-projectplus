@@ -83,8 +83,15 @@ class ProjectImport
             continue;
          }
          $line = $index + 2;
-         $record = array_combine(self::HEADERS, array_pad($row, count(self::HEADERS), ''));
+         // Coluna a mais que o cabecalho nao pode derrubar array_combine (ValueError com mensagem
+         // tecnica na tela): a linha e recusada com o numero dela.
+         $extra = array_filter(array_slice($row, count(self::HEADERS)), static fn($value) => self::cleanValue($value) !== '');
+         $record = array_combine(self::HEADERS, array_pad(array_slice($row, 0, count(self::HEADERS)), count(self::HEADERS), ''));
          $result = self::validateRecord($record, $line, $seen);
+         if ($extra) {
+            $result['errors'][] = __('A linha tem mais colunas do que o cabeçalho do modelo.', 'projectplus');
+            $result['valid'] = false;
+         }
          if ($result['valid']) {
             $key = $result['entity_id'] . ':' . self::cleanValue($record['Código*']);
             $seen[$key] = true;
@@ -123,8 +130,28 @@ class ProjectImport
             if (!$row['valid']) {
                continue;
             }
+            // O arquivo foi validado antes: o que mudou entre a pre-validacao e a confirmacao
+            // (outro projeto com o mesmo codigo, acesso perdido) precisa ser conferido de novo.
+            if (!Session::haveAccessToEntity((int) $row['entity_id'])
+               || self::findProjectByCode((int) $row['entity_id'], $row['record']['Código*'])) {
+               throw new \RuntimeException(sprintf(
+                  __('Linha %s: o código já existe na entidade ou a entidade não está mais acessível. Nenhum projeto foi importado.', 'projectplus'),
+                  (string) $row['line']
+               ));
+            }
             $project = new Project();
-            $id = $project->add(self::projectInput($row));
+            try {
+               $id = $project->add(self::projectInput($row));
+            } catch (\RuntimeException $exception) {
+               throw $exception;
+            } catch (\Throwable $exception) {
+               // Erro de banco nao vai cru para a tela: registra no log e informa a linha.
+               \Toolbox::logInFile('projectplus', 'importacao linha ' . (string) $row['line'] . ': ' . $exception->getMessage() . PHP_EOL);
+               throw new \RuntimeException(sprintf(
+                  __('Falha ao criar o Projeto da linha %s: os dados foram recusados. Nenhum projeto foi importado.', 'projectplus'),
+                  (string) $row['line']
+               ));
+            }
             if ($id <= 0) {
                throw new \RuntimeException(sprintf(
                   __('Falha ao criar o Projeto da linha %s. Nenhum projeto foi importado.', 'projectplus'),
@@ -242,6 +269,11 @@ class ProjectImport
             $errors[] = __('O nome da entidade não corresponde ao ID informado.', 'projectplus');
          } elseif (!Session::haveAccessToEntity($entityId)) {
             $errors[] = __('Sem acesso à entidade informada.', 'projectplus');
+         }
+      }
+      foreach (['Nome*' => 255, 'Código*' => 255] as $field => $max) {
+         if (mb_strlen(self::cleanValue($record[$field])) > $max) {
+            $errors[] = sprintf(__('%1$s excede %2$d caracteres.', 'projectplus'), $field, $max);
          }
       }
       $key = $entityId . ':' . self::cleanValue($record['Código*']);

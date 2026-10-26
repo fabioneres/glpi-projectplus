@@ -18,4 +18,4 @@ try {
 } catch (Throwable $exception) {
    Session::addMessageAfterRedirect(htmlescape($exception->getMessage()), false, ERROR);
 }
-Html::redirect(ProjectWorkspace::getProjectRedirectUrl($projectId, (string) ($_POST['projectplus_workspace_tab'] ?? 'priority')));
+Html::redirect(ProjectWorkspace::getProjectRedirectUrl($projectId, projectplus_param($_POST, 'projectplus_workspace_tab', 'priority')));

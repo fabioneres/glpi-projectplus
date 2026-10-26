@@ -70,6 +70,16 @@ class TicketPhase extends CommonDBTM
 
    public static function getSpecificValueToSelect($field, $name = '', $values = '', array $options = [])
    {
+      if (in_array($field, ['project_manager_users_id', 'portfolio_manager_users_id'], true)) {
+         $userId = is_array($values) ? (int) ($values[$field] ?? 0) : (int) $values;
+         return User::dropdown([
+            'name' => $name,
+            'value' => $userId,
+            'right' => 'all',
+            'width' => $options['width'] ?? '100%',
+            'display' => false,
+         ]);
+      }
       if ($field !== 'phase') {
          return parent::getSpecificValueToSelect($field, $name, $values, $options);
       }
@@ -128,24 +138,19 @@ class TicketPhase extends CommonDBTM
          9521 => ['project_manager_users_id', __('Gerente de Projetos', 'projectplus')],
          9522 => ['portfolio_manager_users_id', __('Gestor de Portfólio', 'projectplus')],
       ] as $id => $definition) {
+         // Mesma forma da Fase (9523): a opcao pertence a tabela do plugin, assim o nucleo consulta
+         // plugin_projectplus_addWhere() (filtro por esta coluna, nao pelo ultimo ator da fase),
+         // plugin_projectplus_giveItem() (nome do usuario) e getSpecificValueToSelect() (seletor).
          $options[] = [
             'id' => $id,
-            'table' => User::getTable(),
-            'field' => 'name',
-            'linkfield' => $definition[0],
-            'datatype' => 'dropdown',
+            'table' => self::getTable(),
+            'field' => $definition[0],
+            'datatype' => 'specific',
+            'searchtype' => ['equals', 'notequals'],
             'name' => $definition[1],
             'forcegroupby' => true,
             'massiveaction' => false,
-            'use_subquery' => true,
-            'joinparams' => [
-               'beforejoin' => [
-                  'table' => self::getTable(),
-                  // O subselect do filtro usa este campo (padrao users_id = ultimo ator da fase):
-                  // sem ele Gerente/Gestor filtravam pela coluna errada e devolviam vazio.
-                  'joinparams' => ['jointype' => 'child', 'linkfield' => $definition[0]],
-               ],
-            ],
+            'joinparams' => ['jointype' => 'child'],
          ];
       }
       return $options;

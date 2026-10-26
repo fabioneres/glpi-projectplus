@@ -57,6 +57,11 @@ Candidata interna: ainda não validada em navegação nem em fluxo completo.
 - Desinstalar remove também os nomes e textos de etapa gravados na configuração do GLPI.
 - As ações em massa dos campos do TIP, dos modelos de termos e da configuração de categoria só atuam em registros da própria classe; a configuração de categoria valida o responsável também pela rota genérica de formulário do GLPI.
 - Purgar um chamado mantém o vínculo com o projeto filho, para o projeto continuar sob a trava de encerramento sem TA.
+- **Pesquisa de chamados:** filtrar ou exibir o Ranking não lança mais erro quando há resultados, e os filtros Gerente de Projetos e Gestor de Portfólio passam a usar o responsável configurado (antes devolviam vazio).
+- Campos de data e hora são validados no servidor; origem `ticket:` desconhecida devolve vazio (antes devolvia o requerente).
+- **Abrir projeto** leva ao projeto criado (o redirecionamento era engolido e o usuário voltava ao chamado); a ação em massa da configuração de categoria aceita responsáveis válidos; duas aberturas simultâneas do mesmo chamado recebem mensagem clara.
+- **Importação CSV:** linha com colunas a mais é recusada com o número da linha, nome e código têm limite de 255, a confirmação revalida código e acesso à entidade e erro de banco não aparece cru na tela.
+- O nome do item em uso é escapado na mensagem de exclusão recusada das Ações PDTIC e Cestas; parâmetros de requisição enviados como lista não geram mais avisos no log; o botão de envio de termo só aparece a quem tem o direito de envio; código morto removido; logo reduzido; `plugin.xml` e capturas de tela no README.
 - Aceitar ou recusar um termo só vale uma vez (duas decisões simultâneas não repetem os efeitos); a tela de regras de transferência lista só o que o administrador alcança; a jornada documental do projeto só mostra o chamado a quem o enxerga.
 
 ## 0.9.14 — 2026-09-25

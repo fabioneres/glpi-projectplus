@@ -22,3 +22,15 @@ spl_autoload_register(static function (string $class): void {
 });
 
 require_once __DIR__ . '/src/LegacyDropdowns.php';
+
+if (!function_exists('projectplus_param')) {
+   /**
+    * Parametro de requisicao como texto: um array enviado no lugar de um valor
+    * ("?document_type[]=x") vira o padrao em vez de "Array to string conversion".
+    */
+   function projectplus_param(array $source, string $key, string $default = ''): string
+   {
+      $value = $source[$key] ?? null;
+      return is_scalar($value) ? (string) $value : $default;
+   }
+}
