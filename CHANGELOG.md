@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.0.0-alpha.1 - Unreleased (linha GLPI 11)
+## 1.0.0-alpha.1 - 2026-10-27 (linha GLPI 11)
 
 Primeira versão da linha **GLPI 11**, equivalente funcional à `0.9.14` (linha GLPI 10). Sem funcionalidade nova.
-Candidata interna: ainda não validada em navegação nem em fluxo completo.
+Pré-lançamento (alpha) aprovado com ressalvas no Security Release Gate; validado em navegação e fluxo completo no GLPI 11.0.11.
 
 ### Alterado
 
