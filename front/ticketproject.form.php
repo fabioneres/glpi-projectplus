@@ -24,8 +24,9 @@ try {
    $projectId = TicketProject::createFromTicket($ticket, $_POST);
    Session::addMessageAfterRedirect(__('Projeto criado e chamado solucionado.', 'projectplus'), true, INFO);
    if (!empty($_POST['_sol_to_kb'])) {
-      $target = KnowbaseItem::getFormURLWithParam(['_sol_to_kb' => 1])
-         . '&item_itemtype=' . rawurlencode(Ticket::class) . '&item_items_id=' . $ticketId;
+      // Igual ao nucleo (front/ticket.form.php): volta ao chamado com _sol_to_kb=1, onde o GLPI abre
+      // o modal de "adicionar a base de conhecimento" ja com o texto da solucao.
+      $target = Ticket::getFormURLWithID($ticketId) . '&_sol_to_kb=1';
    } else {
       $target = Project::getFormURLWithID($projectId);
    }
